@@ -55,7 +55,7 @@ def do_github(issues: list, creds: dict):
     mygh = Github(auth=auth)
     for issue in issues:
         try:
-            info = mygh.get_repo(issue.repo).get_issue(issue.number)
+            info = mygh.get_repo(issue.repo, lazy=True).get_issue(issue.number)
             print(f"gh#{info.number}\t{info.state}\t\t{dateit(info.last_modified)}\t{info.title}")
         except GithubException as exc:
             print(f"gh#{issue.repo}#{issue.number}: {exc}", file=sys.stderr)
@@ -70,7 +70,7 @@ def do_gitlab(url: str, issues: list, creds: dict):
     with Gitlab(url=url, **creds) as mygl:
         for issue in issues:
             try:
-                info = mygl.projects.get(issue.repo).issues.get(issue.number)
+                info = mygl.projects.get(issue.repo, lazy=True).issues.get(issue.number)
                 print(f"gl#{info.iid}\t{info.state}\t\t{dateit(info.updated_at)}\t{info.title}")
             except GitlabError as exc:
                 print(f"gl#{issue.repo}#{issue.number}: {exc}", file=sys.stderr)
