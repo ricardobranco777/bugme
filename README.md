@@ -4,6 +4,13 @@
 
 Show bug and issue status
 
+Supported:
+- bsc#: SUSE's Bugzilla
+- gh#: Github
+- gl#: Gitlab
+- gsd#: SUSE's Gitlab
+- poo#: openSUSE's Redmine
+
 ## Example usage
 
 Copy [creds-example.json](creds-example.json) to `~/creds.json` and run.

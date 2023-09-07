@@ -3,3 +3,4 @@ python-bugzilla
 python-redmine
 python-dateutil
 pytz
+python-gitlab

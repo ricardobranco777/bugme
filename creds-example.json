@@ -7,6 +7,12 @@
     "username": "rbranco",
     "key": "REDMINE_API_KEY"
   },
+  "gitlab.suse.de": {
+    "private_token": "GITLAB_API_KEY"
+  },
+  "gitlab.com": {
+    "private_token": "GITLAB_API_KEY"
+  },
   "github.com": {
     "token": "GITHUB_TOKEN"
   }
