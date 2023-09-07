@@ -15,6 +15,10 @@ gh#19529        closed          Tue Aug 08 10:56:56 CEST 2023   Unexpected error
 poo#133910      Resolved        Thu Aug 17 08:50:53 CEST 2023   We need a suite of tests to check volume operations in container runtimes
 ```
 
+## Terminator plugin
+
+Copy [terminator.py](terminator.py) to `~/.config/terminator/plugins/`
+
 ## Requirements
 
 - Tested on Python 3.8+
