@@ -1,0 +1,13 @@
+{
+  "bugzilla.suse.com": {
+    "user": "rbranco@suse.com",
+    "api_key": "BUGZILLA_API_KEY"
+  },
+  "progress.opensuse.org": {
+    "username": "rbranco",
+    "key": "REDMINE_API_KEY"
+  },
+  "github.com": {
+    "token": "GITHUB_TOKEN"
+  }
+}
