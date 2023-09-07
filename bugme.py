@@ -36,8 +36,9 @@ def do_bugzilla(url: str, bugs: list, creds):
     """
     if len(bugs) == 0:
         return
+    sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
     try:
-        mybugz = Bugzilla(url, force_rest=True, **creds)
+        mybugz = Bugzilla(url, force_rest=True, sslverify=sslverify, **creds)
         for bug in mybugz.getbugs(bugs):
             print(f"bsc#{bug.id}\t{bug.status}\t\t{dateit(bug.last_change_time)}\t{bug.summary}")
         mybugz.disconnect()
@@ -67,7 +68,8 @@ def do_gitlab(url: str, issues: list, creds: dict):
     """
     if len(issues) == 0:
         return
-    with Gitlab(url=url, **creds) as mygl:
+    ssl_verify = os.getenv("REQUESTS_CA_BUNDLE") if url else True
+    with Gitlab(url=url, ssl_verify=ssl_verify, retry_transient_errors=False, **creds) as mygl:
         for issue in issues:
             try:
                 info = mygl.projects.get(issue.repo, lazy=True).issues.get(issue.number)
