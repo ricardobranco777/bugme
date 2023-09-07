@@ -82,7 +82,7 @@ def do_redmine(url: str, tickets: list, creds: dict):
     """
     if len(tickets) == 0:
         return
-    redmine = Redmine(url=url, **creds)
+    redmine = Redmine(url=url, raise_attr_exception=False, **creds)
     for ticket in tickets:
         try:
             info = redmine.issue.get(ticket)
