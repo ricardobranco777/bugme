@@ -1,4 +1,4 @@
-FILES=bugme.py
+FILES=*.py
 
 .PHONY: all
 all: flake8 pylint mypy black
