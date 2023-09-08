@@ -1,6 +1,7 @@
+Jinja2
 PyGithub
 python-bugzilla
+python-gitlab
 python-redmine
 python-dateutil
 pytz
-python-gitlab

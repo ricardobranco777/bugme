@@ -3,6 +3,7 @@
 Bugme
 """
 
+import argparse
 import logging
 import os
 import json
@@ -15,16 +16,28 @@ from datetime import datetime
 from dateutil import parser
 from pytz import utc
 
+from bugzilla import Bugzilla  # type: ignore
+from bugzilla.exceptions import BugzillaError  # type: ignore
 from github import Github, Auth, GithubException
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
-from bugzilla import Bugzilla  # type: ignore
-from bugzilla.exceptions import BugzillaError  # type: ignore
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError  # type: ignore
 from requests.exceptions import RequestException
+from jinja2 import Template
 
-CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
+
+DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
+
+CODE_TO_HOST = {
+    "bnc": "bugzilla.suse.com",
+    "bsc": "bugzilla.suse.com",
+    "boo": "bugzilla.suse.com",
+    "gh": "github.com",
+    "gl": "gitlab.com",
+    "gsd": "gitlab.suse.de",
+    "poo": "progress.opensuse.org",
+}
 
 
 def dateit(
@@ -82,18 +95,13 @@ def get_item(string: str) -> Union[Item, None]:
             repo=repo,
             id=int(issue_id),
         )
-    if string.startswith(("bnc#", "boo#", "bsc#")):
-        return Item(host="bugzilla.suse.com", id=int(string.split("#", 1)[1]))
-    if string.startswith("poo#"):
-        return Item(host="progress.opensuse.org", id=int(string.split("#", 1)[1]))
-    code, repo, issue = string.split("#", 2)
-    code_to_host = {
-        "gh": "github.com",
-        "gl": "gitlab.com",
-        "gsd": "gitlab.suse.de",
-    }
     try:
-        return Item(host=code_to_host[code], repo=repo, id=int(issue))
+        code, repo, issue = string.split("#", 2)
+    except ValueError:
+        code, issue = string.split("#", 1)
+        repo = ""
+    try:
+        return Item(host=CODE_TO_HOST[code], repo=repo, id=int(issue))
     except KeyError:
         logging.warning("Unsupported %s", string)
     return None
@@ -180,6 +188,7 @@ class MyBugzilla(Service):
             id=info.id,
             status=info.status,
             title=info.summary,
+            created=info.creation_time,
             updated=info.last_change_time,
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             extra=info.__dict__,
@@ -212,7 +221,8 @@ class MyGithub(Service):
             id=info.number,
             status=info.state,
             title=info.title,
-            updated=info.last_modified,
+            created=info.created_at,
+            updated=info.updated_at,
             url=f"{self.url}/{item.repo}/issues/{item.id}",
             extra=info.__dict__["_rawData"],
         )
@@ -251,6 +261,7 @@ class MyGitlab(Service):
             id=info.iid,
             status=info.state,
             title=info.title,
+            created=info.created_at,
             updated=info.updated_at,
             url=f"{self.url}/{item.repo}/-/issues/{item.id}",
             extra=info.asdict(),
@@ -282,62 +293,120 @@ class MyRedmine(Service):
             id=info.id,
             status=info.status.name,
             title=info.subject,
+            created=info.created_on,
             updated=info.updated_on,
             url=f"{self.url}/issues/{info.id}",
             extra=info.raw(),
         )
 
 
-def main() -> None:
+def parse_args() -> argparse.Namespace:
+    """
+    Parse command line options
+    """
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "-c",
+        "--creds",
+        default=DEFAULT_CREDENTIALS_FILE,
+        help="Path to credentials file",
+    )
+    argparser.add_argument("-f", "--format", help="Output in Jinja2 format")
+    argparser.add_argument(
+        "-l",
+        "--log",
+        choices=["debug", "info", "warning", "error", "critical"],
+        default="warning",
+        help="Log level",
+    )
+    argparser.add_argument(
+        "-o", "--output", choices=["text", "json"], default="text", help="Output type"
+    )
+    argparser.add_argument(
+        "-t", "--time", default="%a %b %d %H:%M:%S %Z %Y", help="Time format"
+    )
+    argparser.add_argument("urls", nargs="+")
+    return argparser.parse_args()
+
+
+HOST_TO_CLS = {
+    "bugzilla.suse.com": MyBugzilla,
+    "progress.opensuse.org": MyRedmine,
+    "gitlab.suse.de": MyGitlab,
+    "gitlab.com": MyGitlab,
+    "github.com": MyGithub,
+}
+
+
+def main() -> None:  # pylint: disable=too-many-branches
     """
     Main function
     """
-    with open(CREDENTIALS_FILE, encoding="utf-8") as file:
+    with open(args.creds, encoding="utf-8") as file:
         if os.fstat(file.fileno()).st_mode & 0o77:
-            sys.exit(f"ERROR: {CREDENTIALS_FILE} has insecure permissions")
+            sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    items: Dict[str, List[Item]] = {}
-    for arg in sys.argv[1:]:
+    host_items: Dict[str, List[Item]] = {}
+    for arg in args.urls:
         item = get_item(arg)
         if item is None:
             continue
-        if item["host"] not in items:
-            items[item["host"]] = [item]
+        if item["host"] not in host_items:
+            host_items[item["host"]] = [item]
         else:
-            items[item["host"]].append(item)
-
-    host_to_cls = {
-        "bugzilla.suse.com": MyBugzilla,
-        "progress.opensuse.org": MyRedmine,
-        "gitlab.suse.de": MyGitlab,
-        "gitlab.com": MyGitlab,
-        "github.com": MyGithub,
-    }
+            host_items[item["host"]].append(item)
 
     clients: Dict[str, Any] = {}
-    for host in items:
-        clients[host] = host_to_cls[host](f"https://{host}", creds[host])
+    for host in host_items:
+        clients[host] = HOST_TO_CLS[host](f"https://{host}", creds[host])
 
     if len(clients) == 0:
         sys.exit(0)
 
+    all_items = []
+    keys = {
+        "url": "<70",
+        "status": "<10",
+        # "created": "<30",
+        "updated": "<30",
+        "title": "",
+    }
+    # args.format = "  ".join(f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items())
+    if args.format is None:
+        print("  ".join([f"{key.upper():{align}}" for key, align in keys.items()]))
+
     with ThreadPoolExecutor(max_workers=len(clients)) as executor:
         iterator = executor.map(
-            lambda host: clients[host].get_items(items[host]), clients
+            lambda host: clients[host].get_items(host_items[host]), clients
         )
-        for results in iterator:
-            for item in results:
+        for items in iterator:
+            for item in items:
                 if item is None:
                     continue
-                print(
-                    "\t".join(
-                        [item.url, item.status, dateit(item.updated), item.title]
-                    )
-                )
+                item.created = dateit(item.created, args.time)
+                item.updated = dateit(item.updated, args.time)
+                if args.output == "text":
+                    if args.format:
+                        print(Template(args.format).render(item.__dict__))
+                    else:
+                        print(
+                            "  ".join(
+                                [f"{item[key]:{align}}" for key, align in keys.items()]
+                            )
+                        )
+                elif args.output == "json":
+                    all_items.append(item.__dict__)
+
+    if args.output == "json":
+        print(json.dumps(all_items, default=str, sort_keys=True))
 
 
 if __name__ == "__main__":
+    args = parse_args()
+    logging.basicConfig(
+        format="%(levelname)-8s %(message)s", stream=sys.stderr, level=args.log.upper()
+    )
     try:
         main()
     except KeyboardInterrupt:
