@@ -2,3 +2,7 @@
 
 flake8
 pylint
+mypy
+types-python-dateutil
+types-pytz
+types-requests

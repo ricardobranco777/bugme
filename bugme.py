@@ -3,25 +3,33 @@
 Bugme
 """
 
+import logging
 import os
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse, parse_qs
+from typing import Any, Dict, List, Union
 
+from datetime import datetime
 from dateutil import parser
 from pytz import utc
 
 from github import Github, Auth, GithubException
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
-from bugzilla import Bugzilla
-from bugzilla.exceptions import BugzillaError
-from redminelib import Redmine
-from redminelib.exceptions import BaseRedmineError
+from bugzilla import Bugzilla  # type: ignore
+from bugzilla.exceptions import BugzillaError  # type: ignore
+from redminelib import Redmine  # type: ignore
+from redminelib.exceptions import BaseRedmineError  # type: ignore
+from requests.exceptions import RequestException
 
 CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
 
-def dateit(date, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
+def dateit(
+    date: Union[str, datetime], time_format: str = "%a %b %d %H:%M:%S %Z %Y"
+) -> str:
     """
     Return date in desired format
     """
@@ -30,113 +38,303 @@ def dateit(date, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     return date.astimezone().strftime(time_format)
 
 
-def do_bugzilla(url: str, bugs: list, creds):
+class Item:  # pylint: disable=too-few-public-methods
+    """
+    Item class
+    """
+
+    def __init__(self, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+    # Allow access this object as a dictionary
+
+    def __getitem__(self, item: str) -> Any:
+        try:
+            return getattr(self, item)
+        except AttributeError as exc:
+            raise KeyError(exc) from exc
+
+    def __setitem__(self, item: str, value: Any):
+        setattr(self, item, value)
+
+
+def get_item(string: str) -> Union[Item, None]:
+    """
+    Get Item from string
+    """
+    if "#" not in string:
+        string = string if string.startswith("https://") else f"https://{string}"
+        url = urlparse(string)
+        assert url.hostname is not None
+        repo: str = ""
+        if url.hostname.startswith("git"):
+            repo = os.path.dirname(
+                os.path.dirname(url.path.replace("/-/", "/"))
+            ).lstrip("/")
+            issue_id = os.path.basename(url.path)
+        elif url.hostname.startswith("bugzilla"):
+            issue_id = parse_qs(url.query)["id"][0]
+        elif url.hostname == "progress.opensuse.org":
+            issue_id = os.path.basename(url.path)
+        return Item(
+            host=url.hostname,
+            repo=repo,
+            id=int(issue_id),
+        )
+    if string.startswith(("bnc#", "boo#", "bsc#")):
+        return Item(host="bugzilla.suse.com", id=int(string.split("#", 1)[1]))
+    if string.startswith("poo#"):
+        return Item(host="progress.opensuse.org", id=int(string.split("#", 1)[1]))
+    code, repo, issue = string.split("#", 2)
+    code_to_host = {
+        "gh": "github.com",
+        "gl": "gitlab.com",
+        "gsd": "gitlab.suse.de",
+    }
+    try:
+        return Item(host=code_to_host[code], repo=repo, id=int(issue))
+    except KeyError:
+        logging.warning("Unsupported %s", string)
+    return None
+
+
+class Service:
+    """
+    Service class to abstract methods
+    """
+
+    def __init__(self, url: str):
+        url = url.rstrip("/")
+        self.url = url if url.startswith("https://") else f"https://{url}"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            logging.error(
+                "%s: %s: %s: %s",
+                self.__class__.__name__,
+                exc_type,
+                exc_value,
+                traceback,
+            )
+
+    def get_item(self, item: Item) -> Union[Item, None]:
+        """
+        This method must be overriden if get_items() isn't overriden
+        """
+        raise NotImplementedError(f"{self.__class__.__name__}: get_item()")
+
+    def get_items(self, items: List[Item]) -> List[Union[Item, None]]:
+        """
+        Multithreaded get_items()
+        """
+        with ThreadPoolExecutor(max_workers=len(items)) as executor:
+            return list(executor.map(self.get_item, items))
+
+
+class MyBugzilla(Service):
     """
     Bugzilla
     """
-    if len(bugs) == 0:
-        return
-    sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
-    try:
-        mybugz = Bugzilla(url, force_rest=True, sslverify=sslverify, **creds)
-        for bug in mybugz.getbugs(bugs):
-            print(f"bsc#{bug.id}\t{bug.status}\t\t{dateit(bug.last_change_time)}\t{bug.summary}")
-        mybugz.disconnect()
-    except BugzillaError as exc:
-        print(f"Bugzilla: {exc}")
+
+    def __init__(self, url: str, creds: dict):
+        super().__init__(url)
+        sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
+        self.client = Bugzilla(self.url, force_rest=True, sslverify=sslverify, **creds)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            self.client.disconnect()
+        except BugzillaError:
+            pass
+        super().__exit__(exc_type, exc_value, traceback)
+
+    def get_item(self, item: Item) -> Union[Item, None]:
+        """
+        Get Bugzilla item
+        """
+        try:
+            return self._to_item(self.client.getbug(item.id))
+        except BugzillaError as exc:
+            logging.error("Bugzilla: %s: get_items(%d): %s", self.url, item, exc)
+        return None
+
+    def get_items(self, items: List[Item]) -> List[Union[Item, None]]:
+        """
+        Get Bugzilla items
+        """
+        try:
+            return [
+                self._to_item(info)
+                for info in self.client.getbugs([_.id for _ in items])
+            ]
+        except BugzillaError as exc:
+            logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
+        return []
+
+    def _to_item(self, info: Any) -> Union[Item, None]:
+        return Item(
+            id=info.id,
+            status=info.status,
+            title=info.summary,
+            updated=info.last_change_time,
+            url=f"{self.url}/show_bug.cgi?id={info.id}",
+            extra=info.__dict__,
+        )
 
 
-def do_github(issues: list, creds: dict):
+class MyGithub(Service):
     """
     Github
     """
-    if len(issues) == 0:
-        return
-    auth = Auth.Token(**creds)
-    mygh = Github(auth=auth)
-    for issue in issues:
+
+    def __init__(self, url: str, creds: dict):
+        super().__init__(url)
+        auth = Auth.Token(**creds)
+        self.client = Github(auth=auth)
+
+    def get_item(self, item: Item) -> Union[Item, None]:
+        """
+        Get Github issue
+        """
         try:
-            info = mygh.get_repo(issue.repo, lazy=True).get_issue(issue.number)
-            print(f"gh#{info.number}\t{info.state}\t\t{dateit(info.last_modified)}\t{info.title}")
+            info = self.client.get_repo(item.repo, lazy=True).get_issue(item.id)
         except GithubException as exc:
-            print(f"gh#{issue.repo}#{issue.number}: {exc}", file=sys.stderr)
+            logging.error("Github: get_issue(%s): %s", item.id, exc)
+            return None
+        return self._to_item(info, item)
+
+    def _to_item(self, info: Any, item: Item) -> Union[Item, None]:
+        return Item(
+            id=info.number,
+            status=info.state,
+            title=info.title,
+            updated=info.last_modified,
+            url=f"{self.url}/{item.repo}/issues/{item.id}",
+            extra=info.__dict__["_rawData"],
+        )
 
 
-def do_gitlab(url: str, issues: list, creds: dict):
+class MyGitlab(Service):
     """
     Gitlab
     """
-    if len(issues) == 0:
-        return
-    ssl_verify = os.getenv("REQUESTS_CA_BUNDLE") if url else True
-    with Gitlab(url=url, ssl_verify=ssl_verify, retry_transient_errors=False, **creds) as mygl:
-        for issue in issues:
-            try:
-                info = mygl.projects.get(issue.repo, lazy=True).issues.get(issue.number)
-                print(f"gl#{info.iid}\t{info.state}\t\t{dateit(info.updated_at)}\t{info.title}")
-            except GitlabError as exc:
-                print(f"gl#{issue.repo}#{issue.number}: {exc}", file=sys.stderr)
+
+    def __init__(self, url: str, creds: dict):
+        super().__init__(url)
+        ssl_verify = os.environ.get("REQUESTS_CA_BUNDLE", False) if self.url else True
+        self.client = Gitlab(url=self.url, ssl_verify=ssl_verify, **creds)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            self.client.__exit__(exc_type, exc_value, traceback)
+        except GitlabError:
+            pass
+        super().__exit__(exc_type, exc_value, traceback)
+
+    def get_item(self, item: Item) -> Union[Item, None]:
+        """
+        Get Gitlab issue
+        """
+        try:
+            info = self.client.projects.get(item.repo, lazy=True).issues.get(item.id)
+        except (GitlabError, RequestException) as exc:
+            logging.error("Gitlab: %s: get_issue(%s): %s", self.url, item.id, exc)
+            return None
+        return self._to_item(info, item)
+
+    def _to_item(self, info: Any, item: Item) -> Union[Item, None]:
+        return Item(
+            id=info.iid,
+            status=info.state,
+            title=info.title,
+            updated=info.updated_at,
+            url=f"{self.url}/{item.repo}/-/issues/{item.id}",
+            extra=info.asdict(),
+        )
 
 
-def do_redmine(url: str, tickets: list, creds: dict):
+class MyRedmine(Service):
     """
     Redmine
     """
-    if len(tickets) == 0:
-        return
-    redmine = Redmine(url=url, raise_attr_exception=False, **creds)
-    for ticket in tickets:
+
+    def __init__(self, url: str, creds: dict):
+        super().__init__(url)
+        self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
+
+    def get_item(self, item: Item) -> Union[Item, None]:
+        """
+        Get Redmine ticket
+        """
         try:
-            info = redmine.issue.get(ticket)
-            print(f"poo#{info.id}\t{info.status}\t{dateit(info.updated_on)}\t{info.subject}")
+            info = self.client.issue.get(item.id)
         except BaseRedmineError as exc:
-            print(f"poo#{ticket}: {exc}", file=sys.stderr)
+            logging.error("Redmine: %s: get_issue(%d): %s", self.url, item.id, exc)
+            return None
+        return self._to_item(info)
+
+    def _to_item(self, info: Any) -> Union[Item, None]:
+        return Item(
+            id=info.id,
+            status=info.status.name,
+            title=info.subject,
+            updated=info.updated_on,
+            url=f"{self.url}/issues/{info.id}",
+            extra=info.raw(),
+        )
 
 
-class RepoIssue:  # pylint: disable=too-few-public-methods
-    """
-    Simple class to hold GitHub issue
-    """
-
-    def __init__(self, repo: str, issue: str):
-        self.repo = repo
-        self.number = int(issue)
-
-
-def main():
+def main() -> None:
     """
     Main function
     """
-    bsc_list = []
-    poo_list = []
-    gh_list = []
-    gl_list = []
-    gsd_list = []
-
-    for arg in sys.argv[1:]:
-        if arg.startswith(("bnc#", "boo#", "bsc#")):
-            bsc_list.append(int(arg.split("#", 1)[1]))
-        elif arg.startswith("poo#"):
-            poo_list.append(int(arg.split("#", 1)[1]))
-        elif arg.startswith("gh#"):
-            gh_list.append(RepoIssue(*arg.split("#", 2)[1:]))
-        elif arg.startswith("gl#"):
-            gl_list.append(RepoIssue(*arg.split("#", 2)[1:]))
-        elif arg.startswith("gsd#"):
-            gsd_list.append(RepoIssue(*arg.split("#", 2)[1:]))
-        else:
-            print(f"Unsupported {arg}", file=sys.stderr)
-
     with open(CREDENTIALS_FILE, encoding="utf-8") as file:
         if os.fstat(file.fileno()).st_mode & 0o77:
             sys.exit(f"ERROR: {CREDENTIALS_FILE} has insecure permissions")
         creds = json.load(file)
 
-    do_bugzilla("https://bugzilla.suse.com", bsc_list, creds["bugzilla.suse.com"])
-    do_github(gh_list, creds["github.com"])
-    do_gitlab(None, gl_list, creds["gitlab.com"])
-    do_gitlab("https://gitlab.suse.de", gsd_list, creds["gitlab.suse.de"])
-    do_redmine("https://progress.opensuse.org", poo_list, creds["progress.opensuse.org"])
+    items: Dict[str, List[Item]] = {}
+    for arg in sys.argv[1:]:
+        item = get_item(arg)
+        if item is None:
+            continue
+        if item["host"] not in items:
+            items[item["host"]] = [item]
+        else:
+            items[item["host"]].append(item)
+
+    host_to_cls = {
+        "bugzilla.suse.com": MyBugzilla,
+        "progress.opensuse.org": MyRedmine,
+        "gitlab.suse.de": MyGitlab,
+        "gitlab.com": MyGitlab,
+        "github.com": MyGithub,
+    }
+
+    clients: Dict[str, Any] = {}
+    for host in items:
+        clients[host] = host_to_cls[host](f"https://{host}", creds[host])
+
+    if len(clients) == 0:
+        sys.exit(0)
+
+    with ThreadPoolExecutor(max_workers=len(clients)) as executor:
+        iterator = executor.map(
+            lambda host: clients[host].get_items(items[host]), clients
+        )
+        for results in iterator:
+            for item in results:
+                if item is None:
+                    continue
+                print(
+                    "\t".join(
+                        [item.url, item.status, dateit(item.updated), item.title]
+                    )
+                )
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 FILES=bugme.py
 
 .PHONY: all
-all: flake8 pylint
+all: flake8 pylint mypy black
 
 .PHONY: flake8
 flake8:
@@ -9,4 +9,12 @@ flake8:
 
 .PHONY: pylint
 pylint:
-	@pylint $(FILES)
+	@pylint --disable=line-too-long $(FILES)
+
+.PHONY: mypy
+mypy:
+	@mypy --disable-error-code=attr-defined $(FILES)
+
+.PHONY: black
+black:
+	@black --check $(FILES)
