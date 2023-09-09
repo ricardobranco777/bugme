@@ -114,19 +114,6 @@ class Service:
         url = url.rstrip("/")
         self.url = url if url.startswith("https://") else f"https://{url}"
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is not None:
-            logging.error(
-                "%s: %s: %s: %s",
-                self.__class__.__name__,
-                exc_type,
-                exc_value,
-                traceback,
-            )
-
     def get_item(self, item: Item) -> Item | None:
         """
         This method must be overriden if get_items() isn't overriden
@@ -151,12 +138,11 @@ class MyBugzilla(Service):
         sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
         self.client = Bugzilla(self.url, force_rest=True, sslverify=sslverify, **creds)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __del__(self):
         try:
             self.client.disconnect()
-        except BugzillaError:
+        except (AttributeError, BugzillaError):
             pass
-        super().__exit__(exc_type, exc_value, traceback)
 
     def get_item(self, item: Item) -> Item | None:
         """
@@ -238,12 +224,11 @@ class MyGitlab(Service):
         ssl_verify = os.environ.get("REQUESTS_CA_BUNDLE", False) if self.url else True
         self.client = Gitlab(url=self.url, ssl_verify=ssl_verify, **creds)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __del__(self):
         try:
-            self.client.__exit__(exc_type, exc_value, traceback)
-        except GitlabError:
+            self.client.__exit__(None, None, None)
+        except (AttributeError, GitlabError):
             pass
-        super().__exit__(exc_type, exc_value, traceback)
 
     def get_item(self, item: Item) -> Item | None:
         """
