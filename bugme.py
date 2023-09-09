@@ -18,7 +18,7 @@ from pytz import utc
 
 from bugzilla import Bugzilla  # type: ignore
 from bugzilla.exceptions import BugzillaError  # type: ignore
-from github import Github, Auth, GithubException
+from github import Github, GithubException
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
@@ -202,8 +202,10 @@ class MyGithub(Service):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        auth = Auth.Token(**creds)
-        self.client = Github(auth=auth)
+        # Uncomment when latest PyGithub is published on Tumbleweed
+        # auth = Auth.Token(**creds)
+        # self.client = Github(auth=auth)
+        self.client = Github(**creds)
 
     def get_item(self, item: Item) -> Union[Item, None]:
         """

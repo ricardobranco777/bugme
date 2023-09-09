@@ -4,6 +4,8 @@
 
 Show bug and issue status
 
+Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
+
 Supported:
 - bsc#: SUSE's Bugzilla
 - gh#: Github
