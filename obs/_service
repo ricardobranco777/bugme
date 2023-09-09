@@ -1,0 +1,8 @@
+<services>
+  <service name="obs_scm">
+    <param name="url">https://github.com/ricardobranco777/bugme.git</param>
+    <param name="scm">git</param>
+    <param name="extract">*</param>
+  </service>
+  <service mode="buildtime" name="set_version" />
+</services>
