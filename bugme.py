@@ -10,7 +10,7 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse, parse_qs
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from datetime import datetime
 from dateutil import parser
@@ -40,9 +40,7 @@ CODE_TO_HOST = {
 }
 
 
-def dateit(
-    date: Union[str, datetime], time_format: str = "%a %b %d %H:%M:%S %Z %Y"
-) -> str:
+def dateit(date: str | datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     """
     Return date in desired format
     """
@@ -72,7 +70,7 @@ class Item:  # pylint: disable=too-few-public-methods
         setattr(self, item, value)
 
 
-def get_item(string: str) -> Union[Item, None]:
+def get_item(string: str) -> Item | None:
     """
     Get Item from string
     """
@@ -129,13 +127,13 @@ class Service:
                 traceback,
             )
 
-    def get_item(self, item: Item) -> Union[Item, None]:
+    def get_item(self, item: Item) -> Item | None:
         """
         This method must be overriden if get_items() isn't overriden
         """
         raise NotImplementedError(f"{self.__class__.__name__}: get_item()")
 
-    def get_items(self, items: List[Item]) -> List[Union[Item, None]]:
+    def get_items(self, items: list[Item]) -> list[Item | None]:
         """
         Multithreaded get_items()
         """
@@ -160,7 +158,7 @@ class MyBugzilla(Service):
             pass
         super().__exit__(exc_type, exc_value, traceback)
 
-    def get_item(self, item: Item) -> Union[Item, None]:
+    def get_item(self, item: Item) -> Item | None:
         """
         Get Bugzilla item
         """
@@ -170,7 +168,7 @@ class MyBugzilla(Service):
             logging.error("Bugzilla: %s: get_items(%d): %s", self.url, item, exc)
         return None
 
-    def get_items(self, items: List[Item]) -> List[Union[Item, None]]:
+    def get_items(self, items: list[Item]) -> list[Item | None]:
         """
         Get Bugzilla items
         """
@@ -183,7 +181,7 @@ class MyBugzilla(Service):
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
         return []
 
-    def _to_item(self, info: Any) -> Union[Item, None]:
+    def _to_item(self, info: Any) -> Item | None:
         return Item(
             id=info.id,
             status=info.status,
@@ -207,7 +205,7 @@ class MyGithub(Service):
         # self.client = Github(auth=auth)
         self.client = Github(**creds)
 
-    def get_item(self, item: Item) -> Union[Item, None]:
+    def get_item(self, item: Item) -> Item | None:
         """
         Get Github issue
         """
@@ -218,7 +216,7 @@ class MyGithub(Service):
             return None
         return self._to_item(info, item)
 
-    def _to_item(self, info: Any, item: Item) -> Union[Item, None]:
+    def _to_item(self, info: Any, item: Item) -> Item | None:
         return Item(
             id=info.number,
             status=info.state,
@@ -247,7 +245,7 @@ class MyGitlab(Service):
             pass
         super().__exit__(exc_type, exc_value, traceback)
 
-    def get_item(self, item: Item) -> Union[Item, None]:
+    def get_item(self, item: Item) -> Item | None:
         """
         Get Gitlab issue
         """
@@ -258,7 +256,7 @@ class MyGitlab(Service):
             return None
         return self._to_item(info, item)
 
-    def _to_item(self, info: Any, item: Item) -> Union[Item, None]:
+    def _to_item(self, info: Any, item: Item) -> Item | None:
         return Item(
             id=info.iid,
             status=info.state,
@@ -279,7 +277,7 @@ class MyRedmine(Service):
         super().__init__(url)
         self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
 
-    def get_item(self, item: Item) -> Union[Item, None]:
+    def get_item(self, item: Item) -> Item | None:
         """
         Get Redmine ticket
         """
@@ -290,7 +288,7 @@ class MyRedmine(Service):
             return None
         return self._to_item(info)
 
-    def _to_item(self, info: Any) -> Union[Item, None]:
+    def _to_item(self, info: Any) -> Item | None:
         return Item(
             id=info.id,
             status=info.status.name,
@@ -349,7 +347,7 @@ def main() -> None:  # pylint: disable=too-many-branches
             sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    host_items: Dict[str, List[Item]] = {}
+    host_items: dict[str, list[Item]] = {}
     for arg in args.urls:
         item = get_item(arg)
         if item is None:
@@ -359,7 +357,7 @@ def main() -> None:  # pylint: disable=too-many-branches
         else:
             host_items[item["host"]].append(item)
 
-    clients: Dict[str, Any] = {}
+    clients: dict[str, Any] = {}
     for host in host_items:
         clients[host] = HOST_TO_CLS[host](f"https://{host}", creds[host])
 
