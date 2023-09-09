@@ -136,7 +136,12 @@ class MyBugzilla(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
-        self.client = Bugzilla(self.url, force_rest=True, sslverify=sslverify, **creds)
+        try:
+            self.client = Bugzilla(
+                self.url, force_rest=True, sslverify=sslverify, **creds
+            )
+        except (BugzillaError, RequestException) as exc:
+            logging.error("Bugzilla: %s: %s", self.url, exc)
 
     def __del__(self):
         try:
@@ -150,7 +155,7 @@ class MyBugzilla(Service):
         """
         try:
             return self._to_item(self.client.getbug(item.id))
-        except BugzillaError as exc:
+        except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_items(%d): %s", self.url, item, exc)
         return None
 
@@ -163,7 +168,7 @@ class MyBugzilla(Service):
                 self._to_item(info)
                 for info in self.client.getbugs([_.id for _ in items])
             ]
-        except BugzillaError as exc:
+        except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
         return []
 
@@ -197,7 +202,7 @@ class MyGithub(Service):
         """
         try:
             info = self.client.get_repo(item.repo, lazy=True).get_issue(item.id)
-        except GithubException as exc:
+        except (GithubException, RequestException) as exc:
             logging.error("Github: get_issue(%s): %s", item.id, exc)
             return None
         return self._to_item(info, item)
@@ -268,7 +273,7 @@ class MyRedmine(Service):
         """
         try:
             info = self.client.issue.get(item.id)
-        except BaseRedmineError as exc:
+        except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_issue(%d): %s", self.url, item.id, exc)
             return None
         return self._to_item(info)
@@ -342,13 +347,6 @@ def main() -> None:  # pylint: disable=too-many-branches
         else:
             host_items[item["host"]].append(item)
 
-    clients: dict[str, Any] = {}
-    for host in host_items:
-        clients[host] = HOST_TO_CLS[host](f"https://{host}", creds[host])
-
-    if len(clients) == 0:
-        sys.exit(0)
-
     all_items = []
     keys = {
         "url": "<70",
@@ -360,6 +358,13 @@ def main() -> None:  # pylint: disable=too-many-branches
     # args.format = "  ".join(f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items())
     if args.format is None:
         print("  ".join([f"{key.upper():{align}}" for key, align in keys.items()]))
+
+    clients: dict[str, Any] = {}
+    for host in host_items:
+        clients[host] = HOST_TO_CLS[host](f"https://{host}", creds[host])
+
+    if len(clients) == 0:
+        sys.exit(0)
 
     with ThreadPoolExecutor(max_workers=len(clients)) as executor:
         iterator = executor.map(
