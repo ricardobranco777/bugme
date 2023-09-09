@@ -58,6 +58,21 @@ class Item:  # pylint: disable=too-few-public-methods
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}("
+            + ", ".join(
+                [
+                    f"{x}={repr(getattr(self, x))}"
+                    if getattr(self, x) is not None
+                    else f"{x}=None"
+                    for x in dir(self)
+                    if not x.startswith("_")
+                ]
+            )
+            + ")"
+        )
+
     # Allow access this object as a dictionary
 
     def __getitem__(self, item: str) -> Any:
@@ -113,6 +128,9 @@ class Service:
     def __init__(self, url: str):
         url = url.rstrip("/")
         self.url = url if url.startswith("https://") else f"https://{url}"
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}(url="{self.url}")'
 
     def get_item(self, item: Item) -> Item | None:
         """

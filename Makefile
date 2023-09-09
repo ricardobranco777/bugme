@@ -5,7 +5,7 @@ all: flake8 pylint mypy black
 
 .PHONY: flake8
 flake8:
-	@flake8 --ignore=E501 $(FILES)
+	@flake8 --ignore=E501,W503 $(FILES)
 
 .PHONY: pylint
 pylint:
