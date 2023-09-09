@@ -43,6 +43,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: Dockerfile.alpine
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }} , ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
