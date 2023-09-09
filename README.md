@@ -50,5 +50,5 @@ https://gitlab.suse.de/qac/container-release-bot/-/issues/7             opened  
 
 ## Requirements
 
-- Tested on Python 3.8+
+- Tested on Python 3.10+
 - [requirements](requirements-dev.txt)
