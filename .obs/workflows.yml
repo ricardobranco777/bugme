@@ -1,0 +1,10 @@
+rebuild_master:
+  steps:
+    - rebuild_package:
+        project: home:rbranco:branches:devel:BCI:Tumbleweed
+        package: bugme-image
+  filters:
+    event: push
+    branches:
+      only:
+        - master
