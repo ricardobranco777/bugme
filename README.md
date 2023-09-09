@@ -4,7 +4,9 @@
 
 Show bug and issue status
 
-Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
+Docker images available at:
+- Alpine based using PyPI: `ghcr.io/ricardobranco777/bugme:latest`
+- openSUSE based: `registry.opensuse.org/home/rbranco/branches/devel/bci/tumbleweed/containerfile/bugme:latest`
 
 Supported:
 - bsc#: SUSE's Bugzilla
