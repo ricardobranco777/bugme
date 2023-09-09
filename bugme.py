@@ -139,7 +139,7 @@ class Service:
         """
         Multithreaded get_items()
         """
-        with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        with ThreadPoolExecutor(max_workers=min(10, len(items))) as executor:
             return list(executor.map(self.get_item, items))
 
 
