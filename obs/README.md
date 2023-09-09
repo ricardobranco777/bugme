@@ -9,8 +9,8 @@ To publish the image on `registry.opensuse.org` I had to use the [Open Build Ser
 1. Run `osc ci`
 1. Create a Github token with `repo` scope.
 1. Create a OBS token with `osc token --create --operation workflow --scm-token XXX` with `XXX` being the Github token.
-1. Create a webhook in Github with the above token and the URL https://build.opensuse.org/trigger/workflow?id=777 with the correct ID and the OBS token as secret
-1. Create [.obs/workflows.yml](.obs/workflows.yml)
+1. Create a webhook in Github with the above token and the URL `https://build.opensuse.org/trigger/workflow?id=xxx` with the correct ID and the OBS token as secret. Content type: ` application/json`.
+1. Create [.obs/workflows.yml](../.obs/workflows.yml)
 
 More information:
 https://openbuildservice.org/help/manuals/obs-user-guide/cha.obs.scm_ci_workflow_integration
