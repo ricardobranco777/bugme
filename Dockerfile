@@ -1,3 +1,5 @@
+#!BuildTag: bugme
+#!UseOBSRepositories
 FROM	registry.opensuse.org/opensuse/bci/python:3.11
 
 RUN	zypper addrepo https://download.opensuse.org/repositories/SUSE:/CA/openSUSE_Tumbleweed/SUSE:CA.repo && \
