@@ -337,15 +337,6 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-HOST_TO_CLS = {
-    "bugzilla.suse.com": MyBugzilla,
-    "progress.opensuse.org": MyRedmine,
-    "gitlab.suse.de": MyGitlab,
-    "gitlab.com": MyGitlab,
-    "github.com": MyGithub,
-}
-
-
 def main() -> None:  # pylint: disable=too-many-branches
     """
     Main function
@@ -379,7 +370,16 @@ def main() -> None:  # pylint: disable=too-many-branches
 
     clients: dict[str, Any] = {}
     for host in host_items:
-        clients[host] = HOST_TO_CLS[host](f"https://{host}", creds[host])
+        cls: Any = None
+        if host.startswith("bugzilla"):
+            cls = MyBugzilla
+        elif host.startswith("gitlab"):
+            cls = MyGitlab
+        elif host == "github.com":
+            cls = MyGithub
+        elif host == "progress.opensuse.org":
+            cls = MyRedmine
+        clients[host] = cls(host, creds[host])
 
     if len(clients) == 0:
         sys.exit(0)
