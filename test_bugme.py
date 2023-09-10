@@ -1,9 +1,9 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member
 
 from datetime import datetime
 from pytz import utc
 import pytest
-from bugme import dateit, Item, get_item
+from bugme import dateit, get_item, Item, Service
 
 
 # Test cases for the dateit function
@@ -147,3 +147,49 @@ def test_get_item_with_unsupported_url():
     url = "https://unsupported.com/issue/12345"
     item = get_item(url)
     assert item is None
+
+
+# Mock Service class for testing
+class MockService(Service):
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+        return Item(item_id=item_id, host=self.url, repo="mock_repo")
+
+
+# Test cases for the Service class
+def test_service_initialization():
+    url = "example.com"
+    service = Service(url)
+    assert service.url == f"https://{url}"
+
+
+def test_service_repr():
+    url = "example.com"
+    service = Service(url)
+    assert repr(service) == f"Service(url='https://{url}')"
+
+
+def test_mock_service_get_item():
+    url = "https://example.com"
+    service = MockService(url)
+    item_id = 123
+    item = service.get_item(item_id)
+    expected_item = Item(item_id=item_id, host=url, repo="mock_repo")
+    assert item.__dict__ == expected_item.__dict__
+
+
+def test_mock_service_get_items():
+    url = "https://example.com"
+    service = MockService(url)
+    items = [{"item_id": 1}, {"item_id": 2}, {"item_id": 3}]
+    expected_items = [
+        Item(item_id=i["item_id"], host=url, repo="mock_repo") for i in items
+    ]
+
+    results = service.get_items(items)
+
+    assert len(results) == len(expected_items)
+
+    for result, expected_item in zip(results, expected_items):
+        assert result.item_id == expected_item.item_id
+        assert result.host == expected_item.host
+        assert result.repo == expected_item.repo

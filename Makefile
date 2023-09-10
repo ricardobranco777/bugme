@@ -1,7 +1,7 @@
 FILES=*.py
 
 .PHONY: all
-all: flake8 pylint pytest mypy black
+all: flake8 pylint test mypy black
 
 .PHONY: flake8
 flake8:
