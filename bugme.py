@@ -363,7 +363,7 @@ def main() -> None:  # pylint: disable=too-many-branches
         "title": "",
     }
     # args.format = "  ".join(f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items())
-    if args.format is None:
+    if args.format is None and args.output == "text":
         print("  ".join([f"{key.upper():{align}}" for key, align in keys.items()]))
 
     clients: dict[str, Any] = {}
