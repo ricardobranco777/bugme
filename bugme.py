@@ -90,6 +90,8 @@ def get_item(string: str) -> Item | None:
             issue_id = parse_qs(url.query)["id"][0]
         elif url.hostname == "progress.opensuse.org":
             issue_id = os.path.basename(url.path)
+        else:
+            return None
         return Item(
             item_id=int(issue_id),
             host=url.hostname,

@@ -34,3 +34,6 @@ jobs:
       - name: pylint
         run: |
           make pylint
+      - name: test
+        run: |
+          make test
