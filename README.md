@@ -42,7 +42,7 @@ options:
 Copy [creds-example.json](creds-example.json) to `~/creds.json` and run.
 
 ```
-$ ./bugme.py bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro bugme bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7
 URL                                                                     STATUS      UPDATED                         TITLE
 https://bugzilla.suse.com/show_bug.cgi?id=1213811                       NEW         Tue Sep 05 16:21:37 CEST 2023   podman network unreachable after starting docker
 https://github.com/containers/podman/issues/19529                       closed      Tue Aug 08 08:56:56 CEST 2023   Unexpected error with --volumes-from
