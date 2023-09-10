@@ -18,22 +18,23 @@ Supported:
 ## Usage
 
 ```
-usage: bugme.py [-h] [-c CREDS] [-f FORMAT] [-l {debug,info,warning,error,critical}] [-o {text,json}] [-t TIME] urls [urls ...]
+usage: bugme.py [-h] [-c CREDS] [-f FORMAT] [-l {debug,info,warning,error,critical}] [-o {text,json}] [-t TIME] [--version] url [url ...]
 
 positional arguments:
-  urls
+  url
 
 options:
   -h, --help            show this help message and exit
   -c CREDS, --creds CREDS
-                        Path to credentials file
+                        path to credentials file (default: ~/creds.json)
   -f FORMAT, --format FORMAT
-                        Output in Jinja2 format
+                        output in Jinja2 format (default: None)
   -l {debug,info,warning,error,critical}, --log {debug,info,warning,error,critical}
-                        Log level
+                        log level (default: warning)
   -o {text,json}, --output {text,json}
-                        Output type
-  -t TIME, --time TIME  Time format
+                        output type (default: text)
+  -t TIME, --time TIME  time format (default: %a %b %d %H:%M:%S %Z %Y)
+  --version             show program's version number and exit
 ```
 
 ## Example

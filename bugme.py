@@ -39,6 +39,8 @@ CODE_TO_HOST = {
     "poo": "progress.opensuse.org",
 }
 
+VERSION = "1.1"
+
 
 def dateit(date: str | datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     """
@@ -305,28 +307,33 @@ def parse_args() -> argparse.Namespace:
     """
     Parse command line options
     """
-    argparser = argparse.ArgumentParser()
+    argparser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     argparser.add_argument(
         "-c",
         "--creds",
         default=DEFAULT_CREDENTIALS_FILE,
-        help="Path to credentials file",
+        help="path to credentials file",
     )
-    argparser.add_argument("-f", "--format", help="Output in Jinja2 format")
+    argparser.add_argument("-f", "--format", help="output in Jinja2 format")
     argparser.add_argument(
         "-l",
         "--log",
         choices=["debug", "info", "warning", "error", "critical"],
         default="warning",
-        help="Log level",
+        help="log level",
     )
     argparser.add_argument(
-        "-o", "--output", choices=["text", "json"], default="text", help="Output type"
+        "-o", "--output", choices=["text", "json"], default="text", help="output type"
     )
     argparser.add_argument(
-        "-t", "--time", default="%a %b %d %H:%M:%S %Z %Y", help="Time format"
+        "-t", "--time", default="%a %b %d %H:%M:%S %Z %Y", help="time format"
     )
-    argparser.add_argument("urls", nargs="+")
+    argparser.add_argument(
+        "--version", action="version", version=f"{sys.argv[0]} VERSION"
+    )
+    argparser.add_argument("url", nargs="+")
     return argparser.parse_args()
 
 
@@ -349,7 +356,7 @@ def main() -> None:  # pylint: disable=too-many-branches
         creds = json.load(file)
 
     host_items: dict[str, list[dict]] = {}
-    for arg in args.urls:
+    for arg in args.url:
         item = get_item(arg)
         if item is None:
             continue
