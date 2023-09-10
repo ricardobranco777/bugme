@@ -59,19 +59,15 @@ class Item:  # pylint: disable=too-few-public-methods
             setattr(self, attr, value)
 
     def __repr__(self):
-        attrs = ', '.join(f'{attr}={getattr(self, attr)!r}' for attr in vars(self))
-        return f'{self.__class__.__name__}({attrs})'
+        attrs = ", ".join(f"{attr}={getattr(self, attr)!r}" for attr in vars(self))
+        return f"{self.__class__.__name__}({attrs})"
 
     # Allow access this object as a dictionary
-
     def __getitem__(self, item: str) -> Any:
         try:
             return getattr(self, item)
         except AttributeError as exc:
             raise KeyError(exc) from exc
-
-    def __setitem__(self, item: str, value: Any):
-        setattr(self, item, value)
 
 
 def get_item(string: str) -> Item | None:
@@ -93,9 +89,9 @@ def get_item(string: str) -> Item | None:
         elif url.hostname == "progress.opensuse.org":
             issue_id = os.path.basename(url.path)
         return Item(
+            item_id=int(issue_id),
             host=url.hostname,
             repo=repo,
-            id=int(issue_id),
         )
     try:
         code, repo, issue = string.split("#", 2)
@@ -103,7 +99,11 @@ def get_item(string: str) -> Item | None:
         code, issue = string.split("#", 1)
         repo = ""
     try:
-        return Item(host=CODE_TO_HOST[code], repo=repo, id=int(issue))
+        return Item(
+            item_id=int(issue),
+            host=CODE_TO_HOST[code],
+            repo=repo,
+        )
     except KeyError:
         logging.warning("Unsupported %s", string)
     return None
@@ -121,18 +121,18 @@ class Service:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
-    def get_item(self, item: Item) -> Item | None:
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         This method must be overriden if get_items() isn't overriden
         """
         raise NotImplementedError(f"{self.__class__.__name__}: get_item()")
 
-    def get_items(self, items: list[Item]) -> list[Item | None]:
+    def get_items(self, items: list[dict]) -> list[Item | None]:
         """
         Multithreaded get_items()
         """
         with ThreadPoolExecutor(max_workers=min(10, len(items))) as executor:
-            return list(executor.map(self.get_item, items))
+            return list(executor.map(lambda it: self.get_item(**it), items))
 
 
 class MyBugzilla(Service):
@@ -156,24 +156,24 @@ class MyBugzilla(Service):
         except (AttributeError, BugzillaError):
             pass
 
-    def get_item(self, item: Item) -> Item | None:
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         Get Bugzilla item
         """
         try:
-            return self._to_item(self.client.getbug(item.id))
+            return self._to_item(self.client.getbug(item_id))
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_items(%d): %s", self.url, item, exc)
+            logging.error("Bugzilla: %s: get_item(%d): %s", self.url, item_id, exc)
         return None
 
-    def get_items(self, items: list[Item]) -> list[Item | None]:
+    def get_items(self, items: list[dict]) -> list[Item | None]:
         """
         Get Bugzilla items
         """
         try:
             return [
                 self._to_item(info)
-                for info in self.client.getbugs([_.id for _ in items])
+                for info in self.client.getbugs([item["item_id"] for item in items])
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
@@ -203,25 +203,26 @@ class MyGithub(Service):
         # self.client = Github(auth=auth)
         self.client = Github(**creds)
 
-    def get_item(self, item: Item) -> Item | None:
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         Get Github issue
         """
+        repo = kwargs.pop("repo")
         try:
-            info = self.client.get_repo(item.repo, lazy=True).get_issue(item.id)
+            info = self.client.get_repo(repo, lazy=True).get_issue(item_id)
         except (GithubException, RequestException) as exc:
-            logging.error("Github: get_issue(%s): %s", item.id, exc)
+            logging.error("Github: get_issue(%s, %s): %s", repo, item_id, exc)
             return None
-        return self._to_item(info, item)
+        return self._to_item(info, repo)
 
-    def _to_item(self, info: Any, item: Item) -> Item | None:
+    def _to_item(self, info: Any, repo: str) -> Item | None:
         return Item(
             id=info.number,
             status=info.state,
             title=info.title,
             created=info.created_at,
             updated=info.updated_at,
-            url=f"{self.url}/{item.repo}/issues/{item.id}",
+            url=f"{self.url}/{repo}/issues/{info.number}",
             extra=info.__dict__["_rawData"],
         )
 
@@ -242,25 +243,28 @@ class MyGitlab(Service):
         except (AttributeError, GitlabError):
             pass
 
-    def get_item(self, item: Item) -> Item | None:
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         Get Gitlab issue
         """
+        repo = kwargs.pop("repo")
         try:
-            info = self.client.projects.get(item.repo, lazy=True).issues.get(item.id)
+            info = self.client.projects.get(repo, lazy=True).issues.get(item_id)
         except (GitlabError, RequestException) as exc:
-            logging.error("Gitlab: %s: get_issue(%s): %s", self.url, item.id, exc)
+            logging.error(
+                "Gitlab: %s: get_issue(%s, %s): %s", self.url, repo, item_id, exc
+            )
             return None
-        return self._to_item(info, item)
+        return self._to_item(info, repo)
 
-    def _to_item(self, info: Any, item: Item) -> Item | None:
+    def _to_item(self, info: Any, repo: str) -> Item | None:
         return Item(
             id=info.iid,
             status=info.state,
             title=info.title,
             created=info.created_at,
             updated=info.updated_at,
-            url=f"{self.url}/{item.repo}/-/issues/{item.id}",
+            url=f"{self.url}/{repo}/-/issues/{info.iid}",
             extra=info.asdict(),
         )
 
@@ -274,14 +278,14 @@ class MyRedmine(Service):
         super().__init__(url)
         self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
 
-    def get_item(self, item: Item) -> Item | None:
+    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         Get Redmine ticket
         """
         try:
-            info = self.client.issue.get(item.id)
+            info = self.client.issue.get(item_id)
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_issue(%d): %s", self.url, item.id, exc)
+            logging.error("Redmine: %s: get_issue(%d): %s", self.url, item_id, exc)
             return None
         return self._to_item(info)
 
@@ -344,15 +348,15 @@ def main() -> None:  # pylint: disable=too-many-branches
             sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    host_items: dict[str, list[Item]] = {}
+    host_items: dict[str, list[dict]] = {}
     for arg in args.urls:
         item = get_item(arg)
         if item is None:
             continue
         if item["host"] not in host_items:
-            host_items[item["host"]] = [item]
+            host_items[item["host"]] = [item.__dict__]
         else:
-            host_items[item["host"]].append(item)
+            host_items[item["host"]].append(item.__dict__)
 
     all_items = []
     keys = {
