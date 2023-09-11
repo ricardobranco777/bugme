@@ -21,4 +21,4 @@ black:
 
 .PHONY: test
 test:
-	@TZ=Europe/Berlin pytest -v
+	@TZ=Europe/Berlin pytest -vv

@@ -123,6 +123,7 @@ class Service:
     def __init__(self, url: str):
         url = url.rstrip("/")
         self.url = url if url.startswith("https://") else f"https://{url}"
+        self.tag = "".join([s[0] for s in str(urlparse(self.url).hostname).split(".")])
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
@@ -194,6 +195,7 @@ class MyBugzilla(Service):
             updated=info.last_change_time,
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             extra=info.__dict__,
+            tag=f"{self.tag}#{info.id}",
         )
 
 
@@ -208,6 +210,7 @@ class MyGithub(Service):
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
         self.client = Github(**creds)
+        self.tag = "gh"
 
     def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
@@ -230,6 +233,7 @@ class MyGithub(Service):
             updated=info.updated_at,
             url=f"{self.url}/{repo}/issues/{info.number}",
             extra=info.__dict__["_rawData"],
+            tag=f"{self.tag}#{repo}#{info.number}",
         )
 
 
@@ -242,6 +246,8 @@ class MyGitlab(Service):
         super().__init__(url)
         ssl_verify = os.environ.get("REQUESTS_CA_BUNDLE", False) if self.url else True
         self.client = Gitlab(url=self.url, ssl_verify=ssl_verify, **creds)
+        hostname = str(urlparse(self.url).hostname)
+        self.tag = "gl" if hostname == "gitlab.com" else self.tag
 
     def __del__(self):
         try:
@@ -272,6 +278,7 @@ class MyGitlab(Service):
             updated=info.updated_at,
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
             extra=info.asdict(),
+            tag=f"{self.tag}#{repo}#{info.iid}",
         )
 
 
@@ -304,6 +311,7 @@ class MyRedmine(Service):
             updated=info.updated_on,
             url=f"{self.url}/issues/{info.id}",
             extra=info.raw(),
+            tag=f"{self.tag}#{info.id}",
         )
 
 

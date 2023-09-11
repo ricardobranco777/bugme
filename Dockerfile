@@ -16,7 +16,7 @@ RUN	zypper -n install \
 		python3-PyGithub \
 		python3-python-gitlab \
 		python3-python-redmine && \
-	rm -rf /var/cache
+	zypper clean -a
 
 COPY	bugme.py /
 
