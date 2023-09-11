@@ -22,7 +22,7 @@ from github import Github, GithubException
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
-from redminelib.exceptions import BaseRedmineError  # type: ignore
+from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
 from requests.exceptions import RequestException
 from jinja2 import Template
 
@@ -128,6 +128,19 @@ class Service:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
+    def _not_found(self, item_id: int, url: str, tag: str) -> Item:
+        now = datetime.now()
+        return Item(
+            id=item_id,
+            status="ERROR",
+            title="NOT FOUND",
+            created=now,
+            updated=now,
+            url=url,
+            extra={},
+            tag=tag,
+        )
+
     def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
         This method must be overriden if get_items() isn't overriden
@@ -178,15 +191,27 @@ class MyBugzilla(Service):
         Get Bugzilla items
         """
         try:
-            return [
+            found = [
                 self._to_item(info)
                 for info in self.client.getbugs([item["item_id"] for item in items])
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
-        return []
+            return []
+        # Bugzilla silently fails on not found items
+        found_ids = {item["id"] for item in found}
+        not_found = [
+            self._not_found(
+                item["item_id"],
+                f"{self.url}/show_bug.cgi?id={item['item_id']}",
+                f"{self.tag}#{item['item_id']}",
+            )
+            for item in items
+            if item["item_id"] not in found_ids
+        ]
+        return found + not_found  # type: ignore
 
-    def _to_item(self, info: Any) -> Item | None:
+    def _to_item(self, info: Any) -> Item:
         return Item(
             id=info.id,
             status=info.status,
@@ -220,11 +245,17 @@ class MyGithub(Service):
         try:
             info = self.client.get_repo(repo, lazy=True).get_issue(item_id)
         except (GithubException, RequestException) as exc:
+            if hasattr(exc, "status") and exc.status == 404:
+                return self._not_found(
+                    item_id,
+                    "{self.url}/{repo}/issues/{item_id}",
+                    "{self.tag}#{repo}#{item_id}",
+                )
             logging.error("Github: get_issue(%s, %s): %s", repo, item_id, exc)
             return None
         return self._to_item(info, repo)
 
-    def _to_item(self, info: Any, repo: str) -> Item | None:
+    def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.number,
             status=info.state,
@@ -263,13 +294,19 @@ class MyGitlab(Service):
         try:
             info = self.client.projects.get(repo, lazy=True).issues.get(item_id)
         except (GitlabError, RequestException) as exc:
+            if hasattr(exc, "response_code") and exc.response_code == 404:
+                return self._not_found(
+                    item_id,
+                    f"{self.url}/{repo}/-/issues/{item_id}",
+                    f"{self.tag}#{repo}#{item_id}",
+                )
             logging.error(
                 "Gitlab: %s: get_issue(%s, %s): %s", self.url, repo, item_id, exc
             )
             return None
         return self._to_item(info, repo)
 
-    def _to_item(self, info: Any, repo: str) -> Item | None:
+    def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.iid,
             status=info.state,
@@ -297,12 +334,16 @@ class MyRedmine(Service):
         """
         try:
             info = self.client.issue.get(item_id)
+        except ResourceNotFoundError:
+            return self._not_found(
+                item_id, f"{self.url}/issues/{item_id}", f"{self.tag}#{item_id}"
+            )
         except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_issue(%d): %s", self.url, item_id, exc)
             return None
         return self._to_item(info)
 
-    def _to_item(self, info: Any) -> Item | None:
+    def _to_item(self, info: Any) -> Item:
         return Item(
             id=info.id,
             status=info.status.name,
