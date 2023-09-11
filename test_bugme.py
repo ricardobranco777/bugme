@@ -135,6 +135,13 @@ def test_get_item_with_gsd_url():
     assert item.__dict__ == expected_item.__dict__
 
 
+def test_get_item_with_www_prefix():
+    url = "https://gitlab.com/gitlab-org/gitlab/-/issues/424503"
+    item = get_item(url)
+    expected_item = Item(item_id=424503, host="gitlab.com", repo="gitlab-org/gitlab")
+    assert item.__dict__ == expected_item.__dict__
+
+
 # Test case for an unsupported format
 def test_get_item_with_unsupported_format():
     string = "unsupported#12345"

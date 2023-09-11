@@ -77,26 +77,28 @@ def get_item(string: str) -> Item | None:
     Get Item from string
     """
     if "#" not in string:
+        # URL
         string = string if string.startswith("https://") else f"https://{string}"
         url = urlparse(string)
-        assert url.hostname is not None
+        hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
         repo: str = ""
-        if url.hostname.startswith("git"):
+        if hostname.startswith("git"):
             repo = os.path.dirname(
                 os.path.dirname(url.path.replace("/-/", "/"))
             ).lstrip("/")
             issue_id = os.path.basename(url.path)
-        elif url.hostname.startswith("bugzilla"):
+        elif hostname.startswith("bugzilla"):
             issue_id = parse_qs(url.query)["id"][0]
-        elif url.hostname == "progress.opensuse.org":
+        elif hostname == "progress.opensuse.org":
             issue_id = os.path.basename(url.path)
         else:
             return None
         return Item(
             item_id=int(issue_id),
-            host=url.hostname,
+            host=hostname,
             repo=repo,
         )
+    # Tag
     try:
         code, repo, issue = string.split("#", 2)
     except ValueError:
