@@ -466,6 +466,8 @@ def main() -> None:  # pylint: disable=too-many-branches
 
 if __name__ == "__main__":
     args = parse_args()
+    if args.format and args.output != "text":
+        sys.exit(f"ERROR: The --format option is not valid for output {args.output}")
     logging.basicConfig(
         format="%(levelname)-8s %(message)s", stream=sys.stderr, level=args.log.upper()
     )
