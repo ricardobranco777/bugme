@@ -137,8 +137,8 @@ class Service:
             created=now,
             updated=now,
             url=url,
-            extra={},
             tag=tag,
+            extra={},
         )
 
     def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
@@ -225,8 +225,8 @@ class MyBugzilla(Service):
             created=info.creation_time,
             updated=info.last_change_time,
             url=f"{self.url}/show_bug.cgi?id={info.id}",
-            extra=info.__dict__,
             tag=f"{self.tag}#{info.id}",
+            extra=info.__dict__,
         )
 
 
@@ -251,7 +251,7 @@ class MyGithub(Service):
         try:
             info = self.client.get_repo(repo, lazy=True).get_issue(item_id)
         except (GithubException, RequestException) as exc:
-            if hasattr(exc, "status") and exc.status == 404:
+            if getattr(exc, "status", None) == 404:
                 return self._not_found(
                     item_id,
                     "{self.url}/{repo}/issues/{item_id}",
@@ -269,8 +269,8 @@ class MyGithub(Service):
             created=info.created_at,
             updated=info.updated_at,
             url=f"{self.url}/{repo}/issues/{info.number}",
-            extra=info.__dict__["_rawData"],
             tag=f"{self.tag}#{repo}#{info.number}",
+            extra=info.__dict__["_rawData"],
         )
 
 
@@ -300,7 +300,7 @@ class MyGitlab(Service):
         try:
             info = self.client.projects.get(repo, lazy=True).issues.get(item_id)
         except (GitlabError, RequestException) as exc:
-            if hasattr(exc, "response_code") and exc.response_code == 404:
+            if getattr(exc, "response_code", None) == 404:
                 return self._not_found(
                     item_id,
                     f"{self.url}/{repo}/-/issues/{item_id}",
@@ -320,8 +320,8 @@ class MyGitlab(Service):
             created=info.created_at,
             updated=info.updated_at,
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
-            extra=info.asdict(),
             tag=f"{self.tag}#{repo}#{info.iid}",
+            extra=info.asdict(),
         )
 
 
@@ -357,8 +357,8 @@ class MyRedmine(Service):
             created=info.created_on,
             updated=info.updated_on,
             url=f"{self.url}/issues/{info.id}",
-            extra=info.raw(),
             tag=f"{self.tag}#{info.id}",
+            extra=info.raw(),
         )
 
 
@@ -454,17 +454,16 @@ def main() -> None:  # pylint: disable=too-many-branches
                 item.created = dateit(item.created, args.time)
                 item.updated = dateit(item.updated, args.time)
                 item.status = item.status.upper()
-                if args.output == "text":
-                    if args.format:
-                        print(Template(args.format).render(item.__dict__))
-                    else:
-                        print(
-                            "  ".join(
-                                [f"{item[key]:{align}}" for key, align in keys.items()]
-                            )
-                        )
-                elif args.output == "json":
+                if args.output == "json":
                     all_items.append(item.__dict__)
+                elif args.format:
+                    print(Template(args.format).render(item.__dict__))
+                else:
+                    print(
+                        "  ".join(
+                            [f"{item[key]:{align}}" for key, align in keys.items()]
+                        )
+                    )
 
     if args.output == "json":
         print(json.dumps(all_items, default=str, sort_keys=True))
