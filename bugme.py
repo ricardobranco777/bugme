@@ -447,6 +447,7 @@ def main() -> None:  # pylint: disable=too-many-branches
                     continue
                 item.created = dateit(item.created, args.time)
                 item.updated = dateit(item.updated, args.time)
+                item.status = item.status.upper()
                 if args.output == "text":
                     if args.format:
                         print(Template(args.format).render(item.__dict__))
