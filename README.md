@@ -51,6 +51,10 @@ https://gitlab.com/gitlab-org/gitlab/-/issues/424503                    opened  
 https://gitlab.suse.de/qac/container-release-bot/-/issues/7             opened      Thu Sep 15 15:57:32 CEST 2022   Explore new schedule options
 ```
 
+## scantags.sh
+
+The script [scantags.sh](scantags.sh) can scan a locally cloned repository for tags
+
 ## Requirements
 
 - Docker or Podman to run the Docker image.
