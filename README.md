@@ -33,7 +33,7 @@ options:
                         log level (default: warning)
   -o {text,json}, --output {text,json}
                         output type (default: text)
-  -t TIME, --time TIME  time format (default: %a %b %d %H:%M:%S %Z %Y)
+  -t TIME, --time TIME  strftime format (default: timeago)
   --version             show program's version number and exit
 ```
 
