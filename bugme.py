@@ -182,6 +182,12 @@ class MyBugzilla(Service):
         """
         try:
             return self._to_item(self.client.getbug(item_id))
+        except IndexError:
+            return self._not_found(
+                item_id,
+                f"{self.url}/show_bug.cgi?id={item_id}",
+                f"{self.tag}#{item_id}",
+            )
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_item(%d): %s", self.url, item_id, exc)
         return None
