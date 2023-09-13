@@ -18,8 +18,10 @@ RUN	zypper -n install \
 		python3-python-redmine && \
 	zypper clean -a
 
-COPY	bugme.py /
+COPY	*.py /
 
 ENV	REQUESTS_CA_BUNDLE=/etc/ssl/ca-bundle.pem
+
+WORKDIR	/bugme
 
 ENTRYPOINT ["/usr/bin/python3", "/bugme.py"]

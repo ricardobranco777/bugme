@@ -18,7 +18,7 @@ Supported:
 ## Usage
 
 ```
-usage: bugme.py [-h] [-c CREDS] [-f FORMAT] [-l {debug,info,warning,error,critical}] [-o {text,json}] [-t TIME] [--version] url [url ...]
+usage: bugme.py [-h] [-c CREDS] [-f FORMAT] [-l {debug,info,warning,error,critical}] [-o {text,json}] [-t TIME] [--version] [url ...]
 
 positional arguments:
   url
@@ -51,11 +51,7 @@ https://gitlab.com/gitlab-org/gitlab/-/issues/424503                    opened  
 https://gitlab.suse.de/qac/container-release-bot/-/issues/7             opened      Thu Sep 15 15:57:32 CEST 2022   Explore new schedule options
 ```
 
-## scantags.sh
-
-The script [scantags.sh](scantags.sh) can scan a locally cloned repository for tags
-
 ## Requirements
 
 - Docker or Podman to run the Docker image.
-- Python 3.10+ and [requirements](requirements-dev.txt) to run stand-alone.
+- Python 3.11+ and [requirements](requirements-dev.txt) to run stand-alone.

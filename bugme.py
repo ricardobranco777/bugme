@@ -26,6 +26,7 @@ from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # typ
 from requests.exceptions import RequestException
 from jinja2 import Template
 
+from scantags import scan_tags
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
@@ -424,7 +425,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "--version", action="version", version=f"{sys.argv[0]} VERSION"
     )
-    argparser.add_argument("url", nargs="+")
+    argparser.add_argument("url", nargs="*")
     return argparser.parse_args()
 
 
@@ -478,7 +479,7 @@ def get_items(
 
 def print_items(
     creds: dict[str, dict[str, str]],
-    urltags: list[str],
+    urltags: list[str] | None,
     time_format: str,
     output_format: str,
     output_type: str,
@@ -503,15 +504,33 @@ def print_items(
         print("| " + " | ".join(key.upper() for key in keys) + " |")
         print("| " + " | ".join("---" for key in keys) + " |")
 
+    xtags = {}
+    if not urltags:
+        xtags = scan_tags()
+        urltags = list(xtags.keys())
+
     for item in get_items(creds, urltags, time_format):
         if output_type == "json":
             all_items.append(item.__dict__)
         elif output_type == "markdown":
+            tag = item.tag
             item.tag = f"[{item.tag}]({item.url})"
             item.title = item.title.replace("|", r"'\|")
             print("| " + " | ".join(item[key] for key in keys) + " |")
+            if tag in xtags:
+                for info in xtags[tag]:
+                    print(
+                        f'| | {info["author"]} | [{info["file"]}:{info["lineno"]}]({info["url"]}) | |'
+                    )
         else:
             print(Template(output_format).render(item.__dict__))
+            if item.tag in xtags:
+                for info in xtags[item.tag]:
+                    print(
+                        "\t".join(
+                            [info["author"], info["file"], info["lineno"], info["url"]]
+                        )
+                    )
 
     if output_type == "json":
         print(json.dumps(all_items, default=str, sort_keys=True))
