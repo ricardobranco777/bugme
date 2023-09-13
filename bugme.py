@@ -192,12 +192,11 @@ class MyBugzilla(Service):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        options = {
-            "force_rest": True,
-            "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
-        }
+        sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
         try:
-            self.client = Bugzilla(self.url, **options, **creds)
+            self.client = Bugzilla(
+                self.url, force_rest=True, sslverify=sslverify, **creds
+            )
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
 
@@ -312,11 +311,8 @@ class MyGitlab(Service):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        options = {
-            "retry_transient_errors": True,
-            "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True)
-        }
-        self.client = Gitlab(url=self.url, **options, **creds)
+        ssl_verify = os.environ.get("REQUESTS_CA_BUNDLE", False) if self.url else True
+        self.client = Gitlab(url=self.url, ssl_verify=ssl_verify, **creds)
         hostname = str(urlparse(self.url).hostname)
         self.tag = "gl" if hostname == "gitlab.com" else self.tag
 
@@ -366,10 +362,7 @@ class MyRedmine(Service):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        options = {
-            "raise_attr_exception": False,
-        }
-        self.client = Redmine(url=self.url, **options, **creds)
+        self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
 
     def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
         """
@@ -454,8 +447,8 @@ def main() -> None:  # pylint: disable=too-many-branches
     keys = {
         "url": "<70",
         "status": "<10",
-        # "created": "<15",
-        "updated": "<15",
+        # "created": "<30",
+        "updated": "<30",
         "title": "",
     }
     # args.format = "  ".join(f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items())
