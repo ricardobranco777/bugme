@@ -10,7 +10,7 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse, parse_qs
-from typing import Any
+from typing import Any, Generator
 
 from datetime import datetime
 from dateutil import parser, tz
@@ -414,7 +414,11 @@ def parse_args() -> argparse.Namespace:
         help="log level",
     )
     argparser.add_argument(
-        "-o", "--output", choices=["text", "json"], default="text", help="output type"
+        "-o",
+        "--output",
+        choices=["text", "markdown", "json"],
+        default="text",
+        help="output type",
     )
     argparser.add_argument("-t", "--time", default="timeago", help="strftime format")
     argparser.add_argument(
@@ -424,36 +428,25 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def main() -> None:  # pylint: disable=too-many-branches
+def get_items(
+    creds: dict[str, dict[str, str]], urltags: list[str], time_format: str
+) -> Generator[Item, None, None]:
     """
-    Main function
+    Get items
     """
-    with open(args.creds, encoding="utf-8") as file:
-        if os.fstat(file.fileno()).st_mode & 0o77:
-            sys.exit(f"ERROR: {args.creds} has insecure permissions")
-        creds = json.load(file)
-
     host_items: dict[str, list[dict]] = {}
-    for arg in args.url:
-        item = get_item(arg)
+    for urltag in urltags:
+        item = get_item(urltag)
         if item is None:
             continue
         if item["host"] not in host_items:
-            host_items[item["host"]] = [item.__dict__]
-        else:
-            host_items[item["host"]].append(item.__dict__)
+            host_items[item["host"]] = []
+        host_items[item["host"]].append(item.__dict__)
 
-    all_items = []
-    keys = {
-        "url": "<70",
-        "status": "<10",
-        # "created": "<30",
-        "updated": "<30",
-        "title": "",
+    host_to_cls = {
+        "github.com": MyGithub,
+        "progress.opensuse.org": MyRedmine,
     }
-    # args.format = "  ".join(f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items())
-    if args.format is None and args.output == "text":
-        print("  ".join([f"{key.upper():{align}}" for key, align in keys.items()]))
 
     clients: dict[str, Any] = {}
     for host in host_items:
@@ -462,10 +455,8 @@ def main() -> None:  # pylint: disable=too-many-branches
             cls = MyBugzilla
         elif host.startswith("gitlab"):
             cls = MyGitlab
-        elif host == "github.com":
-            cls = MyGithub
-        elif host == "progress.opensuse.org":
-            cls = MyRedmine
+        else:
+            cls = host_to_cls[host]
         clients[host] = cls(host, creds[host])
 
     if len(clients) == 0:
@@ -479,22 +470,63 @@ def main() -> None:  # pylint: disable=too-many-branches
             for item in items:
                 if item is None:
                     continue
-                item.created = dateit(item.created, args.time)
-                item.updated = dateit(item.updated, args.time)
+                item.created = dateit(item.created, time_format)
+                item.updated = dateit(item.updated, time_format)
                 item.status = item.status.upper()
-                if args.output == "json":
-                    all_items.append(item.__dict__)
-                elif args.format:
-                    print(Template(args.format).render(item.__dict__))
-                else:
-                    print(
-                        "  ".join(
-                            [f"{item[key]:{align}}" for key, align in keys.items()]
-                        )
-                    )
+                yield item
 
-    if args.output == "json":
+
+def print_items(
+    creds: dict[str, dict[str, str]],
+    urltags: list[str],
+    time_format: str,
+    output_format: str,
+    output_type: str,
+) -> None:
+    """
+    Print items
+    """
+    all_items = []
+    keys = {
+        "tag": "<40",
+        "status": "<10",
+        "updated": "<15",
+        "title": "",
+    }
+
+    # Print header
+    if output_format is None:
+        output_format = "  ".join(
+            f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
+        )
+    if output_type == "markdown":
+        print("| " + " | ".join(key.upper() for key in keys) + " |")
+        print("| " + " | ".join("---" for key in keys) + " |")
+
+    for item in get_items(creds, urltags, time_format):
+        if output_type == "json":
+            all_items.append(item.__dict__)
+        elif output_type == "markdown":
+            item.tag = f"[{item.tag}]({item.url})"
+            item.title = item.title.replace("|", r"'\|")
+            print("| " + " | ".join(item[key] for key in keys) + " |")
+        else:
+            print(Template(output_format).render(item.__dict__))
+
+    if output_type == "json":
         print(json.dumps(all_items, default=str, sort_keys=True))
+
+
+def main():
+    """
+    Main function
+    """
+    with open(args.creds, encoding="utf-8") as file:
+        if os.fstat(file.fileno()).st_mode & 0o77:
+            sys.exit(f"ERROR: {args.creds} has insecure permissions")
+        creds = json.load(file)
+
+    print_items(creds, args.url, args.time, args.format, args.output)
 
 
 if __name__ == "__main__":
