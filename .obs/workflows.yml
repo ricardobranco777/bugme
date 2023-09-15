@@ -1,7 +1,7 @@
 rebuild_master:
   steps:
     - rebuild_package:
-        project: home:rbranco:branches:devel:BCI:Tumbleweed
+        project: home:rbranco:bugme
         package: bugme-image
   filters:
     event: push
