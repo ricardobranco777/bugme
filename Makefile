@@ -1,4 +1,4 @@
-FILES=*.py */*.py
+FILES=*.py
 
 .PHONY: all
 all: flake8 pylint test mypy black

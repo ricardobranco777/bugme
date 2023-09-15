@@ -4,7 +4,7 @@ To publish the image on `registry.opensuse.org` I had to use the [Open Build Ser
 1. Add directives to [Dockerfile](../Dockerfile)
 1. Branch https://build.opensuse.org/package/show/devel:BCI:Tumbleweed/python-3.11-image
 1. Run `osc -A https://api.opensuse.org checkout home:rbranco`
-1. `cd home:rbranco:branches:devel:BCI:Tumbleweed/bugme-image`
+1. `cd home:rbranco:bugme/bugme-image`
 1. Add a `_service` file with `osc add _service`
 1. Run `osc ci`
 1. Create a Github token with `repo` scope.
@@ -25,4 +25,5 @@ Contents of `_service` file:
 ```
 
 More information:
+
 https://openbuildservice.org/help/manuals/obs-user-guide/cha.obs.scm_ci_workflow_integration
