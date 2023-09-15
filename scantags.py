@@ -56,13 +56,19 @@ def git_remote() -> str | None:
     cmd = "git remote get-url upstream"
     try:
         output = subprocess.check_output(
-            shlex.split(cmd), shell=False, universal_newlines=True
+            shlex.split(cmd),
+            shell=False,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True,
         ).strip()
     except subprocess.CalledProcessError:
         cmd = "git remote get-url origin"
         try:
             output = subprocess.check_output(
-                shlex.split(cmd), shell=False, universal_newlines=True
+                shlex.split(cmd),
+                shell=False,
+                stderr=subprocess.DEVNULL,
+                universal_newlines=True,
             ).strip()
         except subprocess.CalledProcessError as exc:
             logging.error("%s: %s", cmd, exc)

@@ -52,9 +52,7 @@ def parse_args() -> argparse.Namespace:
         help="output type",
     )
     argparser.add_argument("-t", "--time", default="timeago", help="strftime format")
-    argparser.add_argument(
-        "--version", action="version", version=f"bugme {VERSION}"
-    )
+    argparser.add_argument("--version", action="version", version=f"bugme {VERSION}")
     argparser.add_argument("url", nargs="*")
     return argparser.parse_args()
 
