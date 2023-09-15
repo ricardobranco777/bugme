@@ -129,8 +129,8 @@ def print_items(
             f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
         )
     if output_type == "markdown":
-        print("| " + " | ".join(key.upper() for key in keys) + " |")
-        print("| " + " | ".join("---" for key in keys) + " |")
+        print(" | ".join(key.upper() for key in keys))
+        print(" | ".join("---" for key in keys))
 
     xtags = {}
     if not urltags:
@@ -144,10 +144,13 @@ def print_items(
             tag = item.tag
             item.tag = f"[{item.tag}]({item.url})"
             item.title = item.title.replace("|", r"'\|")
-            print("| " + " | ".join(item[key] for key in keys) + " |")
+            print(" | ".join(item[key] for key in keys))
             if tag in xtags:
                 for info in xtags[tag]:
-                    print(f'| | [{info["file"]}:{info["lineno"]}]({info["url"]}) | | |')
+                    print(
+                        "| " * len(keys)
+                        + f'[{info["file"]}:{info["lineno"]}]({info["url"]}) |'
+                    )
         else:
             print(Template(output_format).render(item.__dict__))
             if item.tag in xtags:
