@@ -15,26 +15,6 @@ FILE_PATTERN = "*.pm"
 LINE_PATTERN = r"soft_fail.*?((?:bsc|poo)#[0-9]+|(?:gh|gl|gsd)#[^#]+#[0-9]+)"
 
 
-def git_blame(file: str, line_number: str) -> str:
-    """
-    Run git blame and return the e-mail
-    """
-    if not line_number.isdigit():
-        raise ValueError(f"Invalid number: {line_number}")
-    cmd = f"git blame --porcelain -L {line_number},{line_number} {file}"
-    try:
-        output = subprocess.check_output(
-            shlex.split(cmd), shell=False, universal_newlines=True
-        ).strip()
-    except subprocess.CalledProcessError as exc:
-        logging.error("%s: %s", file, exc)
-        return "UNKNOWN"
-    for line in output.splitlines():
-        if "@" in line:
-            return line.split()[1]
-    return "UNKNOWN"
-
-
 def git_branch() -> str:
     """
     Get current branch
@@ -128,7 +108,6 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
         for file, line_number, tag in recursive_grep(
             directory, LINE_PATTERN, FILE_PATTERN, ignore_dirs=[".git"]
         ):
-            author = git_blame(file, line_number)
             file = file.removeprefix(f"{directory}/")
             if tag not in tags:
                 tags[tag] = []
@@ -136,7 +115,6 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
                 {
                     "file": file,
                     "lineno": line_number,
-                    "author": author,
                     "url": f"{base_url}/{file}#L{line_number}",
                 }
             )

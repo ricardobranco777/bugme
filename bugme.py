@@ -147,18 +147,12 @@ def print_items(
             print("| " + " | ".join(item[key] for key in keys) + " |")
             if tag in xtags:
                 for info in xtags[tag]:
-                    print(
-                        f'| | {info["author"]} | [{info["file"]}:{info["lineno"]}]({info["url"]}) | |'
-                    )
+                    print(f'| | [{info["file"]}:{info["lineno"]}]({info["url"]}) | | |')
         else:
             print(Template(output_format).render(item.__dict__))
             if item.tag in xtags:
                 for info in xtags[item.tag]:
-                    print(
-                        "\t".join(
-                            [info["author"], info["file"], info["lineno"], info["url"]]
-                        )
-                    )
+                    print("\t".join([info["file"], info["lineno"], info["url"]]))
 
     if output_type == "json":
         print(json.dumps(all_items, default=str, sort_keys=True))
