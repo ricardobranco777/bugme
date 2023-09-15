@@ -18,7 +18,7 @@ from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyRedmine
 from utils import dateit
 
 
-VERSION = "1.9"
+VERSION = "1.9.1"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     )
     argparser.add_argument("-t", "--time", default="timeago", help="strftime format")
     argparser.add_argument(
-        "--version", action="version", version=f"{sys.argv[0]} VERSION"
+        "--version", action="version", version=f"bugme {VERSION}"
     )
     argparser.add_argument("url", nargs="*")
     return argparser.parse_args()
