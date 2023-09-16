@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-o",
         "--output",
-        choices=["text", "html", "markdown", "json"],
+        choices=["text", "html", "json"],
         default="text",
         help="output type",
     )
@@ -129,10 +129,7 @@ def print_items(
         output_format = "  ".join(
             f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
         )
-    if output_type == "markdown":
-        print(" | ".join(key.upper() for key in keys))
-        print(" | ".join("---" for key in keys))
-    elif output_type == "html":
+    if output_type == "html":
         print("<table><thead><tr>")
         print("".join(f"<th>{key.upper()}</th>" for key in keys))
         print("</tr></thead><tbody>")
@@ -145,17 +142,6 @@ def print_items(
     for item in get_items(creds, urltags, time_format):
         if output_type == "json":
             all_items.append(item.__dict__)
-        elif output_type == "markdown":
-            tag = item.tag
-            item.tag = f"[{item.tag}]({item.url})"
-            item.title = item.title.replace("|", r"'\|")
-            print(" | ".join(item[key] for key in keys))
-            if tag in xtags:
-                for info in xtags[tag]:
-                    print(
-                        "| " * len(keys)
-                        + f'[{info["file"]}:{info["lineno"]}]({info["url"]}) |'
-                    )
         elif output_type == "html":
             item.tag = f'<a href="{item.url}">{item.tag}</a>'
             item.title = html.escape(item.title)

@@ -31,7 +31,7 @@ options:
                         output in Jinja2 format (default: None)
   -l {debug,info,warning,error,critical}, --log {debug,info,warning,error,critical}
                         log level (default: warning)
-  -o {text,markdown,html,json}, --output {text,markdown,html,json}
+  -o {text,html,json}, --output {text,html,json}
                         output type (default: text)
   -t TIME, --time TIME  strftime format (default: timeago)
   --version             show program's version number and exit
