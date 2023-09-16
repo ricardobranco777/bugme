@@ -2,18 +2,9 @@
 
 # bugme
 
-Show bug and issue status
+Show bug and issue status for Bugzilla, Github, Gitlab & Redmine
 
-Docker images available at:
-- Alpine based using PyPI: `ghcr.io/ricardobranco777/bugme:latest`
-- openSUSE based: `registry.opensuse.org/home/rbranco/bugme/containerfile/bugme`
-
-Supported:
-- bsc#: SUSE's Bugzilla
-- gh#: Github
-- gl#: Gitlab
-- gsd#: SUSE's Gitlab
-- poo#: openSUSE's Redmine
+Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
 ## Usage
 
@@ -37,12 +28,20 @@ options:
   --version             show program's version number and exit
 ```
 
+## Supported tags
+
+- bsc#: SUSE's Bugzilla
+- gh#: Github
+- gl#: Gitlab
+- gsd#: SUSE's Gitlab
+- poo#: openSUSE's Redmine
+
 ## Example
 
-Copy [creds-example.json](creds-example.json) to `~/creds.json` and run.
+Copy [creds-example.json](creds-example.json) to `~/creds.json` and run:
 
 ```
-$ podman run --rm -v ~/creds.json:/root/creds.json:ro bugme bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro bugme bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7 ghcr.io/ricardobranco777/bugme
 URL                                                                     STATUS      UPDATED                         TITLE
 https://bugzilla.suse.com/show_bug.cgi?id=1213811                       NEW         Tue Sep 05 16:21:37 CEST 2023   podman network unreachable after starting docker
 https://github.com/containers/podman/issues/19529                       closed      Tue Aug 08 08:56:56 CEST 2023   Unexpected error with --volumes-from
@@ -51,7 +50,17 @@ https://gitlab.com/gitlab-org/gitlab/-/issues/424503                    opened  
 https://gitlab.suse.de/qac/container-release-bot/-/issues/7             opened      Thu Sep 15 15:57:32 CEST 2022   Explore new schedule options
 ```
 
+To scan a repository:
+
+```
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-distri-opensuse:/bugme:ro -o html > table.html
+```
+
 ## Requirements
 
 - Docker or Podman to run the Docker image.
 - Python 3.11+ and [requirements](requirements-dev.txt) to run stand-alone.
+
+## TODO
+
+- Jira
