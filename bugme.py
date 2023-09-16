@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-o",
         "--output",
-        choices=["text", "html", "json"],
+        choices=["text", "html"],
         default="text",
         help="output type",
     )
@@ -116,7 +116,6 @@ def print_items(
     """
     Print items
     """
-    all_items = []
     keys = {
         "tag": "<40",
         "status": "<10",
@@ -140,9 +139,7 @@ def print_items(
         urltags = list(xtags.keys())
 
     for item in get_items(creds, urltags, time_format):
-        if output_type == "json":
-            all_items.append(item.__dict__)
-        elif output_type == "html":
+        if output_type == "html":
             item.tag = f'<a href="{item.url}">{item.tag}</a>'
             item.title = html.escape(item.title)
             tds = "".join(f"<td>{item[key]}</td>" for key in keys)
@@ -153,9 +150,7 @@ def print_items(
                 for info in xtags[item.tag]:
                     print("\t".join([info["file"], info["lineno"], info["url"]]))
 
-    if output_type == "json":
-        print(json.dumps(all_items, default=str, sort_keys=True))
-    elif output_type == "html":
+    if output_type == "html":
         print("</tbody></table>")
 
 
