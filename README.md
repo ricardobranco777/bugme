@@ -6,6 +6,10 @@ Show bug and issue status for Bugzilla, Github, Gitlab & Redmine
 
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
+List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-autoinst/os-autoinst-distri-opensuse) available at:
+
+https://ricardobranco777.github.io/bugme/
+
 ## Usage
 
 ```
@@ -28,14 +32,6 @@ options:
   --version             show program's version number and exit
 ```
 
-## Supported tags
-
-- bsc#: SUSE's Bugzilla
-- gh#: Github
-- gl#: Gitlab
-- gsd#: SUSE's Gitlab
-- poo#: openSUSE's Redmine
-
 ## Example
 
 Copy [creds-example.json](creds-example.json) to `~/creds.json` and run:
@@ -53,8 +49,16 @@ https://gitlab.suse.de/qac/container-release-bot/-/issues/7             opened  
 To scan a repository:
 
 ```
-$ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-distri-opensuse:/bugme:ro -o html > table.html
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-distri-opensuse:/bugme:ro
 ```
+
+## Supported tags
+
+- bsc#: SUSE's Bugzilla
+- gh#: Github
+- gl#: Gitlab
+- gsd#: SUSE's Gitlab
+- poo#: openSUSE's Redmine
 
 ## Requirements
 
