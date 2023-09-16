@@ -6,10 +6,10 @@ FROM	opensuse/bci/python:3.11
 #RUN	zypper addrepo https://download.opensuse.org/repositories/SUSE:/CA/openSUSE_Tumbleweed/SUSE:CA.repo && \
 #	zypper --gpg-auto-import-keys -n install ca-certificates-suse
 COPY	SUSE_Trust_Root.crt /usr/share/pki/trust/anchors/
-RUN	update-ca-certificates && \
-	git config --global --add safe.directory /bugme
+RUN	update-ca-certificates
 
 RUN	zypper -n install \
+		python3-dulwich \
 		python3-python-dateutil \
 		python3-pytz \
 		python3-Jinja2 \

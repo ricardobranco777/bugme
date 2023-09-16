@@ -1,3 +1,4 @@
+dulwich
 Jinja2
 PyGithub
 python-bugzilla

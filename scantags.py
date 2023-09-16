@@ -7,52 +7,29 @@ import fnmatch
 import logging
 import os
 import re
-import shlex
-import subprocess
 from typing import Generator
+
+from dulwich.repo import Repo
 
 FILE_PATTERN = "*.pm"
 LINE_PATTERN = r"soft_fail.*?((?:bsc|poo)#[0-9]+|(?:gh|gl|gsd)#[^#]+#[0-9]+)"
 
 
-def git_branch() -> str:
+def git_branch(directory: str = ".") -> str:
     """
-    Get current branch
+    Get current git branch
     """
-    cmd = "git symbolic-ref --short HEAD"
-    try:
-        return subprocess.check_output(
-            shlex.split(cmd), shell=False, universal_newlines=True
-        ).strip()
-    except subprocess.CalledProcessError as exc:
-        logging.error("%s: %s", cmd, exc)
-    return "master"
+    with Repo(directory) as repo:
+        (_, ref), _ = repo.refs.follow(b"HEAD")
+        return os.path.basename(ref.decode("utf-8"))
 
 
-def git_remote() -> str | None:
+def git_remote(directory: str = ".") -> str:
     """
-    Get most likely remote
+    Get git remote
     """
-    cmd = "git remote get-url upstream"
-    try:
-        output = subprocess.check_output(
-            shlex.split(cmd),
-            shell=False,
-            stderr=subprocess.DEVNULL,
-            universal_newlines=True,
-        ).strip()
-    except subprocess.CalledProcessError:
-        cmd = "git remote get-url origin"
-        try:
-            output = subprocess.check_output(
-                shlex.split(cmd),
-                shell=False,
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True,
-            ).strip()
-        except subprocess.CalledProcessError as exc:
-            logging.error("%s: %s", cmd, exc)
-            return None
+    with Repo(directory) as repo:
+        output = repo.get_config().get(("remote", "origin"), "url").decode("utf-8")
     if output.startswith(("git@", "gitlab@")):
         output = re.sub(
             "^git(?:lab)?@", "https://", output.replace(":", "/", 1), count=1
@@ -98,12 +75,12 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
         if not os.path.isdir(os.path.join(directory, ".git")):
             logging.error("ERROR: No git repo in %s", directory)
             return {}
-        base_url = git_remote()
+        base_url = git_remote(directory)
         if base_url is not None:
             base_url = (
                 f"{base_url}/-/blob" if "gitlab" in base_url else f"{base_url}/blob"
             )
-            branch = git_branch()
+            branch = git_branch(directory)
             base_url = f"{base_url}/{branch}"
         for file, line_number, tag in recursive_grep(
             directory, LINE_PATTERN, FILE_PATTERN, ignore_dirs=[".git"]
