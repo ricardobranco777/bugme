@@ -19,7 +19,7 @@ from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyRedmine
 from utils import dateit
 
 
-VERSION = "1.9.1"
+VERSION = "1.9.2"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
