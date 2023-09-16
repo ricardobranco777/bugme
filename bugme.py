@@ -124,10 +124,9 @@ def print_items(
     }
 
     # Print header
-    if output_format is None:
-        output_format = "  ".join(
-            f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
-        )
+    output_format = output_format or "  ".join(
+        f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
+    )
     if output_type == "html":
         print("<table><thead><tr>")
         print("".join(f"<th>{key.upper()}</th>" for key in keys))
@@ -140,15 +139,20 @@ def print_items(
 
     for item in get_items(creds, urltags, time_format):
         if output_type == "html":
+            tag = item.tag
             item.tag = f'<a href="{item.url}">{item.tag}</a>'
             item.title = html.escape(item.title)
             tds = "".join(f"<td>{item[key]}</td>" for key in keys)
             print(f"<tr>{tds}</tr>")
+            # print files in last column
+            for info in xtags.get(tag, []):
+                tds = "<td></td>" * (len(keys) - 1)
+                href = f'<a href="{info["url"]}">{info["file"]} {info["lineno"]}</a>'
+                print(f"<tr>{tds}<td>{href}</td></tr>")
         else:
             print(Template(output_format).render(item.__dict__))
-            if item.tag in xtags:
-                for info in xtags[item.tag]:
-                    print("\t".join([info["file"], info["lineno"], info["url"]]))
+            for info in xtags.get(item.tag, []):
+                print("\t".join([info["file"], info["lineno"], info["url"]]))
 
     if output_type == "html":
         print("</tbody></table>")
