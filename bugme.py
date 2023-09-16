@@ -5,6 +5,7 @@ Bugme
 
 import argparse
 import logging
+import html
 import os
 import json
 import sys
@@ -47,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-o",
         "--output",
-        choices=["text", "markdown", "json"],
+        choices=["text", "html", "markdown", "json"],
         default="text",
         help="output type",
     )
@@ -131,6 +132,10 @@ def print_items(
     if output_type == "markdown":
         print(" | ".join(key.upper() for key in keys))
         print(" | ".join("---" for key in keys))
+    elif output_type == "html":
+        print("<table><thead><tr>")
+        print("".join(f"<th>{key.upper()}</th>" for key in keys))
+        print("</tr></thead><tbody>")
 
     xtags = {}
     if not urltags:
@@ -151,6 +156,11 @@ def print_items(
                         "| " * len(keys)
                         + f'[{info["file"]}:{info["lineno"]}]({info["url"]}) |'
                     )
+        elif output_type == "html":
+            item.tag = f'<a href="{item.url}">{item.tag}</a>'
+            item.title = html.escape(item.title)
+            tds = "".join(f"<td>{item[key]}</td>" for key in keys)
+            print(f"<tr>{tds}</tr>")
         else:
             print(Template(output_format).render(item.__dict__))
             if item.tag in xtags:
@@ -159,6 +169,8 @@ def print_items(
 
     if output_type == "json":
         print(json.dumps(all_items, default=str, sort_keys=True))
+    elif output_type == "html":
+        print("</tbody></table>")
 
 
 def main():
