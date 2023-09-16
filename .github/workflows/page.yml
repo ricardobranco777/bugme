@@ -1,0 +1,71 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["master"]
+
+  schedule:
+  - cron: '0 * * * *'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'  # Choose your Python version
+      - name: Clone repo
+        run: |
+          git clone --depth 1 https://github.com/os-autoinst/os-autoinst-distri-opensuse
+      - name: Setup creds.json
+        env:
+          BUGZILLA_API_KEY: ${{ secrets.BUGZILLA_API_KEY }}
+          BUGZILLA_USER: ${{ secrets.BUGZILLA_USER }}
+          BUGME_GITHUB_TOKEN: ${{ secrets.BUGME_GITHUB_TOKEN }}
+          GITLAB_API_KEY: ${{ secrets.GITLAB_API_KEY }}
+          REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
+          REDMINE_USER: ${{ secrets.REDMINE_USER }}
+        run: |
+          python creds.py
+      - name: Run bugme
+        run: |
+          docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme:latest -o html > body.html
+          rm -f creds.json
+      - name: Setup upload
+        run: |
+          mkdir upload
+          echo "<p>Last updated on $(date)</p>" >> static/header.html
+          cat static/header.html body.html static/footer.html > upload/index.html
+          cp static/favicon.ico static/style.css upload/
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'upload'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
