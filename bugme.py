@@ -124,13 +124,15 @@ def print_items(
     }
 
     # Print header
-    output_format = output_format or "  ".join(
-        f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
-    )
     if output_type == "html":
         print("<table><thead><tr>")
         print("".join(f"<th>{key.upper()}</th>" for key in keys))
         print("</tr></thead><tbody>")
+    elif output_type == "text":
+        output_format = output_format or "  ".join(
+            f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
+        )
+        print(Template(output_format).render({key: key.upper() for key in keys}))
 
     xtags = {}
     if not urltags:
