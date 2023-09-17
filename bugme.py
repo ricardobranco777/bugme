@@ -10,7 +10,7 @@ import os
 import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Generator
+from typing import Any
 
 from scantags import scan_tags
 from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyJira, MyRedmine
@@ -58,9 +58,7 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def get_items(
-    creds: dict[str, dict[str, str]], urltags: list[str], time_format: str
-) -> Generator[Item, None, None]:
+def get_items(creds: dict[str, dict[str, str]], urltags: list[str]) -> list[Item]:
     """
     Get items
     """
@@ -93,17 +91,14 @@ def get_items(
     if len(clients) == 0:
         sys.exit(0)
 
+    all_items = []
     with ThreadPoolExecutor(max_workers=len(clients)) as executor:
         iterator = executor.map(
             lambda host: clients[host].get_items(host_items[host]), clients
         )
         for items in iterator:
-            for item in items:
-                if item is None:
-                    continue
-                item.created = dateit(item.created, time_format)
-                item.updated = dateit(item.updated, time_format)
-                yield item
+            all_items.extend([it for it in items if it is not None])
+    return all_items
 
 
 def print_items(
@@ -139,7 +134,9 @@ def print_items(
         xtags = scan_tags()
         urltags = list(xtags.keys())
 
-    for item in get_items(creds, urltags, time_format):
+    for item in get_items(creds, urltags):
+        item.created = dateit(item.created, time_format)
+        item.updated = dateit(item.updated, time_format)
         if output_type == "html":
             tag = item.tag
             item.tag = f'<a href="{item.url}">{item.tag}</a>'
