@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generator
 
 from scantags import scan_tags
-from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyRedmine
+from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyJira, MyRedmine
 from utils import dateit
 
 
@@ -75,6 +75,7 @@ def get_items(
 
     host_to_cls = {
         "github.com": MyGithub,
+        "jira.suse.com": MyJira,
         "progress.opensuse.org": MyRedmine,
     }
 
@@ -118,7 +119,7 @@ def print_items(
     """
     keys = {
         "tag": "<40",
-        "status": "<10",
+        "status": "<15",
         "created": "<15" if time_format == "timeago" else "<30",
         "updated": "<15" if time_format == "timeago" else "<30",
     }

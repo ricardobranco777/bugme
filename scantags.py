@@ -12,7 +12,9 @@ from typing import Generator
 from dulwich.repo import Repo
 
 FILE_PATTERN = "*.pm"
-LINE_PATTERN = r"soft_fail.*?((?:bsc|poo)#[0-9]+|(?:gh|gl|gsd)#[^#]+#[0-9]+)"
+LINE_PATTERN = (
+    r"soft_fail.*?((?:bsc|poo)#[0-9]+|(?:gh|gl|gsd)#[^#]+#[0-9]+|jsc#[A-Z]+-[0-9]+)"
+)
 
 
 def git_branch(directory: str = ".") -> str:

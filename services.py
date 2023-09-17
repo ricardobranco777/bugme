@@ -10,6 +10,8 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from typing import Any
 
+from atlassian import Jira  # type: ignore
+from atlassian.errors import ApiError  # type: ignore
 from bugzilla import Bugzilla  # type: ignore
 from bugzilla.exceptions import BugzillaError  # type: ignore
 from github import Github, GithubException
@@ -27,6 +29,7 @@ CODE_TO_HOST = {
     "gh": "github.com",
     "gl": "gitlab.com",
     "gsd": "gitlab.suse.de",
+    "jsc": "jira.suse.com",
     "poo": "progress.opensuse.org",
 }
 
@@ -74,12 +77,10 @@ def get_item(string: str) -> Item | None:
             issue_id = os.path.basename(url.path)
         elif hostname.startswith("bugzilla"):
             issue_id = parse_qs(url.query)["id"][0]
-        elif hostname == "progress.opensuse.org":
-            issue_id = os.path.basename(url.path)
         else:
-            return None
+            issue_id = os.path.basename(url.path)
         return Item(
-            item_id=int(issue_id),
+            item_id=issue_id,
             host=hostname,
             repo=repo,
         )
@@ -91,7 +92,7 @@ def get_item(string: str) -> Item | None:
         repo = ""
     try:
         return Item(
-            item_id=int(issue),
+            item_id=issue,
             host=CODE_TO_HOST[code],
             repo=repo,
         )
@@ -113,7 +114,7 @@ class Service:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
-    def _not_found(self, item_id: int, url: str, tag: str) -> Item:
+    def _not_found(self, item_id: str, url: str, tag: str) -> Item:
         now = datetime.now()
         return Item(
             id=item_id,
@@ -126,7 +127,7 @@ class Service:
             json="{}",
         )
 
-    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
         This method must be overriden if get_items() isn't overriden
         """
@@ -161,7 +162,7 @@ class MyBugzilla(Service):
         except (AttributeError, BugzillaError):
             pass
 
-    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
         Get Bugzilla item
         """
@@ -204,7 +205,7 @@ class MyBugzilla(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            id=info.id,
+            id=str(info.id),
             status=info.status,
             title=info.summary,
             created=info.creation_time,
@@ -228,13 +229,13 @@ class MyGithub(Service):
         self.client = Github(**creds)
         self.tag = "gh"
 
-    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
         Get Github issue
         """
         repo = kwargs.pop("repo")
         try:
-            info = self.client.get_repo(repo, lazy=True).get_issue(item_id)
+            info = self.client.get_repo(repo, lazy=True).get_issue(int(item_id))
         except (GithubException, RequestException) as exc:
             if getattr(exc, "status", None) == 404:
                 return self._not_found(
@@ -242,7 +243,7 @@ class MyGithub(Service):
                     "{self.url}/{repo}/issues/{item_id}",
                     "{self.tag}#{repo}#{item_id}",
                 )
-            logging.error("Github: get_issue(%s, %s): %s", repo, item_id, exc)
+            logging.error("Github: get_item(%s, %s): %s", repo, item_id, exc)
             return None
         return self._to_item(info, repo)
 
@@ -277,7 +278,7 @@ class MyGitlab(Service):
         except (AttributeError, GitlabError):
             pass
 
-    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
         Get Gitlab issue
         """
@@ -292,7 +293,7 @@ class MyGitlab(Service):
                     f"{self.tag}#{repo}#{item_id}",
                 )
             logging.error(
-                "Gitlab: %s: get_issue(%s, %s): %s", self.url, repo, item_id, exc
+                "Gitlab: %s: get_item(%s, %s): %s", self.url, repo, item_id, exc
             )
             return None
         return self._to_item(info, repo)
@@ -319,7 +320,7 @@ class MyRedmine(Service):
         super().__init__(url)
         self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
 
-    def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
         Get Redmine ticket
         """
@@ -330,7 +331,7 @@ class MyRedmine(Service):
                 item_id, f"{self.url}/issues/{item_id}", f"{self.tag}#{item_id}"
             )
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_issue(%d): %s", self.url, item_id, exc)
+            logging.error("Redmine: %s: get_item(%d): %s", self.url, item_id, exc)
             return None
         return self._to_item(info)
 
@@ -344,4 +345,44 @@ class MyRedmine(Service):
             url=f"{self.url}/issues/{info.id}",
             tag=f"{self.tag}#{info.id}",
             json=json.dumps(info.raw(), **JSON_OPTIONS),  # type: ignore
+        )
+
+
+class MyJira(Service):
+    """
+    Redmine
+    """
+
+    def __init__(self, url: str, creds: dict):
+        super().__init__(url)
+        self.client = Jira(url=self.url, **creds)
+
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+        """
+        Get Jira ticket
+        """
+        try:
+            info = self.client.issue(item_id)
+        except (ApiError, RequestException) as exc:
+            try:
+                if exc.response.status_code == 404:
+                    return self._not_found(
+                        item_id, f"{self.url}/browse/{item_id}", f"{self.tag}#{item_id}"
+                    )
+            except AttributeError:
+                pass
+            logging.error("Jira: %s: get_item(%s): %s", self.url, item_id, exc)
+            return None
+        return self._to_item(info)
+
+    def _to_item(self, info: Any) -> Item:
+        return Item(
+            id=info["key"],
+            status=info["fields"]["status"]["name"],
+            title=info["fields"]["summary"],
+            created=info["fields"]["created"],
+            updated=info["fields"]["updated"],
+            url=f"{self.url}/browse/{info['key']}",
+            tag=f"{self.tag}#{info['key']}",
+            json=json.dumps(info, **JSON_OPTIONS),  # type: ignore
         )

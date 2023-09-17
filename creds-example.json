@@ -3,6 +3,12 @@
     "user": "rbranco@suse.com",
     "api_key": "BUGZILLA_API_KEY"
   },
+  "jira.suse.com": {
+    "cookies": {
+      "JIRASESSIONID": "JIRA_SESSION_ID",
+      "atlassian.xsrf.token": "JIRA_TOKEN"
+    }
+  },
   "progress.opensuse.org": {
     "username": "rbranco",
     "key": "REDMINE_API_KEY"
