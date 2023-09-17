@@ -8,7 +8,7 @@ Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
 List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-autoinst/os-autoinst-distri-opensuse) available at:
 
-https://ricardobranco777.github.io/bugme/
+[https://ricardobranco777.github.io/bugme/](https://ricardobranco777.github.io/bugme/)
 
 ## Usage
 
