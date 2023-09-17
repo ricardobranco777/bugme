@@ -37,7 +37,9 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_CREDENTIALS_FILE,
         help="path to credentials file",
     )
-    argparser.add_argument("-f", "--format", help="output in Jinja2 format")
+    argparser.add_argument(
+        "-f", "--format", default="tag,status,updated,title", help="output fields"
+    )
     argparser.add_argument(
         "-l",
         "--log",
@@ -119,19 +121,22 @@ def print_items(
     keys = {
         "tag": "<40",
         "status": "<10",
-        "updated": "<15",
-        "title": "",
+        "created": "<15" if time_format == "timeago" else "<30",
+        "updated": "<15" if time_format == "timeago" else "<30",
     }
+
+    keys = {key: keys.get(key, "") for key in output_format.split(",")}
 
     # Print header
     if output_type == "html":
         header = "".join(f"<th>{key.upper()}</th>" for key in keys)
         print(f"<table><thead><tr>{header}</tr></thead><tbody>")
-    else:
-        output_format = output_format or "  ".join(
+    elif "{{" not in output_format:
+        output_format = "  ".join(
             f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
         )
-        print(Template(output_format).render({key: key.upper() for key in keys}))
+        if "json" not in output_format:
+            print(Template(output_format).render({key: key.upper() for key in keys}))
 
     xtags = {}
     if not urltags:
@@ -173,8 +178,6 @@ def main():
 
 if __name__ == "__main__":
     args = parse_args()
-    if args.format and args.output != "text":
-        sys.exit(f"ERROR: The --format option is not valid for output {args.output}")
     logging.basicConfig(
         format="%(levelname)-8s %(message)s", stream=sys.stderr, level=args.log.upper()
     )

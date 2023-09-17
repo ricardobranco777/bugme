@@ -23,7 +23,7 @@ options:
   -c CREDS, --creds CREDS
                         path to credentials file (default: ~/creds.json)
   -f FORMAT, --format FORMAT
-                        output in Jinja2 format (default: None)
+                        output fields (default: tag,status,updated,title)
   -l {debug,info,warning,error,critical}, --log {debug,info,warning,error,critical}
                         log level (default: warning)
   -o {text,html}, --output {text,html}
