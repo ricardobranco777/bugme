@@ -7,20 +7,20 @@ import os
 
 CREDS = {
     "bugzilla.suse.com": {
-        "api_key": os.environ["BUGZILLA_API_KEY"],
-        "user": os.environ["BUGZILLA_USER"],
+        "api_key": os.getenv("BUGZILLA_API_KEY"),
+        "user": os.getenv("BUGZILLA_USER"),
     },
-    "github.com": {"login_or_token": os.environ["BUGME_GITHUB_TOKEN"]},
-    "gitlab.com": {"private_token": os.environ["GITLAB_API_KEY"]},
+    "github.com": {"login_or_token": os.getenv("BUGME_GITHUB_TOKEN")},
+    "gitlab.com": {"private_token": os.getenv("GITLAB_API_KEY")},
     "jira.suse.com": {
         "cookies": {
-            "JIRASESSIONID": os.environ["JIRA_SESSION_ID"],
-            "atlassian.xsrf.token": os.environ["JIRA_TOKEN"],
+            "JIRASESSIONID": os.getenv("JIRA_SESSION_ID"),
+            "atlassian.xsrf.token": os.getenv("JIRA_TOKEN"),
         }
     },
     "progress.opensuse.org": {
-        "key": os.environ["REDMINE_API_KEY"],
-        "username": os.environ["REDMINE_USER"],
+        "key": os.getenv("REDMINE_API_KEY"),
+        "username": os.getenv("REDMINE_USER"),
     },
 }
 
