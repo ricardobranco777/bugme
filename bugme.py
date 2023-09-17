@@ -119,6 +119,7 @@ def print_items(
     """
     keys = {
         "tag": "<40",
+        "url": "<60",
         "status": "<15",
         "created": "<15" if time_format == "timeago" else "<30",
         "updated": "<15" if time_format == "timeago" else "<30",
