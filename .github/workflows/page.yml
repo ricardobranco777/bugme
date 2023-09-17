@@ -54,20 +54,19 @@ jobs:
           python creds.py
       - name: Run bugme
         run: |
-          docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme:latest -o html > body.html
+          docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme:latest -o html > docs/body.html
           rm -f creds.json
       - name: Setup upload
         run: |
-          mkdir upload
-          echo "<p>Last updated on $(date)</p>" >> static/header.html
-          cat static/header.html body.html static/footer.html > upload/index.html
-          cp static/favicon.ico static/style.css upload/
+          cd docs
+          echo "<p>Last updated on $(date)</p>" >> header.html
+          cat header.html body.html footer.html > index.html
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: 'upload'
+          path: 'docs'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
