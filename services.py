@@ -2,6 +2,7 @@
 Services
 """
 
+import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,11 @@ CODE_TO_HOST = {
     "gl": "gitlab.com",
     "gsd": "gitlab.suse.de",
     "poo": "progress.opensuse.org",
+}
+
+JSON_OPTIONS = {
+    "default": str,
+    "sort_keys": True,
 }
 
 
@@ -117,7 +123,7 @@ class Service:
             updated=now,
             url=url,
             tag=tag,
-            extra={},
+            json="{}",
         )
 
     def get_item(self, item_id: int = -1, **kwargs) -> Item | None:
@@ -205,7 +211,7 @@ class MyBugzilla(Service):
             updated=info.last_change_time,
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             tag=f"{self.tag}#{info.id}",
-            extra=info.__dict__,
+            json=json.dumps(info.get_raw_data(), **JSON_OPTIONS),  # type: ignore
         )
 
 
@@ -249,7 +255,7 @@ class MyGithub(Service):
             updated=info.updated_at,
             url=f"{self.url}/{repo}/issues/{info.number}",
             tag=f"{self.tag}#{repo}#{info.number}",
-            extra=info.__dict__["_rawData"],
+            json=json.dumps(info.raw_data, **JSON_OPTIONS),  # type: ignore
         )
 
 
@@ -300,7 +306,7 @@ class MyGitlab(Service):
             updated=info.updated_at,
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
             tag=f"{self.tag}#{repo}#{info.iid}",
-            extra=info.asdict(),
+            json=json.dumps(info.asdict(), **JSON_OPTIONS),  # type: ignore
         )
 
 
@@ -337,5 +343,5 @@ class MyRedmine(Service):
             updated=info.updated_on,
             url=f"{self.url}/issues/{info.id}",
             tag=f"{self.tag}#{info.id}",
-            extra=info.raw(),
+            json=json.dumps(info.raw(), **JSON_OPTIONS),  # type: ignore
         )
