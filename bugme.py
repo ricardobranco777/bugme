@@ -103,7 +103,6 @@ def get_items(
                     continue
                 item.created = dateit(item.created, time_format)
                 item.updated = dateit(item.updated, time_format)
-                item.status = item.status.upper()
                 yield item
 
 

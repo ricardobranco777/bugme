@@ -250,7 +250,7 @@ class MyGithub(Service):
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.number,
-            status=info.state,
+            status=info.state.upper(),
             title=info.title,
             created=info.created_at,
             updated=info.updated_at,
@@ -301,7 +301,7 @@ class MyGitlab(Service):
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.iid,
-            status=info.state,
+            status=info.state.upper(),
             title=info.title,
             created=info.created_at,
             updated=info.updated_at,
@@ -338,7 +338,7 @@ class MyRedmine(Service):
     def _to_item(self, info: Any) -> Item:
         return Item(
             id=info.id,
-            status=info.status.name,
+            status=info.status.name.upper(),
             title=info.subject,
             created=info.created_on,
             updated=info.updated_on,
@@ -378,7 +378,7 @@ class MyJira(Service):
     def _to_item(self, info: Any) -> Item:
         return Item(
             id=info["key"],
-            status=info["fields"]["status"]["name"],
+            status=info["fields"]["status"]["name"].upper(),
             title=info["fields"]["summary"],
             created=info["fields"]["created"],
             updated=info["fields"]["updated"],
