@@ -125,10 +125,9 @@ def print_items(
 
     # Print header
     if output_type == "html":
-        print("<table><thead><tr>")
-        print("".join(f"<th>{key.upper()}</th>" for key in keys))
-        print("</tr></thead><tbody>")
-    elif output_type == "text":
+        header = "".join(f"<th>{key.upper()}</th>" for key in keys)
+        print(f"<table><thead><tr>{header}</tr></thead><tbody>")
+    else:
         output_format = output_format or "  ".join(
             f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
         )
@@ -154,7 +153,7 @@ def print_items(
         else:
             print(Template(output_format).render(item.__dict__))
             for info in xtags.get(item.tag, []):
-                print("\t".join([info["file"], info["lineno"], info["url"]]))
+                print("\t".join([info["file"], info["url"]]))
 
     if output_type == "html":
         print("</tbody></table>")
