@@ -134,6 +134,26 @@ class Service:
         self.url = url if url.startswith("https://") else f"https://{url}"
         self.tag = "".join([s[0] for s in str(urlparse(self.url).hostname).split(".")])
 
+    def __del__(self):
+        try:
+            self.session.close()
+        except AttributeError:
+            pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            logging.error(
+                "%s: %s: %s: %s",
+                self.__class__.__name__,
+                exc_type,
+                exc_value,
+                traceback,
+            )
+        self.__del__()
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
@@ -185,6 +205,10 @@ class MyBugzilla(Service):
             self.client.disconnect()
         except (AttributeError, BugzillaError):
             pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        super().__exit__(exc_type, exc_value, traceback)
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
@@ -312,6 +336,10 @@ class MyGitlab(Service):
             self.client.__exit__(None, None, None)
         except (AttributeError, GitlabError):
             pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        super().__exit__(exc_type, exc_value, traceback)
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """

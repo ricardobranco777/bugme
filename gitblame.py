@@ -61,10 +61,10 @@ class GitBlame:
         )
         self.timeout = 30
 
-    def close(self):
-        """
-        Close connections
-        """
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
     @cache  # pylint: disable=method-cache-max-size-none

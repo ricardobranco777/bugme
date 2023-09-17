@@ -9,7 +9,6 @@ import os
 import re
 from collections import defaultdict
 from configparser import ConfigParser
-from contextlib import closing
 from datetime import datetime
 from operator import itemgetter
 from typing import Iterator
@@ -120,7 +119,7 @@ def scan_tags(  # pylint: disable=too-many-locals
     owner_repo = base_url.split("/", 3)[-1]
     check_repo(directory, owner_repo, branch, token)
 
-    with closing(GitBlame(repo=owner_repo, branch=branch, access_token=token)) as blame:
+    with GitBlame(repo=owner_repo, branch=branch, access_token=token) as blame:
 
         def process_line(
             file: str, line_number: int, tag: str
