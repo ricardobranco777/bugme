@@ -1,5 +1,4 @@
 dulwich
-Jinja2
 PyGithub
 python-bugzilla
 python-gitlab

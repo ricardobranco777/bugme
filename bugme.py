@@ -12,8 +12,6 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generator
 
-from jinja2 import Template
-
 from scantags import scan_tags
 from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyRedmine
 from utils import dateit
@@ -124,19 +122,16 @@ def print_items(
         "created": "<15" if time_format == "timeago" else "<30",
         "updated": "<15" if time_format == "timeago" else "<30",
     }
-
     keys = {key: keys.get(key, "") for key in output_format.split(",")}
 
     # Print header
     if output_type == "html":
         header = "".join(f"<th>{key.upper()}</th>" for key in keys)
         print(f"<table><thead><tr>{header}</tr></thead><tbody>")
-    elif "{{" not in output_format:
-        output_format = "  ".join(
-            f'{{{{"{{:{align}}}".format({key})}}}}' for key, align in keys.items()
-        )
-        if "json" not in output_format:
-            print(Template(output_format).render({key: key.upper() for key in keys}))
+    else:
+        output_format = "  ".join(f"{{{key}:{align}}}" for key, align in keys.items())
+        if "json" not in keys:
+            print(output_format.format(**{key: key.upper() for key in keys}))
 
     xtags = {}
     if not urltags:
@@ -156,7 +151,7 @@ def print_items(
                 href = f'<a href="{info["url"]}">{info["file"]} {info["lineno"]}</a>'
                 print(f"<tr>{tds}<td>{href}</td></tr>")
         else:
-            print(Template(output_format).render(item.__dict__))
+            print(output_format.format(**item.__dict__))
             for info in xtags.get(item.tag, []):
                 print("\t".join([info["file"], info["url"]]))
 
