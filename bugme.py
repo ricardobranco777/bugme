@@ -8,8 +8,10 @@ import logging
 import html
 import os
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from operator import itemgetter
 from typing import Any
 
 from scantags import scan_tags
@@ -51,6 +53,13 @@ def parse_args() -> argparse.Namespace:
         choices=["text", "html"],
         default="text",
         help="output type",
+    )
+    argparser.add_argument("-r", "--reverse", action="store_true", help="reverse sort")
+    argparser.add_argument(
+        "-s",
+        "--sort",
+        choices=["tag", "url", "status", "created", "updated"],
+        help="sort key",
     )
     argparser.add_argument("-t", "--time", default="timeago", help="strftime format")
     argparser.add_argument("--version", action="version", version=f"bugme {VERSION}")
@@ -134,7 +143,18 @@ def print_items(
         xtags = scan_tags()
         urltags = list(xtags.keys())
 
-    for item in get_items(creds, urltags):
+    items = get_items(creds, urltags)
+    if args.sort in {"tag", "url"}:
+
+        def sort_url(url: str) -> tuple[str, int]:
+            base, item_id = re.split(r"([0-9]+)$", url)[:2]
+            return base, int(item_id)
+
+        items.sort(key=lambda it: sort_url(it["url"]), reverse=args.reverse)
+    elif args.sort is not None:
+        items.sort(key=itemgetter(args.sort), reverse=args.reverse)  # type:ignore
+
+    for item in items:
         item.created = dateit(item.created, time_format)
         item.updated = dateit(item.updated, time_format)
         if output_type == "html":

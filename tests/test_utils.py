@@ -25,19 +25,6 @@ def test_dateit():
     formatted_date = dateit(dt, time_format=another_format)
     assert formatted_date == "Sunday, 10 September 2023"
 
-    # Test date formatting with the default format using a string date
-    date_str = "2023-09-10T15:30:00+00:00"
-    formatted_date = dateit(date_str)
-    assert formatted_date == "Sun Sep 10 17:30:00 CEST 2023"
-
-    # Test date formatting with a custom format using a string date
-    formatted_date = dateit(date_str, time_format=custom_format)
-    assert formatted_date == "2023-09-10 17:30:00"
-
-    # Test date formatting with a different custom format using a string date
-    formatted_date = dateit(date_str, time_format=another_format)
-    assert formatted_date == "Sunday, 10 September 2023"
-
 
 # Test case for a date in the future (should return "in the future")
 @freeze_time("2023-09-12 12:00:00 UTC")

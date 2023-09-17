@@ -6,9 +6,11 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from typing import Any
+
+from datetime import datetime
+from dateutil import tz
 
 from atlassian import Jira  # type: ignore
 from atlassian.errors import ApiError  # type: ignore
@@ -20,6 +22,8 @@ from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
 from requests.exceptions import RequestException
+
+from utils import utc_date
 
 
 CODE_TO_HOST = {
@@ -115,7 +119,7 @@ class Service:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
     def _not_found(self, item_id: str, url: str, tag: str) -> Item:
-        now = datetime.now()
+        now = datetime.now(tz=tz.tzutc())
         return Item(
             id=item_id,
             status="ERROR",
@@ -208,8 +212,8 @@ class MyBugzilla(Service):
             id=str(info.id),
             status=info.status,
             title=info.summary,
-            created=info.creation_time,
-            updated=info.last_change_time,
+            created=utc_date(info.creation_time),
+            updated=utc_date(info.last_change_time),
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             tag=f"{self.tag}#{info.id}",
             json=json.dumps(info.get_raw_data(), **JSON_OPTIONS),  # type: ignore
@@ -252,8 +256,8 @@ class MyGithub(Service):
             id=info.number,
             status=info.state.upper(),
             title=info.title,
-            created=info.created_at,
-            updated=info.updated_at,
+            created=utc_date(info.created_at),
+            updated=utc_date(info.updated_at),
             url=f"{self.url}/{repo}/issues/{info.number}",
             tag=f"{self.tag}#{repo}#{info.number}",
             json=json.dumps(info.raw_data, **JSON_OPTIONS),  # type: ignore
@@ -303,8 +307,8 @@ class MyGitlab(Service):
             id=info.iid,
             status=info.state.upper(),
             title=info.title,
-            created=info.created_at,
-            updated=info.updated_at,
+            created=utc_date(info.created_at),
+            updated=utc_date(info.updated_at),
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
             tag=f"{self.tag}#{repo}#{info.iid}",
             json=json.dumps(info.asdict(), **JSON_OPTIONS),  # type: ignore
@@ -340,8 +344,8 @@ class MyRedmine(Service):
             id=info.id,
             status=info.status.name.upper(),
             title=info.subject,
-            created=info.created_on,
-            updated=info.updated_on,
+            created=utc_date(info.created_on),
+            updated=utc_date(info.updated_on),
             url=f"{self.url}/issues/{info.id}",
             tag=f"{self.tag}#{info.id}",
             json=json.dumps(info.raw(), **JSON_OPTIONS),  # type: ignore
@@ -380,8 +384,8 @@ class MyJira(Service):
             id=info["key"],
             status=info["fields"]["status"]["name"].upper(),
             title=info["fields"]["summary"],
-            created=info["fields"]["created"],
-            updated=info["fields"]["updated"],
+            created=utc_date(info["fields"]["created"]),
+            updated=utc_date(info["fields"]["updated"]),
             url=f"{self.url}/browse/{info['key']}",
             tag=f"{self.tag}#{info['key']}",
             json=json.dumps(info, **JSON_OPTIONS),  # type: ignore

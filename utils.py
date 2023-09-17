@@ -35,12 +35,21 @@ def timeago(date: datetime) -> str:
     return f"{years} year{'s' if years != 1 else ''} {ago}"
 
 
-def dateit(date: str | datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
+def dateit(date: datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     """
     Return date in desired format
     """
-    if isinstance(date, str):
-        date = utc.normalize(parser.parse(date))
     if time_format == "timeago":
         return timeago(date.astimezone(tz=tz.tzutc()))
     return date.astimezone().strftime(time_format)
+
+
+def utc_date(date: str | datetime) -> datetime:
+    """
+    return UTC normalized datetime object from date
+    """
+    if isinstance(date, str):
+        date = parser.parse(date)
+    if date.tzinfo is None:
+        date = date.astimezone()
+    return utc.normalize(date)
