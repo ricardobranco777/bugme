@@ -29,7 +29,8 @@ def parse_args() -> argparse.Namespace:
     Parse command line options
     """
     argparser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog="output fields for --fields: tag,url,status,created,updated,title,json",
     )
     argparser.add_argument(
         "-c",
@@ -38,7 +39,7 @@ def parse_args() -> argparse.Namespace:
         help="path to credentials file",
     )
     argparser.add_argument(
-        "-f", "--format", default="tag,status,updated,title", help="output fields"
+        "-f", "--fields", default="tag,status,updated,title", help="output fields"
     )
     argparser.add_argument(
         "-l",
@@ -61,7 +62,9 @@ def parse_args() -> argparse.Namespace:
         choices=["tag", "url", "status", "created", "updated"],
         help="sort key",
     )
-    argparser.add_argument("-t", "--time", default="timeago", help="strftime format")
+    argparser.add_argument(
+        "-t", "--time", default="timeago", metavar="TIME_FORMAT", help="strftime format"
+    )
     argparser.add_argument("--version", action="version", version=f"bugme {VERSION}")
     argparser.add_argument("url", nargs="*")
     return argparser.parse_args()
@@ -82,7 +85,6 @@ def get_items(creds: dict[str, dict[str, str]], urltags: list[str]) -> list[Item
 
     host_to_cls = {
         "github.com": MyGithub,
-        "jira.suse.com": MyJira,
         "progress.opensuse.org": MyRedmine,
     }
 
@@ -93,6 +95,8 @@ def get_items(creds: dict[str, dict[str, str]], urltags: list[str]) -> list[Item
             cls = MyBugzilla
         elif host.startswith("gitlab"):
             cls = MyGitlab
+        elif host.startswith("jira"):
+            cls = MyJira
         else:
             cls = host_to_cls[host]
         clients[host] = cls(host, creds[host])
@@ -186,7 +190,7 @@ def main():
             sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    print_items(creds, args.url, args.time, args.format, args.output)
+    print_items(creds, args.url, args.time, args.fields, args.output)
 
 
 if __name__ == "__main__":

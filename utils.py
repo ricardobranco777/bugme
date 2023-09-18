@@ -46,7 +46,7 @@ def dateit(date: datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
 
 def utc_date(date: str | datetime) -> datetime:
     """
-    return UTC normalized datetime object from date
+    Return UTC normalized datetime object from date
     """
     if isinstance(date, str):
         date = parser.parse(date)

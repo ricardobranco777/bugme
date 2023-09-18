@@ -354,7 +354,7 @@ class MyRedmine(Service):
 
 class MyJira(Service):
     """
-    Redmine
+    Jira
     """
 
     def __init__(self, url: str, creds: dict):
