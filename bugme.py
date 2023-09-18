@@ -166,14 +166,23 @@ def print_items(
             item.title = html.escape(item.title)
             tds = "".join(f"<td>{item[key]}</td>" for key in keys)
             print(f"<tr>{tds}</tr>")
-            for file in item.files:
-                tds = "<td></td>" * (len(keys) - 1)
-                href = f'<a href="{file["url"]}">{file["file"]} {file["lineno"]}</a>'
-                print(f"<tr>{tds}<td>{href}</td></tr>")
+            for info in item.files:
+                tds = "<td></td>" * (len(keys) - 3)
+                info["date"] = dateit(info["date"], time_format)  # type: ignore
+                info = {
+                    k: html.escape(v) if isinstance(v, str) else v
+                    for k, v in info.items()
+                }
+                author = f'<a href="mailto:{info["email"]}">{info["author"]}</a>'
+                href = f'<a href="{info["url"]}">{info["file"]} {info["lineno"]}</a>'
+                print(
+                    f'<tr>{tds}<td>{author}</td><td>{info["date"]}<td>{href}</td></tr>'
+                )
         elif output_type == "text":
             print(output_format.format(**item.__dict__))
-            for file in item.files:
-                print(f'\t{file["url"]}')
+            for info in item.files:
+                info["date"] = dateit(info["date"], time_format)  # type: ignore
+                print(f'\t{info["email"]}\t{info["date"]}\t{info["url"]}')
 
     if output_type == "html":
         print("</tbody></table>")
