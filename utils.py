@@ -52,4 +52,4 @@ def utc_date(date: str | datetime) -> datetime:
         date = parser.parse(date)
     if date.tzinfo is None:
         date = date.astimezone()
-    return utc.normalize(date)
+    return utc.normalize(date.astimezone(utc))
