@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-o",
         "--output",
-        choices=["text", "html"],
+        choices=["text", "html", "json"],
         default="text",
         help="output type",
     )
@@ -137,10 +137,9 @@ def print_items(
     if output_type == "html":
         header = "".join(f"<th>{key.upper()}</th>" for key in keys)
         print(f"<table><thead><tr>{header}</tr></thead><tbody>")
-    else:
+    elif output_type == "text":
         output_format = "  ".join(f"{{{key}:{align}}}" for key, align in keys.items())
-        if "json" not in keys:
-            print(output_format.format(**{key: key.upper() for key in keys}))
+        print(output_format.format(**{key: key.upper() for key in keys}))
 
     xtags = {}
     if not urltags:
@@ -161,24 +160,25 @@ def print_items(
     for item in items:
         item.created = dateit(item.created, time_format)
         item.updated = dateit(item.updated, time_format)
+        item.files = xtags.get(item.tag, [])
         if output_type == "html":
-            tag = item.tag
             item.tag = f'<a href="{item.url}">{item.tag}</a>'
             item.title = html.escape(item.title)
             tds = "".join(f"<td>{item[key]}</td>" for key in keys)
             print(f"<tr>{tds}</tr>")
-            # print files in last column
-            for info in xtags.get(tag, []):
+            for file in item.files:
                 tds = "<td></td>" * (len(keys) - 1)
-                href = f'<a href="{info["url"]}">{info["file"]} {info["lineno"]}</a>'
+                href = f'<a href="{file["url"]}">{file["file"]} {file["lineno"]}</a>'
                 print(f"<tr>{tds}<td>{href}</td></tr>")
-        else:
+        elif output_type == "text":
             print(output_format.format(**item.__dict__))
-            for info in xtags.get(item.tag, []):
-                print("\t".join([info["file"], info["url"]]))
+            for file in item.files:
+                print(f'\t{file["url"]}')
 
     if output_type == "html":
         print("</tbody></table>")
+    elif output_type == "json":
+        print(json.dumps([it.__dict__ for it in items], sort_keys=True))
 
 
 def main():

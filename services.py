@@ -2,7 +2,6 @@
 Services
 """
 
-import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -35,11 +34,6 @@ CODE_TO_HOST = {
     "gsd": "gitlab.suse.de",
     "jsc": "jira.suse.com",
     "poo": "progress.opensuse.org",
-}
-
-JSON_OPTIONS = {
-    "default": str,
-    "sort_keys": True,
 }
 
 
@@ -128,7 +122,7 @@ class Service:
             updated=now,
             url=url,
             tag=tag,
-            json="{}",
+            raw={},
         )
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
@@ -216,7 +210,7 @@ class MyBugzilla(Service):
             updated=utc_date(info.last_change_time),
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             tag=f"{self.tag}#{info.id}",
-            json=json.dumps(info.get_raw_data(), **JSON_OPTIONS),  # type: ignore
+            raw=info.get_raw_data(),
         )
 
 
@@ -260,7 +254,7 @@ class MyGithub(Service):
             updated=utc_date(info.updated_at),
             url=f"{self.url}/{repo}/issues/{info.number}",
             tag=f"{self.tag}#{repo}#{info.number}",
-            json=json.dumps(info.raw_data, **JSON_OPTIONS),  # type: ignore
+            raw=info.raw_data,
         )
 
 
@@ -311,7 +305,7 @@ class MyGitlab(Service):
             updated=utc_date(info.updated_at),
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
             tag=f"{self.tag}#{repo}#{info.iid}",
-            json=json.dumps(info.asdict(), **JSON_OPTIONS),  # type: ignore
+            raw=info.asdict(),
         )
 
 
@@ -348,7 +342,7 @@ class MyRedmine(Service):
             updated=utc_date(info.updated_on),
             url=f"{self.url}/issues/{info.id}",
             tag=f"{self.tag}#{info.id}",
-            json=json.dumps(info.raw(), **JSON_OPTIONS),  # type: ignore
+            raw=info.raw(),
         )
 
 
@@ -388,5 +382,5 @@ class MyJira(Service):
             updated=utc_date(info["fields"]["updated"]),
             url=f"{self.url}/browse/{info['key']}",
             tag=f"{self.tag}#{info['key']}",
-            json=json.dumps(info, **JSON_OPTIONS),  # type: ignore
+            raw=info,
         )
