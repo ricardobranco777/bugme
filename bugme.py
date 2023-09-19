@@ -150,6 +150,7 @@ def print_items(
     if args.sort in {"tag", "url"}:
 
         def sort_url(url: str) -> tuple[str, int]:
+            """Numeric sort of URL's"""
             base, item_id = re.split(r"([0-9]+)$", url)[:2]
             return base, int(item_id)
 
@@ -162,9 +163,13 @@ def print_items(
         item.updated = dateit(item.updated, time_format)
         item.files = xtags.get(item.tag, [])
         if output_type == "html":
-            item.tag = f'<a href="{item.url}">{item.tag}</a>'
-            item.title = html.escape(item.title)
-            tds = "".join(f"<td>{item[key]}</td>" for key in keys)
+            info = {
+                k: html.escape(item[k]) if isinstance(item[k], str) else item[k]
+                for k in keys
+            }
+            info["tag"] = f'<a href="{item.url}">{item.tag}</a>'
+            info["url"] = f'<a href="{item.url}">{item.url}</a>'
+            tds = "".join(f"<td>{info[key]}</td>" for key in keys)
             print(f"<tr>{tds}</tr>")
             for info in item.files:
                 tds = "<td></td>" * (len(keys) - 3)
@@ -174,7 +179,9 @@ def print_items(
                     for k, v in info.items()
                 }
                 author = f'<a href="mailto:{info["email"]}">{info["author"]}</a>'
-                href = f'<a href="{info["url"]}">{info["file"]} {info["lineno"]}</a>'
+                href = (
+                    f'<a href="{info["url"]}">{info["file"]} {info["line_number"]}</a>'
+                )
                 print(
                     f'<tr>{tds}<td>{author}</td><td>{info["date"]}<td>{href}</td></tr>'
                 )

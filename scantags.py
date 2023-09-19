@@ -94,7 +94,7 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
         author, email, date = git_blame(repo, file, line_number)
         info: dict[str, str | int | datetime] = {
             "file": file,
-            "lineno": line_number,
+            "line_number": line_number,
             "author": author,
             "email": email,
             "date": utc_date(date),
@@ -122,5 +122,5 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
             tags[tag] = []
         tags[tag].append(info)
     for files in tags.values():
-        files.sort(key=itemgetter("file", "lineno"))
+        files.sort(key=itemgetter("file", "line_number"))
     return tags

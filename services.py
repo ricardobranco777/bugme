@@ -51,11 +51,15 @@ class Item:  # pylint: disable=too-few-public-methods
         return f"{self.__class__.__name__}({attrs})"
 
     # Allow access this object as a dictionary
+
     def __getitem__(self, item: str) -> Any:
         try:
             return getattr(self, item)
         except AttributeError as exc:
             raise KeyError(exc) from exc
+
+    def __setitem__(self, item: str, value: Any) -> None:
+        setattr(self, item, value)
 
 
 def get_item(string: str) -> Item | None:
