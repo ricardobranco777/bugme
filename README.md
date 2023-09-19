@@ -13,7 +13,7 @@ List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-au
 ## Usage
 
 ```
-usage: bugme.py [-h] [-c CREDS] [-f FIELDS] [-l {debug,info,warning,error,critical}] [-o {text,html,json}] [-r] [-s {tag,url,status,created,updated}] [-S STATUS] [-t TIME_FORMAT] [--version] [url ...]
+usage: bugme.py [-h] [-c CREDS] [-f FIELDS] [-l {none,debug,info,warning,error,critical}] [-o {text,html,json}] [-r] [-s {tag,url,status,created,updated}] [-S STATUS] [-t TIME_FORMAT] [--version] [url ...]
 
 positional arguments:
   url
@@ -24,7 +24,7 @@ options:
                         path to credentials file (default: ~/creds.json)
   -f FIELDS, --fields FIELDS
                         output fields (default: tag,status,updated,title)
-  -l {debug,info,warning,error,critical}, --log {debug,info,warning,error,critical}
+  -l {none,debug,info,warning,error,critical}, --log {none,debug,info,warning,error,critical}
                         log level (default: warning)
   -o {text,html,json}, --output {text,html,json}
                         output type (default: text)

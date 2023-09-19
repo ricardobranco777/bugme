@@ -54,7 +54,7 @@ jobs:
           python creds.py
       - name: Run bugme
         run: |
-          docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme:latest --sort status -o html > body.html
+          docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme:latest --log none --sort status -o html > body.html
           rm -f creds.json
       - name: Setup upload
         run: |
