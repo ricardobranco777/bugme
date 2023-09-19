@@ -20,7 +20,10 @@ from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
-from requests.exceptions import RequestException
+from requests.exceptions import (  # pylint: disable=redefined-builtin
+    ConnectionError,
+    RequestException,
+)
 
 from utils import utc_date
 
@@ -155,6 +158,9 @@ class MyBugzilla(Service):
             self.client = Bugzilla(
                 self.url, force_rest=True, sslverify=sslverify, **creds
             )
+        except ConnectionError:
+            # Don't log exception due to API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
+            logging.error("Bugzilla: %s: ConnectionError", self.url)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
 
@@ -332,6 +338,10 @@ class MyRedmine(Service):
             return self._not_found(
                 item_id, f"{self.url}/issues/{item_id}", f"{self.tag}#{item_id}"
             )
+        except ConnectionError:
+            # Don't log exception due to API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
+            logging.error("Redmine: %s: ConnectionError", self.url)
+            return None
         except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_item(%d): %s", self.url, item_id, exc)
             return None
