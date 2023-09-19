@@ -208,7 +208,7 @@ class MyBugzilla(Service):
     def _to_item(self, info: Any) -> Item:
         return Item(
             id=str(info.id),
-            status=info.status,
+            status=info.status.upper().replace(" ", "_"),
             title=info.summary,
             created=utc_date(info.creation_time),
             updated=utc_date(info.last_change_time),
@@ -252,7 +252,7 @@ class MyGithub(Service):
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.number,
-            status=info.state.upper(),
+            status=info.state.upper().replace(" ", "_"),
             title=info.title,
             created=utc_date(info.created_at),
             updated=utc_date(info.updated_at),
@@ -303,7 +303,7 @@ class MyGitlab(Service):
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
             id=info.iid,
-            status=info.state.upper(),
+            status=info.state.upper().replace(" ", "_"),
             title=info.title,
             created=utc_date(info.created_at),
             updated=utc_date(info.updated_at),
@@ -340,7 +340,7 @@ class MyRedmine(Service):
     def _to_item(self, info: Any) -> Item:
         return Item(
             id=info.id,
-            status=info.status.name.upper(),
+            status=info.status.name.upper().replace(" ", "_"),
             title=info.subject,
             created=utc_date(info.created_on),
             updated=utc_date(info.updated_on),
@@ -380,7 +380,7 @@ class MyJira(Service):
     def _to_item(self, info: Any) -> Item:
         return Item(
             id=info["key"],
-            status=info["fields"]["status"]["name"].upper(),
+            status=info["fields"]["status"]["name"].upper().replace(" ", "_"),
             title=info["fields"]["summary"],
             created=utc_date(info["fields"]["created"]),
             updated=utc_date(info["fields"]["updated"]),
