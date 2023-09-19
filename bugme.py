@@ -63,6 +63,12 @@ def parse_args() -> argparse.Namespace:
         help="sort key",
     )
     argparser.add_argument(
+        "-S",
+        "--status",
+        action="append",
+        help="filter by status (may be specified multiple times)",
+    )
+    argparser.add_argument(
         "-t", "--time", default="timeago", metavar="TIME_FORMAT", help="strftime format"
     )
     argparser.add_argument("--version", action="version", version=f"bugme {VERSION}")
@@ -70,7 +76,9 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def get_items(creds: dict[str, dict[str, str]], urltags: list[str]) -> list[Item]:
+def get_items(
+    creds: dict[str, dict[str, str]], urltags: list[str], statuses: list[str] | None
+) -> list[Item]:
     """
     Get items
     """
@@ -110,7 +118,14 @@ def get_items(creds: dict[str, dict[str, str]], urltags: list[str]) -> list[Item
             lambda host: clients[host].get_items(host_items[host]), clients
         )
         for items in iterator:
-            all_items.extend([it for it in items if it is not None])
+            all_items.extend(
+                [
+                    item
+                    for item in items
+                    if item is not None
+                    and (statuses is None or item.status in set(statuses))
+                ]
+            )
     return all_items
 
 
@@ -146,7 +161,7 @@ def print_items(
         xtags = scan_tags()
         urltags = list(xtags.keys())
 
-    items = get_items(creds, urltags)
+    items = get_items(creds, urltags, args.status)
     if args.sort in {"tag", "url"}:
 
         def sort_url(url: str) -> tuple[str, int]:
