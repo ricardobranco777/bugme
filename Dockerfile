@@ -13,6 +13,8 @@ RUN	zypper addrepo https://download.opensuse.org/repositories/SUSE:/CA/openSUSE_
 		python3-python-redmine && \
 	zypper clean -a
 
+RUN	git config --global --add safe.directory /bugme
+
 COPY	*.py /
 
 ENV	REQUESTS_CA_BUNDLE=/etc/ssl/ca-bundle.pem
