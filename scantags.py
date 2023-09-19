@@ -2,9 +2,7 @@
 Scan a repo such as https://github.com/os-autoinst/os-autoinst-distri-opensuse for tags
 """
 
-import contextlib
 import fnmatch
-import logging
 import os
 import re
 from typing import Generator
@@ -17,26 +15,23 @@ LINE_PATTERN = (
 )
 
 
-def git_branch(directory: str = ".") -> str:
+def git_branch(repo: Repo) -> str:
     """
     Get current git branch
     """
-    with Repo(directory) as repo:
-        (_, ref), _ = repo.refs.follow(b"HEAD")
-        return os.path.basename(ref.decode("utf-8"))
+    (_, ref), _ = repo.refs.follow(b"HEAD")
+    return ref.decode("utf-8").split("/")[-1]
 
 
-def git_remote(directory: str = ".") -> str:
+def git_remote(repo: Repo) -> str:
     """
     Get git remote
     """
-    with Repo(directory) as repo:
-        output = repo.get_config().get(("remote", "origin"), "url").decode("utf-8")
-    if output.startswith(("git@", "gitlab@")):
-        output = re.sub(
-            "^git(?:lab)?@", "https://", output.replace(":", "/", 1), count=1
-        )
-    return output.rstrip("/").removesuffix(".git")
+    remote = repo.get_config().get(("remote", "origin"), "url").decode("utf-8")
+    if not remote.startswith("https://") and "@" in remote:
+        remote = remote.split("@", 1)[1].replace(":", "/", 1)
+        remote = f"https://{remote}"
+    return remote.rstrip("/").removesuffix(".git")
 
 
 def recursive_grep(
@@ -67,28 +62,20 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
     """
     tags: dict[str, list[dict[str, str]]] = {}
 
-    with contextlib.chdir(directory):
-        if not os.path.isdir(os.path.join(directory, ".git")):
-            logging.error("ERROR: No git repo in %s", directory)
-            return {}
-        base_url = git_remote(directory)
-        if base_url is not None:
-            base_url = (
-                f"{base_url}/-/blob" if "gitlab" in base_url else f"{base_url}/blob"
-            )
-            branch = git_branch(directory)
-            base_url = f"{base_url}/{branch}"
-        for file, line_number, tag in recursive_grep(
-            directory, LINE_PATTERN, FILE_PATTERN
-        ):
-            file = file.removeprefix(f"{directory}/")
-            if tag not in tags:
-                tags[tag] = []
-            tags[tag].append(
-                {
-                    "file": file,
-                    "lineno": line_number,
-                    "url": f"{base_url}/{file}#L{line_number}",
-                }
-            )
-        return tags
+    with Repo(directory) as repo:
+        base_url = git_remote(repo)
+        if "gitlab" in base_url:
+            base_url = f"{base_url}/-"
+        base_url = f"{base_url}/blob/{git_branch(repo)}"
+    for file, line_number, tag in recursive_grep(directory, LINE_PATTERN, FILE_PATTERN):
+        file = file.removeprefix(f"{directory}/")
+        if tag not in tags:
+            tags[tag] = []
+        tags[tag].append(
+            {
+                "file": file,
+                "lineno": line_number,
+                "url": f"{base_url}/{file}#L{line_number}",
+            }
+        )
+    return tags
