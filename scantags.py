@@ -5,6 +5,7 @@ Scan a repo such as https://github.com/os-autoinst/os-autoinst-distri-opensuse f
 import fnmatch
 import os
 import re
+from operator import itemgetter
 from typing import Generator
 
 from dulwich.repo import Repo
@@ -83,4 +84,6 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
                 "url": f"{base_url}/{file}#L{line_number}",
             }
         )
+    for info in tags.values():
+        info.sort(key=itemgetter("file", "lineno"))
     return tags
