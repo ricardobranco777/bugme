@@ -38,14 +38,17 @@ def recursive_grep(
     directory: str,
     pattern: str,
     file_pattern: str = "*",
+    ignore_dirs: list[str] | None = None,
 ) -> Generator[tuple[str, str, str], None, None]:
     """
     Recursive grep
     """
+    if ignore_dirs is None:
+        ignore_dirs = []
     my_pattern = re.compile(pattern)
     for root, dirs, files in os.walk(directory):
-        dirs.sort()
-        files.sort()
+        for ignore in set(ignore_dirs) & set(dirs):
+            dirs.remove(ignore)
         for filename in files:
             if not fnmatch.fnmatch(filename, file_pattern):
                 continue
@@ -67,7 +70,9 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str]]]:
         if "gitlab" in base_url:
             base_url = f"{base_url}/-"
         base_url = f"{base_url}/blob/{git_branch(repo)}"
-    for file, line_number, tag in recursive_grep(directory, LINE_PATTERN, FILE_PATTERN):
+    for file, line_number, tag in recursive_grep(
+        directory, LINE_PATTERN, FILE_PATTERN, ignore_dirs=[".git"]
+    ):
         file = file.removeprefix(f"{directory}/")
         if tag not in tags:
             tags[tag] = []
