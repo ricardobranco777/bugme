@@ -95,6 +95,23 @@ def get_items(
         "github.com": MyGithub,
         "progress.opensuse.org": MyRedmine,
     }
+    options = {
+        MyBugzilla: {
+            "force_rest": True,
+            "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
+            "include_fields": "id status summary creation_time last_change_time".split()
+            if args.output != "json"
+            else None,
+        },
+        MyGithub: {},
+        MyGitlab: {
+            "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
+        },
+        MyRedmine: {
+            "raise_attr_exception": False,
+        },
+        MyJira: {},
+    }
 
     clients: dict[str, Any] = {}
     for host in host_items:
@@ -107,7 +124,7 @@ def get_items(
             cls = MyJira
         else:
             cls = host_to_cls[host]
-        clients[host] = cls(host, creds[host])
+        clients[host] = cls(host, creds[host], **options[cls])
 
     if len(clients) == 0:
         sys.exit(0)

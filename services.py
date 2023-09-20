@@ -151,13 +151,13 @@ class MyBugzilla(Service):
     Bugzilla
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
-        sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
+        if "include_fields" in kwargs:
+            self._include_fields = kwargs.pop("include_fields")
+        kwargs |= creds
         try:
-            self.client = Bugzilla(
-                self.url, force_rest=True, sslverify=sslverify, **creds
-            )
+            self.client = Bugzilla(self.url, **kwargs)
         except ConnectionError:
             # Don't log exception due to API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
             logging.error("Bugzilla: %s: ConnectionError", self.url)
@@ -175,7 +175,9 @@ class MyBugzilla(Service):
         Get Bugzilla item
         """
         try:
-            return self._to_item(self.client.getbug(item_id))
+            return self._to_item(
+                self.client.getbug(item_id, include_fields=self._include_fields)
+            )
         except IndexError:
             return self._not_found(
                 item_id,
@@ -193,7 +195,10 @@ class MyBugzilla(Service):
         try:
             found = [
                 self._to_item(info)
-                for info in self.client.getbugs([item["item_id"] for item in items])
+                for info in self.client.getbugs(
+                    [item["item_id"] for item in items],
+                    include_fields=self._include_fields,
+                )
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
@@ -229,12 +234,13 @@ class MyGithub(Service):
     Github
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
         # Uncomment when latest PyGithub is published on Tumbleweed
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
-        self.client = Github(**creds)
+        kwargs |= creds
+        self.client = Github(**kwargs)
         self.tag = "gh"
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
@@ -273,10 +279,10 @@ class MyGitlab(Service):
     Gitlab
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
-        ssl_verify = os.environ.get("REQUESTS_CA_BUNDLE", False) if self.url else True
-        self.client = Gitlab(url=self.url, ssl_verify=ssl_verify, **creds)
+        kwargs |= creds
+        self.client = Gitlab(url=self.url, **kwargs)
         hostname = str(urlparse(self.url).hostname)
         self.tag = "gl" if hostname == "gitlab.com" else self.tag
 
@@ -324,9 +330,10 @@ class MyRedmine(Service):
     Redmine
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
-        self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
+        kwargs |= creds
+        self.client = Redmine(url=self.url, **kwargs)
         # Avoid API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
         key = self.client.engine.requests["params"].get("key")
         # Workaround inspired from https://github.com/maxtepkeev/python-redmine/pull/328
@@ -367,9 +374,10 @@ class MyJira(Service):
     Jira
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
-        self.client = Jira(url=self.url, **creds)
+        kwargs |= creds
+        self.client = Jira(url=self.url, **kwargs)
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
