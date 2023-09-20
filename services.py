@@ -20,10 +20,8 @@ from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
-from requests.exceptions import (  # pylint: disable=redefined-builtin
-    ConnectionError,
-    RequestException,
-)
+from requests.sessions import Session
+from requests.exceptions import RequestException
 
 from utils import utc_date
 
@@ -154,15 +152,30 @@ class MyBugzilla(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
-        try:
+        # Workaround for API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
+        if "api_key" in creds:
+            session = Session()
+            api_key = creds.pop("api_key")
+            session.headers["Bugzilla_api_key"] = api_key
+            session.headers["X-Bugzilla-API-Key"] = api_key
             self.client = Bugzilla(
-                self.url, force_rest=True, sslverify=sslverify, **creds
+                url=None,
+                force_rest=True,
+                sslverify=sslverify,
+                requests_session=session,
+                **creds,
             )
-        except ConnectionError:
-            # Don't log exception due to API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
-            logging.error("Bugzilla: %s: ConnectionError", self.url)
-        except (BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: %s", self.url, exc)
+            try:
+                self.client.connect(self.url)
+            except (BugzillaError, RequestException) as exc:
+                logging.error("Bugzilla: %s: %s", self.url, exc)
+        else:
+            try:
+                self.client = Bugzilla(
+                    self.url, force_rest=True, sslverify=sslverify, **creds
+                )
+            except (BugzillaError, RequestException) as exc:
+                logging.error("Bugzilla: %s: %s", self.url, exc)
 
     def __del__(self):
         try:
@@ -183,7 +196,7 @@ class MyBugzilla(Service):
                 f"{self.tag}#{item_id}",
             )
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_item(%d): %s", self.url, item_id, exc)
+            logging.error("Bugzilla: %s: get_item(%s): %s", self.url, item_id, exc)
         return None
 
     def get_items(self, items: list[dict]) -> list[Item | None]:
@@ -327,6 +340,12 @@ class MyRedmine(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         self.client = Redmine(url=self.url, raise_attr_exception=False, **creds)
+        # Avoid API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
+        key = self.client.engine.requests["params"].get("key")
+        # Workaround inspired from https://github.com/maxtepkeev/python-redmine/pull/328
+        if key is not None:
+            self.client.engine.requests["headers"]["X-Redmine-API-Key"] = key
+            del self.client.engine.requests["params"]["key"]
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
@@ -338,12 +357,8 @@ class MyRedmine(Service):
             return self._not_found(
                 item_id, f"{self.url}/issues/{item_id}", f"{self.tag}#{item_id}"
             )
-        except ConnectionError:
-            # Don't log exception due to API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
-            logging.error("Redmine: %s: ConnectionError", self.url)
-            return None
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_item(%d): %s", self.url, item_id, exc)
+            logging.error("Redmine: %s: get_item(%s): %s", self.url, item_id, exc)
             return None
         return self._to_item(info)
 
