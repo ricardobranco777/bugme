@@ -22,7 +22,7 @@ LINE_PATTERN = (
 
 def git_blame(
     repo: Repository, file: str, line_number: int
-) -> tuple[str, str, datetime]:
+) -> tuple[str, str, str, datetime]:
     """
     Get all the blame
     """
@@ -35,10 +35,10 @@ def git_blame(
         name, email = blame.final_committer.email, blame.final_committer.name
     tzone = timezone(timedelta(minutes=blame.final_committer.offset))
     date = datetime.fromtimestamp(blame.final_committer.time).replace(tzinfo=tzone)
-    return name, email, date
+    return name, email, blame.final_commit_id, date
 
 
-def git_remote(repo: Repository) -> str | None:
+def git_remote(repo: Repository) -> str:
     """
     Get remote
     """
@@ -49,7 +49,7 @@ def git_remote(repo: Repository) -> str | None:
                 url = url.split("@", 1)[1].replace(":", "/", 1)
                 url = f"https://{url}"
             return url.rstrip("/").removesuffix(".git")
-    return None
+    return ""
 
 
 def recursive_grep(
@@ -83,22 +83,22 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
     """
     repo = Repository(directory)
     base_url = git_remote(repo)
-    if base_url is not None:
-        if "gitlab" in base_url:
-            base_url = f"{base_url}/-"
-        base_url = f"{base_url}/blob/{repo.head.shorthand}"
+    if "gitlab" in base_url:
+        base_url = f"{base_url}/-"
+    branch = repo.head.shorthand
 
     def process_line(
         file: str, line_number: int, tag: str
     ) -> tuple[str, dict[str, str | int | datetime]]:
-        author, email, date = git_blame(repo, file, line_number)
+        author, email, commit, date = git_blame(repo, file, line_number)
         info: dict[str, str | int | datetime] = {
             "file": file,
             "line_number": line_number,
             "author": author,
             "email": email,
             "date": utc_date(date),
-            "url": f"{base_url}/{file}#L{line_number}",
+            "commit": f"{base_url}/commit/{commit}",
+            "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
         }
         return tag, info
 

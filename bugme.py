@@ -188,11 +188,12 @@ def print_items(
             print(f"<tr>{tds}</tr>")
             for info in item.files:
                 tds = "<td></td>" * (len(keys) - 3)
-                info["date"] = dateit(info["date"], time_format)  # type: ignore
                 info = {
                     k: html.escape(v) if isinstance(v, str) else v
                     for k, v in info.items()
                 }
+                info["date"] = dateit(info["date"], time_format)  # type: ignore
+                info["date"] = f'<a href="{info["commit"]}">{info["date"]}'
                 author = f'<a href="mailto:{info["email"]}">{info["author"]}</a>'
                 href = (
                     f'<a href="{info["url"]}">{info["file"]} {info["line_number"]}</a>'
