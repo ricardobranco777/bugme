@@ -20,8 +20,10 @@ from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
-from requests.sessions import Session
-from requests.exceptions import RequestException
+from requests.exceptions import (  # pylint: disable=redefined-builtin
+    ConnectionError,
+    RequestException,
+)
 
 from utils import utc_date
 
@@ -152,30 +154,15 @@ class MyBugzilla(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         sslverify = os.environ.get("REQUESTS_CA_BUNDLE", True)
-        # Workaround for API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
-        if "api_key" in creds:
-            session = Session()
-            api_key = creds.pop("api_key")
-            session.headers["Bugzilla_api_key"] = api_key
-            session.headers["X-Bugzilla-API-Key"] = api_key
+        try:
             self.client = Bugzilla(
-                url=None,
-                force_rest=True,
-                sslverify=sslverify,
-                requests_session=session,
-                **creds,
+                self.url, force_rest=True, sslverify=sslverify, **creds
             )
-            try:
-                self.client.connect(self.url)
-            except (BugzillaError, RequestException) as exc:
-                logging.error("Bugzilla: %s: %s", self.url, exc)
-        else:
-            try:
-                self.client = Bugzilla(
-                    self.url, force_rest=True, sslverify=sslverify, **creds
-                )
-            except (BugzillaError, RequestException) as exc:
-                logging.error("Bugzilla: %s: %s", self.url, exc)
+        except ConnectionError:
+            # Don't log exception due to API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
+            logging.error("Bugzilla: %s: ConnectionError", self.url)
+        except (BugzillaError, RequestException) as exc:
+            logging.error("Bugzilla: %s: %s", self.url, exc)
 
     def __del__(self):
         try:
