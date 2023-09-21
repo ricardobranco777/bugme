@@ -52,6 +52,22 @@ def git_remote(repo: Repository) -> str:
     return ""
 
 
+def check_repo(repo: Repository) -> None:
+    """
+    Check repo health
+    """
+    if repo.is_bare:
+        raise RuntimeError(f"{repo.path} is bare")
+    if repo.is_empty:
+        raise RuntimeError(f"{repo.path} is emtpy")
+    if repo.is_shallow:
+        raise RuntimeError(f"{repo.path} is shallow")
+    if repo.head_is_detached:
+        raise RuntimeError(f"{repo.path} HEAD is detached")
+    if repo.head_is_unborn:
+        raise RuntimeError(f"{repo.path} HEAD is unborn")
+
+
 def recursive_grep(
     directory: str,
     pattern: str,
@@ -82,6 +98,7 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
     Scan tags using multithreading without locking and by returning results from process_line
     """
     repo = Repository(directory)
+    check_repo(repo)
     base_url = git_remote(repo)
     if "gitlab" in base_url:
         base_url = f"{base_url}/-"
