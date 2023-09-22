@@ -387,7 +387,7 @@ class MyJira(Service):
             info = self.client.issue(item_id)
         except (ApiError, RequestException) as exc:
             try:
-                if exc.response.status_code == 404:
+                if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
                         item_id, f"{self.url}/browse/{item_id}", f"{self.tag}#{item_id}"
                     )

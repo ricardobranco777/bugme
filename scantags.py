@@ -8,7 +8,7 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from operator import itemgetter
-from typing import Generator
+from typing import Iterator
 
 from pygit2 import Repository  # type: ignore
 
@@ -73,7 +73,7 @@ def recursive_grep(
     pattern: str,
     file_pattern: str = "*",
     ignore_dirs: list[str] | None = None,
-) -> Generator[tuple[str, int, str], None, None]:
+) -> Iterator[tuple[str, int, str]]:
     """
     Recursive grep
     """
