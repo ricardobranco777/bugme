@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     """
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        epilog="output fields for --fields: tag,url,status,created,updated,title,json",
+        epilog="output fields for --fields: tag,url,status,created,updated,title",
     )
     argparser.add_argument(
         "-c",
