@@ -9,7 +9,7 @@ from urllib.parse import urlparse, parse_qs
 from typing import Any
 
 from datetime import datetime
-from dateutil import tz
+from pytz import utc
 
 from atlassian import Jira  # type: ignore
 from atlassian.errors import ApiError  # type: ignore
@@ -120,7 +120,7 @@ class Service:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
     def _not_found(self, item_id: str, url: str, tag: str) -> Item:
-        now = datetime.now(tz=tz.tzutc())
+        now = datetime.now(tz=utc)
         return Item(
             id=item_id,
             status="ERROR",
