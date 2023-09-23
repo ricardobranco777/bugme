@@ -3,7 +3,7 @@ Utils
 """
 
 from datetime import datetime
-from dateutil import parser, tz
+from dateutil import parser
 from pytz import utc
 
 
@@ -11,7 +11,7 @@ def timeago(date: datetime) -> str:
     """
     Time ago
     """
-    diff = datetime.now(tz=tz.tzutc()) - date
+    diff = datetime.now(tz=utc) - date
     seconds = int(diff.total_seconds())
     ago = "ago"
     if seconds < 0:
@@ -39,9 +39,10 @@ def dateit(date: datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     """
     Return date in desired format
     """
+    date = date.astimezone()
     if time_format == "timeago":
-        return timeago(date.astimezone(tz=tz.tzutc()))
-    return date.astimezone().strftime(time_format)
+        return timeago(date)
+    return date.strftime(time_format)
 
 
 def utc_date(date: str | datetime) -> datetime:
@@ -50,6 +51,8 @@ def utc_date(date: str | datetime) -> datetime:
     """
     if isinstance(date, str):
         date = parser.parse(date)
-    if date.tzinfo is None:
-        date = date.astimezone()
-    return utc.normalize(date.astimezone(utc))
+    if date.tzinfo is not None:
+        date = date.astimezone(utc)
+    else:
+        date = date.replace(tzinfo=utc)
+    return date
