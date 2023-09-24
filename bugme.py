@@ -186,11 +186,10 @@ def print_item(
                 "a", dateit(info["date"], time_format), href=info["commit"]
             )
             author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
-            href = html_tag("a", info["file"], href=info["url"])
             cells += (
                 html_tag("td", author)
                 + html_tag("td", info["date"])
-                + html_tag("td", f'{href} {info["line_number"]}')
+                + html_tag("td", html_tag("a", info["file"], href=info["url"]))
             )
             print(html_tag("tr", cells))
     elif output_type == "text":
