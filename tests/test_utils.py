@@ -5,7 +5,7 @@ from dateutil import tz
 from pytz import utc
 from freezegun import freeze_time
 
-from utils import dateit, timeago
+from utils import dateit, timeago, html_tag
 
 
 # Test cases for the dateit function
@@ -80,3 +80,28 @@ def test_timeago_current_date():
     date = datetime(2023, 9, 12, 12, 0, 0, tzinfo=tz.tzutc())
     result = timeago(date)
     assert result == "0 seconds ago"
+
+
+# Test cases for the html_tag function
+def test_html_tag_basic():
+    # Test with a simple HTML tag
+    result = html_tag("div", "Hello, World!")
+    assert result == "<div>Hello, World!</div>"
+
+
+def test_html_tag_with_attributes():
+    # Test with attributes
+    result = html_tag("a", "Click me", href="https://example.com", target="_blank")
+    assert result == '<a href="https://example.com" target="_blank">Click me</a>'
+
+
+def test_html_tag_empty_content():
+    # Test with empty content
+    result = html_tag("p")
+    assert result == "<p></p>"
+
+
+def test_html_tag_empty_attributes():
+    # Test with empty attributes
+    result = html_tag("span", "This is a span", **{})
+    assert result == "<span>This is a span</span>"

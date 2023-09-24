@@ -16,7 +16,7 @@ from typing import Any
 
 from scantags import scan_tags
 from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyJira, MyRedmine
-from utils import dateit
+from utils import dateit, html_tag
 
 
 VERSION = "1.9.5"
@@ -167,8 +167,9 @@ def print_items(
 
     # Print header
     if output_type == "html":
-        header = "".join(f"<th>{key.upper()}</th>" for key in keys)
-        print(f"<table><thead><tr>{header}</tr></thead><tbody>")
+        cells = "".join(html_tag("th", key.upper()) for key in keys)
+        header = html_tag("thead", html_tag("tr", cells))
+        print(f"<table>{header}<tbody>")
     elif output_type == "text":
         output_format = "  ".join(f"{{{key}:{align}}}" for key, align in keys.items())
         print(output_format.format(**{key: key.upper() for key in keys}))
@@ -199,25 +200,27 @@ def print_items(
                 k: html.escape(item[k]) if isinstance(item[k], str) else item[k]
                 for k in keys
             }
-            info["tag"] = f'<a href="{item.url}">{item.tag}</a>'
-            info["url"] = f'<a href="{item.url}">{item.url}</a>'
-            tds = "".join(f"<td>{info[key]}</td>" for key in keys)
-            print(f"<tr>{tds}</tr>")
+            info["tag"] = html_tag("a", item.tag, href=item.url)
+            info["url"] = html_tag("a", item.url, href=item.url)
+            cells = "".join(html_tag("td", info[key]) for key in keys)
+            print(html_tag("tr", cells))
             for info in item.files:
-                tds = "<td></td>" * (len(keys) - 3)
+                cells = html_tag("td", "") * (len(keys) - 3)
                 info = {
                     k: html.escape(v) if isinstance(v, str) else v
                     for k, v in info.items()
                 }
-                info["date"] = dateit(info["date"], time_format)  # type: ignore
-                info["date"] = f'<a href="{info["commit"]}">{info["date"]}'
-                author = f'<a href="mailto:{info["email"]}">{info["author"]}</a>'
-                href = (
-                    f'<a href="{info["url"]}">{info["file"]} {info["line_number"]}</a>'
+                info["date"] = html_tag(
+                    "a", dateit(info["date"], time_format), href=info["commit"]
                 )
-                print(
-                    f'<tr>{tds}<td>{author}</td><td>{info["date"]}<td>{href}</td></tr>'
+                author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
+                href = html_tag("a", info["file"], href=info["url"])
+                cells += (
+                    html_tag("td", author)
+                    + html_tag("td", info["date"])
+                    + html_tag("td", f'{href} {info["line_number"]}')
                 )
+                print(html_tag("tr", cells))
         elif output_type == "text":
             print(output_format.format(**item.__dict__))
             for info in item.files:

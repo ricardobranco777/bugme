@@ -7,6 +7,18 @@ from dateutil import parser
 from pytz import utc
 
 
+def html_tag(tag: str, content: str = "", **kwargs) -> str:
+    """
+    HTML tag
+    """
+    attributes = " ".join(
+        f'{key}="{value}"' for key, value in kwargs.items() if value is not None
+    )
+    if attributes:
+        return f"<{tag} {attributes}>{content}</{tag}>"
+    return f"<{tag}>{content}</{tag}>"
+
+
 def timeago(date: datetime) -> str:
     """
     Time ago
