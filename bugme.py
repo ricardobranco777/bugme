@@ -146,6 +146,60 @@ def get_items(
     return all_items
 
 
+def print_header(output_type: str, output_format: str, keys: dict[str, int]):
+    """
+    Print header
+    """
+    if output_type == "html":
+        cells = "".join(html_tag("th", key.upper()) for key in keys)
+        header = html_tag("thead", html_tag("tr", cells))
+        print(f"<table>{header}<tbody>")
+    elif output_type == "text":
+        print(output_format.format(**{key: key.upper() for key in keys}))
+
+
+def print_item(
+    item: Item,
+    output_type: str,
+    output_format: str,
+    time_format: str,
+    keys: dict[str, int],
+):
+    """
+    Print item
+    """
+    if output_type == "html":
+        info = {
+            k: html.escape(item[k]) if isinstance(item[k], str) else item[k]
+            for k in keys
+        }
+        info["tag"] = html_tag("a", item.tag, href=item.url)
+        info["url"] = html_tag("a", item.url, href=item.url)
+        cells = "".join(html_tag("td", info[key]) for key in keys)
+        print(html_tag("tr", cells))
+        for info in item.files:
+            cells = html_tag("td", "") * (len(keys) - 3)
+            info = {
+                k: html.escape(v) if isinstance(v, str) else v for k, v in info.items()
+            }
+            info["date"] = html_tag(
+                "a", dateit(info["date"], time_format), href=info["commit"]
+            )
+            author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
+            href = html_tag("a", info["file"], href=info["url"])
+            cells += (
+                html_tag("td", author)
+                + html_tag("td", info["date"])
+                + html_tag("td", f'{href} {info["line_number"]}')
+            )
+            print(html_tag("tr", cells))
+    elif output_type == "text":
+        print(output_format.format(**item.__dict__))
+        for info in item.files:
+            info["date"] = dateit(info["date"], time_format)  # type: ignore
+            print(f'\t{info["email"]}\t{info["date"]}\t{info["url"]}')
+
+
 def print_items(
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
@@ -156,30 +210,30 @@ def print_items(
     """
     Print items
     """
-    keys = {
-        "tag": "<40",
-        "url": "<60",
-        "status": "<15",
-        "created": "<15" if time_format == "timeago" else "<30",
-        "updated": "<15" if time_format == "timeago" else "<30",
-    }
-    keys = {key: keys.get(key, "") for key in output_format.split(",")}
-
-    # Print header
-    if output_type == "html":
-        cells = "".join(html_tag("th", key.upper()) for key in keys)
-        header = html_tag("thead", html_tag("tr", cells))
-        print(f"<table>{header}<tbody>")
-    elif output_type == "text":
-        output_format = "  ".join(f"{{{key}:{align}}}" for key, align in keys.items())
-        print(output_format.format(**{key: key.upper() for key in keys}))
-
     xtags = {}
     if not urltags:
         xtags = scan_tags()
         urltags = list(xtags.keys())
-
     items = get_items(creds, urltags, args.status)
+
+    keys = dict.fromkeys(output_format.split(","), 0)
+
+    for item in items:
+        item.created = dateit(item.created, time_format)
+        item.updated = dateit(item.updated, time_format)
+        item.files = xtags.get(item.tag, [])
+        if output_type == "text":
+            keys.update(
+                {
+                    key: max(width, len(item[key]))
+                    for key, width in keys.items()
+                    if isinstance(item[key], str)
+                }
+            )
+
+    output_format = "  ".join(f"{{{key}:<{align}}}" for key, align in keys.items())
+    print_header(output_type, output_format, keys)
+
     if args.sort in {"tag", "url"}:
 
         def sort_url(url: str) -> tuple[str, int]:
@@ -192,40 +246,7 @@ def print_items(
         items.sort(key=itemgetter(args.sort), reverse=args.reverse)  # type:ignore
 
     for item in items:
-        item.created = dateit(item.created, time_format)
-        item.updated = dateit(item.updated, time_format)
-        item.files = xtags.get(item.tag, [])
-        if output_type == "html":
-            info = {
-                k: html.escape(item[k]) if isinstance(item[k], str) else item[k]
-                for k in keys
-            }
-            info["tag"] = html_tag("a", item.tag, href=item.url)
-            info["url"] = html_tag("a", item.url, href=item.url)
-            cells = "".join(html_tag("td", info[key]) for key in keys)
-            print(html_tag("tr", cells))
-            for info in item.files:
-                cells = html_tag("td", "") * (len(keys) - 3)
-                info = {
-                    k: html.escape(v) if isinstance(v, str) else v
-                    for k, v in info.items()
-                }
-                info["date"] = html_tag(
-                    "a", dateit(info["date"], time_format), href=info["commit"]
-                )
-                author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
-                href = html_tag("a", info["file"], href=info["url"])
-                cells += (
-                    html_tag("td", author)
-                    + html_tag("td", info["date"])
-                    + html_tag("td", f'{href} {info["line_number"]}')
-                )
-                print(html_tag("tr", cells))
-        elif output_type == "text":
-            print(output_format.format(**item.__dict__))
-            for info in item.files:
-                info["date"] = dateit(info["date"], time_format)  # type: ignore
-                print(f'\t{info["email"]}\t{info["date"]}\t{info["url"]}')
+        print_item(item, output_type, output_format, time_format, keys)
 
     if output_type == "html":
         print("</tbody></table>")
