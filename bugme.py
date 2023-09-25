@@ -178,17 +178,15 @@ def print_item(
         cells = "".join(html_tag("td", info[key]) for key in keys)
         print(html_tag("tr", cells))
         for info in item.files:
-            cells = html_tag("td", "") * (len(keys) - 3)
             info = {
                 k: html.escape(v) if isinstance(v, str) else v for k, v in info.items()
             }
-            info["date"] = html_tag(
-                "a", dateit(info["date"], time_format), href=info["commit"]
-            )
             author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
-            cells += (
-                html_tag("td", author)
-                + html_tag("td", info["date"])
+            date = html_tag("a", dateit(info["date"], time_format), href=info["commit"])
+            cells = (
+                html_tag("td", "") * (len(keys) - 3)
+                + html_tag("td", author)
+                + html_tag("td", date)
                 + html_tag("td", html_tag("a", info["file"], href=info["url"]))
             )
             print(html_tag("tr", cells))
