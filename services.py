@@ -119,10 +119,9 @@ class Service:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
-    def _not_found(self, item_id: str, url: str, tag: str) -> Item:
+    def _not_found(self, url: str, tag: str) -> Item:
         now = datetime.now(tz=utc)
         return Item(
-            id=item_id,
             status="ERROR",
             title="NOT FOUND",
             created=now,
@@ -180,9 +179,8 @@ class MyBugzilla(Service):
             )
         except IndexError:
             return self._not_found(
-                item_id,
-                f"{self.url}/show_bug.cgi?id={item_id}",
-                f"{self.tag}#{item_id}",
+                url=f"{self.url}/show_bug.cgi?id={item_id}",
+                tag=f"{self.tag}#{item_id}",
             )
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_item(%s): %s", self.url, item_id, exc)
@@ -204,12 +202,11 @@ class MyBugzilla(Service):
             logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
             return []
         # Bugzilla silently fails on not found items
-        found_ids = {item["id"] for item in found}
+        found_ids = {str(item.raw["id"]) for item in found}
         not_found = [
             self._not_found(
-                item["item_id"],
-                f"{self.url}/show_bug.cgi?id={item['item_id']}",
-                f"{self.tag}#{item['item_id']}",
+                url=f"{self.url}/show_bug.cgi?id={item['item_id']}",
+                tag=f"{self.tag}#{item['item_id']}",
             )
             for item in items
             if item["item_id"] not in found_ids
@@ -218,7 +215,6 @@ class MyBugzilla(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            id=str(info.id),
             status=info.status.upper().replace(" ", "_"),
             title=info.summary,
             created=utc_date(info.creation_time),
@@ -253,9 +249,8 @@ class MyGithub(Service):
         except (GithubException, RequestException) as exc:
             if getattr(exc, "status", None) == 404:
                 return self._not_found(
-                    item_id,
-                    "{self.url}/{repo}/issues/{item_id}",
-                    "{self.tag}#{repo}#{item_id}",
+                    url=f"{self.url}/{repo}/issues/{item_id}",
+                    tag=f"{self.tag}#{repo}#{item_id}",
                 )
             logging.error("Github: get_item(%s, %s): %s", repo, item_id, exc)
             return None
@@ -263,7 +258,6 @@ class MyGithub(Service):
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
-            id=info.number,
             status=info.state.upper().replace(" ", "_"),
             title=info.title,
             created=utc_date(info.created_at),
@@ -302,9 +296,8 @@ class MyGitlab(Service):
         except (GitlabError, RequestException) as exc:
             if getattr(exc, "response_code", None) == 404:
                 return self._not_found(
-                    item_id,
-                    f"{self.url}/{repo}/-/issues/{item_id}",
-                    f"{self.tag}#{repo}#{item_id}",
+                    url=f"{self.url}/{repo}/-/issues/{item_id}",
+                    tag=f"{self.tag}#{repo}#{item_id}",
                 )
             logging.error(
                 "Gitlab: %s: get_item(%s, %s): %s", self.url, repo, item_id, exc
@@ -314,7 +307,6 @@ class MyGitlab(Service):
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
-            id=info.iid,
             status=info.state.upper().replace(" ", "_"),
             title=info.title,
             created=utc_date(info.created_at),
@@ -349,7 +341,7 @@ class MyRedmine(Service):
             info = self.client.issue.get(item_id)
         except ResourceNotFoundError:
             return self._not_found(
-                item_id, f"{self.url}/issues/{item_id}", f"{self.tag}#{item_id}"
+                url=f"{self.url}/issues/{item_id}", tag=f"{self.tag}#{item_id}"
             )
         except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_item(%s): %s", self.url, item_id, exc)
@@ -358,7 +350,6 @@ class MyRedmine(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            id=info.id,
             status=info.status.name.upper().replace(" ", "_"),
             title=info.subject,
             created=utc_date(info.created_on),
@@ -389,7 +380,7 @@ class MyJira(Service):
             try:
                 if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
-                        item_id, f"{self.url}/browse/{item_id}", f"{self.tag}#{item_id}"
+                        url=f"{self.url}/browse/{item_id}", tag=f"{self.tag}#{item_id}"
                     )
             except AttributeError:
                 pass
@@ -399,7 +390,6 @@ class MyJira(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            id=info["key"],
             status=info["fields"]["status"]["name"].upper().replace(" ", "_"),
             title=info["fields"]["summary"],
             created=utc_date(info["fields"]["created"]),

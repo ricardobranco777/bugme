@@ -221,11 +221,7 @@ def print_items(
         item.files = xtags.get(item.tag, [])
         if output_type == "text":
             keys.update(
-                {
-                    key: max(width, len(item[key]))
-                    for key, width in keys.items()
-                    if isinstance(item[key], str)
-                }
+                {key: max(width, len(item[key])) for key, width in keys.items()}
             )
 
     output_format = "  ".join(f"{{{key}:<{align}}}" for key, align in keys.items())
