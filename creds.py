@@ -8,7 +8,6 @@ import os
 CREDS = {
     "bugzilla.suse.com": {
         "api_key": os.getenv("BUGZILLA_API_KEY"),
-        "user": os.getenv("BUGZILLA_USER"),
     },
     "github.com": {"login_or_token": os.getenv("BUGME_GITHUB_TOKEN")},
     "gitlab.com": {"private_token": os.getenv("GITLAB_API_KEY")},
@@ -20,7 +19,6 @@ CREDS = {
     },
     "progress.opensuse.org": {
         "key": os.getenv("REDMINE_API_KEY"),
-        "username": os.getenv("REDMINE_USER"),
     },
 }
 

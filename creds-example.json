@@ -1,10 +1,8 @@
 {
   "bugzilla.suse.com": {
-    "user": "rbranco@suse.com",
     "api_key": "SUSE_BUGZILLA_API_KEY"
   },
   "bugzilla.redhat.com": {
-    "user": "rbranco@suse.com",
     "api_key": "REDHAT_BUGZILLA_API_KEY"
   },
   "jira.suse.com": {
@@ -14,7 +12,6 @@
     }
   },
   "progress.opensuse.org": {
-    "username": "rbranco",
     "key": "REDMINE_API_KEY"
   },
   "gitlab.suse.de": {
