@@ -8,7 +8,6 @@ import logging
 import html
 import os
 import json
-import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from operator import itemgetter
@@ -234,13 +233,7 @@ def print_items(  # pylint: disable=too-many-arguments
     print_header(output_type, output_format, keys)
 
     if sort_key in {"tag", "url"}:
-
-        def sort_url(url: str) -> tuple[str, int]:
-            """Numeric sort of URL's"""
-            base, item_id = re.split(r"([0-9]+)$", url)[:2]
-            return base, int(item_id)
-
-        items.sort(key=lambda it: sort_url(it["url"]), reverse=reverse)
+        items.sort(key=Item.sort_key, reverse=reverse)
     elif sort_key is not None:
         items.sort(key=itemgetter(sort_key), reverse=reverse)  # type:ignore
 

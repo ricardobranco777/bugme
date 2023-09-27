@@ -4,6 +4,7 @@ Services
 
 import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse, parse_qs
 from typing import Any
@@ -52,6 +53,15 @@ class Item:  # pylint: disable=too-few-public-methods
     def __repr__(self):
         attrs = ", ".join(f"{attr}={getattr(self, attr)!r}" for attr in vars(self))
         return f"{self.__class__.__name__}({attrs})"
+
+    def sort_key(self) -> tuple[str, int]:
+        """
+        Key for numeric sort of URL's ending with digits
+        """
+        base, item_id, _ = re.split(
+            r"([0-9]+)$", self.url, maxsplit=1  # pylint: disable=no-member
+        )
+        return base, int(item_id)
 
     # Allow access this object as a dictionary
 
