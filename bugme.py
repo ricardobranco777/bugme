@@ -76,8 +76,11 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def get_items(
-    creds: dict[str, dict[str, str]], urltags: list[str], statuses: list[str] | None
+def get_items(  # pylint: disable=too-many-locals
+    creds: dict[str, dict[str, str]],
+    urltags: list[str],
+    statuses: list[str] | None,
+    output_type: str,
 ) -> list[Item]:
     """
     Get items
@@ -100,7 +103,7 @@ def get_items(
             "force_rest": True,
             "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
             "include_fields": "id status summary creation_time last_change_time".split()
-            if args.output != "json"
+            if output_type != "json"
             else None,
         },
         MyGithub: {},
@@ -197,12 +200,15 @@ def print_item(
             print(f'\t{info["email"]}\t{info["date"]}\t{info["url"]}')
 
 
-def print_items(
+def print_items(  # pylint: disable=too-many-arguments
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,
     output_format: str,
     output_type: str,
+    statuses: list[str] | None,
+    sort_key: str | None,
+    reverse: bool,
 ) -> None:
     """
     Print items
@@ -211,7 +217,7 @@ def print_items(
     if not urltags:
         xtags = scan_tags()
         urltags = list(xtags.keys())
-    items = get_items(creds, urltags, args.status)
+    items = get_items(creds, urltags, statuses, output_type)
 
     keys = dict.fromkeys(output_format.split(","), 0)
 
@@ -227,16 +233,16 @@ def print_items(
     output_format = "  ".join(f"{{{key}:<{align}}}" for key, align in keys.items())
     print_header(output_type, output_format, keys)
 
-    if args.sort in {"tag", "url"}:
+    if sort_key in {"tag", "url"}:
 
         def sort_url(url: str) -> tuple[str, int]:
             """Numeric sort of URL's"""
             base, item_id = re.split(r"([0-9]+)$", url)[:2]
             return base, int(item_id)
 
-        items.sort(key=lambda it: sort_url(it["url"]), reverse=args.reverse)
-    elif args.sort is not None:
-        items.sort(key=itemgetter(args.sort), reverse=args.reverse)  # type:ignore
+        items.sort(key=lambda it: sort_url(it["url"]), reverse=reverse)
+    elif sort_key is not None:
+        items.sort(key=itemgetter(sort_key), reverse=reverse)  # type:ignore
 
     for item in items:
         print_item(item, output_type, output_format, time_format, keys)
@@ -256,7 +262,16 @@ def main():
             sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    print_items(creds, args.url, args.time, args.fields, args.output)
+    print_items(
+        creds,
+        args.url,
+        args.time,
+        args.fields,
+        args.output,
+        args.status,
+        args.sort,
+        args.reverse,
+    )
 
 
 if __name__ == "__main__":
