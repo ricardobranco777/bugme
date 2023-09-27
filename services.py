@@ -75,7 +75,7 @@ class Item:  # pylint: disable=too-few-public-methods
         setattr(self, item, value)
 
 
-def get_item(string: str) -> Item | None:
+def get_item(string: str) -> dict[str, str] | None:
     """
     Get Item from string
     """
@@ -94,11 +94,11 @@ def get_item(string: str) -> Item | None:
             issue_id = parse_qs(url.query)["id"][0]
         else:
             issue_id = os.path.basename(url.path)
-        return Item(
-            item_id=issue_id,
-            host=hostname,
-            repo=repo,
-        )
+        return {
+            "item_id": issue_id,
+            "host": hostname,
+            "repo": repo,
+        }
     # Tag
     try:
         code, repo, issue = string.split("#", 2)
@@ -106,11 +106,11 @@ def get_item(string: str) -> Item | None:
         code, issue = string.split("#", 1)
         repo = ""
     try:
-        return Item(
-            item_id=issue,
-            host=CODE_TO_HOST[code],
-            repo=repo,
-        )
+        return {
+            "item_id": issue,
+            "host": CODE_TO_HOST[code],
+            "repo": repo,
+        }
     except KeyError:
         logging.warning("Unsupported %s", string)
     return None

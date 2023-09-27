@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member,use-dict-literal
 
 import pytest
 from services import get_item, Item, Service
@@ -30,83 +30,83 @@ def test_Item():
 def test_get_item_with_bsc_format():
     string = "bsc#1213811"
     item = get_item(string)
-    expected_item = Item(item_id="1213811", host="bugzilla.suse.com", repo="")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="1213811", host="bugzilla.suse.com", repo="")
+    assert item == expected_item
 
 
 def test_get_item_with_gh_format():
     string = "gh#containers/podman#19529"
     item = get_item(string)
-    expected_item = Item(item_id="19529", host="github.com", repo="containers/podman")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="19529", host="github.com", repo="containers/podman")
+    assert item == expected_item
 
 
 def test_get_item_with_gl_format():
     string = "gl#gitlab-org/gitlab#424503"
     item = get_item(string)
-    expected_item = Item(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
+    assert item == expected_item
 
 
 def test_get_item_with_gsd_format():
     string = "gsd#qac/container-release-bot#7"
     item = get_item(string)
-    expected_item = Item(
+    expected_item = dict(
         item_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
     )
-    assert item.__dict__ == expected_item.__dict__
+    assert item == expected_item
 
 
 def test_get_item_with_poo_format():
     string = "poo#133910"
     item = get_item(string)
-    expected_item = Item(item_id="133910", host="progress.opensuse.org", repo="")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="133910", host="progress.opensuse.org", repo="")
+    assert item == expected_item
 
 
 # Test cases for the get_item function with URLs
 def test_get_item_with_bugzilla_url():
     url = "https://bugzilla.suse.com/show_bug.cgi?id=1213811"
     item = get_item(url)
-    expected_item = Item(item_id="1213811", host="bugzilla.suse.com", repo="")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="1213811", host="bugzilla.suse.com", repo="")
+    assert item == expected_item
 
 
 def test_get_item_with_github_url():
     url = "https://github.com/containers/podman/issues/19529"
     item = get_item(url)
-    expected_item = Item(item_id="19529", host="github.com", repo="containers/podman")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="19529", host="github.com", repo="containers/podman")
+    assert item == expected_item
 
 
 def test_get_item_with_progress_url():
     url = "https://progress.opensuse.org/issues/133910"
     item = get_item(url)
-    expected_item = Item(item_id="133910", host="progress.opensuse.org", repo="")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="133910", host="progress.opensuse.org", repo="")
+    assert item == expected_item
 
 
 def test_get_item_with_gitlab_url():
     url = "https://gitlab.com/gitlab-org/gitlab/-/issues/424503"
     item = get_item(url)
-    expected_item = Item(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
+    assert item == expected_item
 
 
 def test_get_item_with_gsd_url():
     url = "https://gitlab.suse.de/qac/container-release-bot/-/issues/7"
     item = get_item(url)
-    expected_item = Item(
+    expected_item = dict(
         item_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
     )
-    assert item.__dict__ == expected_item.__dict__
+    assert item == expected_item
 
 
 def test_get_item_with_www_prefix():
     url = "https://gitlab.com/gitlab-org/gitlab/-/issues/424503"
     item = get_item(url)
-    expected_item = Item(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item.__dict__ == expected_item.__dict__
+    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
+    assert item == expected_item
 
 
 # Test case for an unsupported format

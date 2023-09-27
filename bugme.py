@@ -91,7 +91,7 @@ def get_items(  # pylint: disable=too-many-locals
             continue
         if item["host"] not in host_items:
             host_items[item["host"]] = []
-        host_items[item["host"]].append(item.__dict__)
+        host_items[item["host"]].append(item)
 
     host_to_cls = {
         "github.com": MyGithub,
