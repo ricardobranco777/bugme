@@ -21,10 +21,7 @@ from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
-from requests.exceptions import (  # pylint: disable=redefined-builtin
-    ConnectionError,
-    RequestException,
-)
+from requests.exceptions import RequestException
 
 from utils import utc_date
 
@@ -170,9 +167,6 @@ class MyBugzilla(Service):
         kwargs |= creds
         try:
             self.client = Bugzilla(self.url, **kwargs)
-        except ConnectionError:
-            # Don't log exception due to API key leak: https://github.com/python-bugzilla/python-bugzilla/issues/187
-            logging.error("Bugzilla: %s: ConnectionError", self.url)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
 
