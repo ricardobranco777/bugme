@@ -30,6 +30,9 @@ from utils import utc_date
 
 
 CODE_TO_HOST = {
+    "bgo": "bugzilla.gnome.org",
+    "bmo": "bugzilla.mozilla.org",
+    "brc": "bugzilla.redhat.com",
     "bnc": "bugzilla.suse.com",
     "bsc": "bugzilla.suse.com",
     "boo": "bugzilla.suse.com",

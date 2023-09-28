@@ -62,8 +62,10 @@ $ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-dist
 
 ## Supported tags
 
+- bsc# boo# bnc#: SUSE's Bugzilla
+- bgo#: Gnome's Bugzilla
 - brc#: RedHat's Bugzilla
-- bsc#: SUSE's Bugzilla
+- bmo#: Mozilla's Bugzilla
 - gh#: Github
 - gl#: Gitlab
 - gsd#: SUSE's Gitlab
