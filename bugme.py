@@ -148,16 +148,16 @@ def get_items(  # pylint: disable=too-many-locals
     return all_items
 
 
-def print_header(output_type: str, output_format: str, keys: dict[str, int]):
+def print_header(output_type: str, output_format: str, fields: dict[str, int]):
     """
     Print header
     """
     if output_type == "html":
-        cells = "".join(html_tag("th", key.upper()) for key in keys)
+        cells = "".join(html_tag("th", field.upper()) for field in fields)
         header = html_tag("thead", html_tag("tr", cells))
         print(f"<table>{header}<tbody>")
     elif output_type == "text":
-        print(output_format.format(**{key: key.upper() for key in keys}))
+        print(output_format.format(**{field: field.upper() for field in fields}))
 
 
 def print_item(
@@ -165,19 +165,21 @@ def print_item(
     output_type: str,
     output_format: str,
     time_format: str,
-    keys: dict[str, int],
+    fields: dict[str, int],
 ):
     """
     Print item
     """
     if output_type == "html":
         info = {
-            k: html.escape(item[k]) if isinstance(item[k], str) else item[k]
-            for k in keys
+            field: html.escape(item[field])
+            if isinstance(item[field], str)
+            else item[field]
+            for field in fields
         }
         info["tag"] = html_tag("a", item.tag, href=item.url)
         info["url"] = html_tag("a", item.url, href=item.url)
-        cells = "".join(html_tag("td", info[key]) for key in keys)
+        cells = "".join(html_tag("td", info[field]) for field in fields)
         print(html_tag("tr", cells))
         for info in item.files:
             info = {
@@ -186,7 +188,7 @@ def print_item(
             author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
             date = html_tag("a", dateit(info["date"], time_format), href=info["commit"])
             cells = (
-                html_tag("td", "") * (len(keys) - 3)
+                html_tag("td", "") * (len(fields) - 3)
                 + html_tag("td", author)
                 + html_tag("td", date)
                 + html_tag("td", html_tag("a", info["file"], href=info["url"]))
@@ -218,19 +220,28 @@ def print_items(  # pylint: disable=too-many-arguments
         urltags = list(xtags.keys())
     items = get_items(creds, urltags, statuses, output_type)
 
-    keys = dict.fromkeys(output_format.split(","), 0)
+    fields = dict.fromkeys(output_format.split(","), 0)
 
-    for item in items:
-        item.created = dateit(item.created, time_format)
-        item.updated = dateit(item.updated, time_format)
-        item.files = xtags.get(item.tag, [])
-        if output_type == "text":
-            keys.update(
-                {key: max(width, len(item[key])) for key, width in keys.items()}
+    if output_type == "text":
+        for item in items:
+            fields.update(
+                {
+                    field: max(width, len(item[field]))
+                    for field, width in fields.items()
+                    if field not in {"created", "updated"}
+                }
+            )
+        for field in set(fields.keys()) & {"created", "updated"}:
+            fields.update(
+                {
+                    field: 15 if time_format == "timeago" else 35,
+                }
             )
 
-    output_format = "  ".join(f"{{{key}:<{align}}}" for key, align in keys.items())
-    print_header(output_type, output_format, keys)
+    output_format = "  ".join(
+        f"{{{field}:<{align}}}" for field, align in fields.items()
+    )
+    print_header(output_type, output_format, fields)
 
     if sort_key in {"tag", "url"}:
         items.sort(key=Item.sort_key, reverse=reverse)
@@ -238,7 +249,10 @@ def print_items(  # pylint: disable=too-many-arguments
         items.sort(key=itemgetter(sort_key), reverse=reverse)  # type:ignore
 
     for item in items:
-        print_item(item, output_type, output_format, time_format, keys)
+        item.created = dateit(item.created, time_format)
+        item.updated = dateit(item.updated, time_format)
+        item.files = xtags.get(item.tag, [])
+        print_item(item, output_type, output_format, time_format, fields)
 
     if output_type == "html":
         print("</tbody></table>")
