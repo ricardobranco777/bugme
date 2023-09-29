@@ -223,19 +223,15 @@ def print_items(  # pylint: disable=too-many-arguments
 
     if output_type == "text":
         for item in items:
-            fields.update(
-                {
-                    field: max(width, len(item[field]))
-                    for field, width in fields.items()
-                    if field not in {"created", "updated"}
-                }
-            )
+            fields |= {
+                field: max(width, len(item[field]))
+                for field, width in fields.items()
+                if field not in {"created", "updated", "title"}
+            }
         for field in set(fields.keys()) & {"created", "updated"}:
-            fields.update(
-                {
-                    field: 15 if time_format == "timeago" else 35,
-                }
-            )
+            fields |= {
+                field: 15 if time_format == "timeago" else 35,
+            }
 
     output_format = "  ".join(
         f"{{{field}:<{align}}}" for field, align in fields.items()
