@@ -417,6 +417,12 @@ def guess_service(server: str) -> Any:
     """
     if server == "github.com":
         return MyGithub
+    if server.startswith("jira"):
+        return MyJira
+    if server.startswith("gitlab"):
+        return MyGitlab
+    if server.startswith("bugzilla"):
+        return MyBugzilla
 
     endpoints = {
         MyJira: "rest/api/",

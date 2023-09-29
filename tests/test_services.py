@@ -1,7 +1,17 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member,use-dict-literal
 
 import pytest
-from services import get_item, Item, Service, guess_service, MyGithub, MyJira, MyRedmine
+from services import (
+    get_item,
+    Item,
+    Service,
+    guess_service,
+    MyBugzilla,
+    MyGithub,
+    MyGitlab,
+    MyJira,
+    MyRedmine,
+)
 
 
 # Test cases for the Item class
@@ -171,5 +181,8 @@ def test_mock_service_get_items():
 
 def test_guess_service():
     assert guess_service("github.com") is MyGithub
+    assert guess_service("gitlab.com") is MyGitlab
     assert guess_service("issues.redhat.com") is MyJira
     assert guess_service("progress.opensuse.org") is MyRedmine
+    assert guess_service("bugzilla.suse.com") is MyBugzilla
+    assert guess_service("jira.suse.com") is MyJira

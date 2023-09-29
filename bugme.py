@@ -84,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def get_items(  # pylint: disable=too-many-locals
+def get_items(
     creds: dict[str, dict[str, str]],
     urltags: list[str],
     statuses: list[str] | None,
@@ -122,18 +122,10 @@ def get_items(  # pylint: disable=too-many-locals
 
     clients: dict[str, Any] = {}
     for host in host_items:
-        cls: Any = None
-        if host.startswith("bugzilla"):
-            cls = MyBugzilla
-        elif host.startswith("gitlab"):
-            cls = MyGitlab
-        elif host.startswith("jira"):
-            cls = MyJira
-        else:
-            cls = guess_service(host)
-            if cls is None:
-                logging.error("Unknown: %s", host)
-                sys.exit(1)
+        cls = guess_service(host)
+        if cls is None:
+            logging.error("Unknown: %s", host)
+            sys.exit(1)
         clients[host] = cls(host, creds[host], **options[cls])
 
     if len(clients) == 0:
