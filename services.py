@@ -21,7 +21,10 @@ from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
 from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # type: ignore
+
+import requests
 from requests.exceptions import RequestException
+from cachetools import cached
 
 from utils import utc_date
 
@@ -405,3 +408,28 @@ class MyJira(Service):
             tag=f"{self.tag}#{info['key']}",
             raw=info,
         )
+
+
+@cached(cache={})
+def guess_service(server: str) -> Any:
+    """
+    Guess service
+    """
+    if server == "github.com":
+        return MyGithub
+
+    endpoints = {
+        MyJira: "rest/api/",
+        MyRedmine: "issues.json",
+    }
+
+    for cls, endpoint in endpoints.items():
+        api_endpoint = f"https://{server}/{endpoint}"
+        try:
+            response = requests.head(api_endpoint, allow_redirects=True, timeout=7)
+            if response.status_code == 200:
+                return cls
+        except RequestException:
+            pass
+
+    return None

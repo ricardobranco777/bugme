@@ -14,7 +14,16 @@ from operator import itemgetter
 from typing import Any
 
 from scantags import scan_tags
-from services import get_item, Item, MyBugzilla, MyGithub, MyGitlab, MyJira, MyRedmine
+from services import (
+    get_item,
+    Item,
+    MyBugzilla,
+    MyGithub,
+    MyGitlab,
+    MyJira,
+    MyRedmine,
+    guess_service,
+)
 from utils import dateit, html_tag
 
 
@@ -93,10 +102,6 @@ def get_items(  # pylint: disable=too-many-locals
             host_items[item["host"]] = []
         host_items[item["host"]].append(item)
 
-    host_to_cls = {
-        "github.com": MyGithub,
-        "progress.opensuse.org": MyRedmine,
-    }
     options = {
         MyBugzilla: {
             "force_rest": True,
@@ -125,7 +130,10 @@ def get_items(  # pylint: disable=too-many-locals
         elif host.startswith("jira"):
             cls = MyJira
         else:
-            cls = host_to_cls[host]
+            cls = guess_service(host)
+            if cls is None:
+                logging.error("Unknown: %s", host)
+                sys.exit(1)
         clients[host] = cls(host, creds[host], **options[cls])
 
     if len(clients) == 0:
