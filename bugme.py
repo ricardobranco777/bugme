@@ -9,6 +9,7 @@ import html
 import os
 import json
 import sys
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from operator import itemgetter
 from typing import Any
@@ -93,13 +94,11 @@ def get_items(
     """
     Get items
     """
-    host_items: dict[str, list[dict]] = {}
+    host_items: dict[str, list[dict]] = defaultdict(list)
     for urltag in urltags:
         item = get_item(urltag)
         if item is None:
             continue
-        if item["host"] not in host_items:
-            host_items[item["host"]] = []
         host_items[item["host"]].append(item)
 
     options = {

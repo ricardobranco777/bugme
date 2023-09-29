@@ -6,6 +6,7 @@ import concurrent.futures
 import fnmatch
 import os
 import re
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 from typing import Iterator
@@ -133,10 +134,8 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
         ]
 
     # Group the results by tag in a dictionary
-    tags: dict[str, list[dict[str, str | int | datetime]]] = {}
+    tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
     for tag, info in results:
-        if tag not in tags:
-            tags[tag] = []
         tags[tag].append(info)
     for files in tags.values():
         files.sort(key=itemgetter("file", "line_number"))
