@@ -224,7 +224,7 @@ def print_items(  # pylint: disable=too-many-arguments
     elif sort_key is not None:
         items.sort(key=itemgetter(sort_key), reverse=reverse)  # type:ignore
 
-    fields = dict.fromkeys(output_format.split(","), 0)
+    fields = {field: len(field) for field in output_format.split(",")}
     for item in items:
         item.created = dateit(item.created, time_format)
         item.updated = dateit(item.updated, time_format)
