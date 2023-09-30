@@ -17,8 +17,8 @@ from pygit2 import Repository  # type: ignore
 from services import TAG_REGEX
 from utils import utc_date
 
-FILE_PATTERN = "*"
-LINE_PATTERN = f"({TAG_REGEX})"
+FILE_PATTERN = "*.pm"
+LINE_REGEX = rf"soft_fail.*?({TAG_REGEX})"
 
 
 def git_blame(
@@ -71,8 +71,9 @@ def check_repo(repo: Repository) -> None:
 
 def recursive_grep(
     directory: str,
-    pattern: str,
+    line_regex: str | re.Pattern,
     file_pattern: str = "*",
+    ignore_case: bool = False,
     ignore_dirs: list[str] | None = None,
 ) -> Iterator[tuple[str, int, str]]:
     """
@@ -80,19 +81,19 @@ def recursive_grep(
     """
     if ignore_dirs is None:
         ignore_dirs = []
-    my_pattern = re.compile(pattern)
+    line_regex = re.compile(line_regex, flags=re.IGNORECASE if ignore_case else 0)
     for root, dirs, files in os.walk(directory):
         for ignore in set(ignore_dirs) & set(dirs):
             dirs.remove(ignore)
         for filename in files:
             if not fnmatch.fnmatch(filename, file_pattern):
                 continue
-            path = os.path.join(root, filename)
+            filename = os.path.join(root, filename)
             try:
-                with open(path, encoding="utf-8") as file:
+                with open(filename, encoding="utf-8") as file:
                     for line_number, line in enumerate(file, start=1):
-                        for match in my_pattern.findall(line, re.IGNORECASE):
-                            yield (path, line_number, match)
+                        for match in line_regex.findall(line):
+                            yield (filename, line_number, match)
             except UnicodeError:
                 pass
 
@@ -131,9 +132,10 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
         futures = []
         for file, line_number, tag in recursive_grep(
             directory,
-            LINE_PATTERN,
-            FILE_PATTERN,
-            ignore_dirs=[".git", "os-autoinst", "t"],
+            line_regex=LINE_REGEX,
+            file_pattern=FILE_PATTERN,
+            ignore_case=True,
+            ignore_dirs=[".git", "t"],
         ):
             file = file.removeprefix(f"{directory}/")
             futures.append(executor.submit(process_line, file, line_number, tag))
