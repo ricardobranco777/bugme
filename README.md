@@ -36,7 +36,7 @@ options:
   -t TIME_FORMAT, --time TIME_FORMAT
   --version             show program's version number and exit
 
-output fields for --fields: tag,url,status,created,updated,title
+output fields for --fields: tag,url,status,created,updated,title,assignee,creator
 ```
 
 ## Example

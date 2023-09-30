@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
     """
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        epilog="output fields for --fields: tag,url,status,created,updated,title",
+        epilog="output fields for --fields: tag,url,status,created,updated,title,assignee,creator",
     )
     argparser.add_argument(
         "-c",
@@ -105,7 +105,7 @@ def get_items(
         MyBugzilla: {
             "force_rest": True,
             "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
-            "include_fields": "id status summary creation_time last_change_time".split()
+            "include_fields": "id assigned_to creator status summary creation_time last_change_time".split()
             if output_type != "json"
             else None,
         },

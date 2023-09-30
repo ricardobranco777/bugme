@@ -135,12 +135,14 @@ class Service:
     def _not_found(self, url: str, tag: str) -> Item:
         now = datetime.now(tz=utc)
         return Item(
-            status="ERROR",
-            title="NOT FOUND",
+            tag=tag,
+            url=url,
+            assignee="none",
+            creator="none",
             created=now,
             updated=now,
-            url=url,
-            tag=tag,
+            status="ERROR",
+            title="NOT FOUND",
             raw={},
         )
 
@@ -225,12 +227,14 @@ class MyBugzilla(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            status=info.status.upper().replace(" ", "_"),
-            title=info.summary,
+            tag=f"{self.tag}#{info.id}",
+            url=f"{self.url}/show_bug.cgi?id={info.id}",
+            assignee=info.assigned_to or "none",
+            creator=info.creator,
             created=utc_date(info.creation_time),
             updated=utc_date(info.last_change_time),
-            url=f"{self.url}/show_bug.cgi?id={info.id}",
-            tag=f"{self.tag}#{info.id}",
+            status=info.status.upper().replace(" ", "_"),
+            title=info.summary,
             raw=info.get_raw_data(),
         )
 
@@ -268,12 +272,14 @@ class MyGithub(Service):
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
-            status=info.state.upper().replace(" ", "_"),
-            title=info.title,
+            tag=f"{self.tag}#{repo}#{info.number}",
+            url=f"{self.url}/{repo}/issues/{info.number}",
+            assignee=info.assignee.login if info.assignee else "none",
+            creator=info.user.login,
             created=utc_date(info.created_at),
             updated=utc_date(info.updated_at),
-            url=f"{self.url}/{repo}/issues/{info.number}",
-            tag=f"{self.tag}#{repo}#{info.number}",
+            status=info.state.upper().replace(" ", "_"),
+            title=info.title,
             raw=info.raw_data,
         )
 
@@ -317,12 +323,14 @@ class MyGitlab(Service):
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
-            status=info.state.upper().replace(" ", "_"),
-            title=info.title,
+            tag=f"{self.tag}#{repo}#{info.iid}",
+            url=f"{self.url}/{repo}/-/issues/{info.iid}",
+            assignee=info.assignee["name"] if info.assignee else "none",
+            creator=info.author["name"],
             created=utc_date(info.created_at),
             updated=utc_date(info.updated_at),
-            url=f"{self.url}/{repo}/-/issues/{info.iid}",
-            tag=f"{self.tag}#{repo}#{info.iid}",
+            status=info.state.upper().replace(" ", "_"),
+            title=info.title,
             raw=info.asdict(),
         )
 
@@ -360,12 +368,14 @@ class MyRedmine(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            status=info.status.name.upper().replace(" ", "_"),
-            title=info.subject,
+            tag=f"{self.tag}#{info.id}",
+            url=f"{self.url}/issues/{info.id}",
+            assignee=info.assigned_to.name if info.assigned_to else "none",
+            creator=info.author.name,
             created=utc_date(info.created_on),
             updated=utc_date(info.updated_on),
-            url=f"{self.url}/issues/{info.id}",
-            tag=f"{self.tag}#{info.id}",
+            status=info.status.name.upper().replace(" ", "_"),
+            title=info.subject,
             raw=info.raw(),
         )
 
@@ -400,12 +410,16 @@ class MyJira(Service):
 
     def _to_item(self, info: Any) -> Item:
         return Item(
-            status=info["fields"]["status"]["name"].upper().replace(" ", "_"),
-            title=info["fields"]["summary"],
+            tag=f"{self.tag}#{info['key']}",
+            url=f"{self.url}/browse/{info['key']}",
+            assignee=info["fields"]["assignee"]["name"]
+            if info["fields"]["assignee"]
+            else "none",
+            creator=info["fields"]["creator"]["name"],
             created=utc_date(info["fields"]["created"]),
             updated=utc_date(info["fields"]["updated"]),
-            url=f"{self.url}/browse/{info['key']}",
-            tag=f"{self.tag}#{info['key']}",
+            status=info["fields"]["status"]["name"].upper().replace(" ", "_"),
+            title=info["fields"]["summary"],
             raw=info,
         )
 
