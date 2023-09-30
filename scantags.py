@@ -73,7 +73,6 @@ def recursive_grep(
     directory: str,
     line_regex: str | re.Pattern,
     file_pattern: str = "*",
-    ignore_case: bool = False,
     ignore_dirs: list[str] | None = None,
 ) -> Iterator[tuple[str, int, str]]:
     """
@@ -81,7 +80,7 @@ def recursive_grep(
     """
     if ignore_dirs is None:
         ignore_dirs = []
-    line_regex = re.compile(line_regex, flags=re.IGNORECASE if ignore_case else 0)
+    line_regex = re.compile(line_regex)
     for root, dirs, files in os.walk(directory):
         for ignore in set(ignore_dirs) & set(dirs):
             dirs.remove(ignore)
@@ -134,7 +133,6 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
             directory,
             line_regex=LINE_REGEX,
             file_pattern=FILE_PATTERN,
-            ignore_case=True,
             ignore_dirs=[".git", "t"],
         ):
             file = file.removeprefix(f"{directory}/")

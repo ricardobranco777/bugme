@@ -223,7 +223,10 @@ def print_items(  # pylint: disable=too-many-arguments
     if sort_key in {"tag", "url"}:
         items.sort(key=Item.sort_key, reverse=reverse)
     elif sort_key is not None:
-        items.sort(key=lambda it: (it[sort_key], *it.sort_key()), reverse=reverse)  # type:ignore
+        items.sort(
+            key=lambda it: (it[sort_key], *it.sort_key()),  # type:ignore
+            reverse=reverse,
+        )
 
     fields = {field: len(field) for field in output_format.split(",")}
     for item in items:
