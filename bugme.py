@@ -179,7 +179,7 @@ def print_item(
         info["tag"] = html_tag("a", item.tag, href=item.url)
         info["url"] = html_tag("a", item.url, href=item.url)
         cells = "".join(html_tag("td", info[field]) for field in fields)
-        print(html_tag("tr", cells))
+        print(html_tag("tr", cells, **{"class": "info"}))
         for info in item.files:
             info = {
                 k: html.escape(v) if isinstance(v, str) else v for k, v in info.items()
