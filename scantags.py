@@ -4,6 +4,7 @@ Scan a repo such as https://github.com/os-autoinst/os-autoinst-distri-opensuse f
 
 import concurrent.futures
 import fnmatch
+import logging
 import os
 import re
 from collections import defaultdict
@@ -13,12 +14,11 @@ from typing import Iterator
 
 from pygit2 import Repository  # type: ignore
 
+from services import TAG_REGEX
 from utils import utc_date
 
-FILE_PATTERN = "*.pm"
-LINE_PATTERN = (
-    r"soft_fail.*?((?:bsc|poo)#[0-9]+|(?:gh|gl|gsd)#[^#]+#[0-9]+|jsc#[A-Z]+-[0-9]+)"
-)
+FILE_PATTERN = "*"
+LINE_PATTERN = f"({TAG_REGEX})"
 
 
 def git_blame(
@@ -88,10 +88,13 @@ def recursive_grep(
             if not fnmatch.fnmatch(filename, file_pattern):
                 continue
             path = os.path.join(root, filename)
-            with open(path, encoding="utf-8") as file:
-                for line_number, line in enumerate(file, start=1):
-                    for match in my_pattern.findall(line):
-                        yield (path, line_number, match)
+            try:
+                with open(path, encoding="utf-8") as file:
+                    for line_number, line in enumerate(file, start=1):
+                        for match in my_pattern.findall(line, re.IGNORECASE):
+                            yield (path, line_number, match)
+            except UnicodeError:
+                pass
 
 
 def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | datetime]]]:
@@ -108,7 +111,11 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
     def process_line(
         file: str, line_number: int, tag: str
     ) -> tuple[str, dict[str, str | int | datetime]]:
-        author, email, commit, date = git_blame(repo, file, line_number)
+        try:
+            author, email, commit, date = git_blame(repo, file, line_number)
+        except KeyError as exc:
+            logging.warning("%s: %s: %s: %s", file, line_number, tag, exc)
+            return tag, {}
         info: dict[str, str | int | datetime] = {
             "file": file,
             "line_number": line_number,
@@ -123,7 +130,10 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for file, line_number, tag in recursive_grep(
-            directory, LINE_PATTERN, FILE_PATTERN, ignore_dirs=[".git"]
+            directory,
+            LINE_PATTERN,
+            FILE_PATTERN,
+            ignore_dirs=[".git", "os-autoinst", "t"],
         ):
             file = file.removeprefix(f"{directory}/")
             futures.append(executor.submit(process_line, file, line_number, tag))
@@ -136,6 +146,11 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
     # Group the results by tag in a dictionary
     tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
     for tag, info in results:
+        if not info:
+            continue
+        # build.opensuse.org & bugzilla.novell.com -> bugzilla.suse.com
+        if tag.startswith(("bnc", "boo")):
+            tag = tag.replace("boo", "bsc").replace("bnc", "bsc")
         tags[tag].append(info)
     for files in tags.values():
         files.sort(key=itemgetter("file", "line_number"))

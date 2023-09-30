@@ -196,8 +196,10 @@ def print_item(
     elif output_type == "text":
         print(output_format.format(**item.__dict__))
         for info in item.files:
-            info["date"] = dateit(info["date"], time_format)  # type: ignore
-            print(f'\t{info["email"]}\t{info["date"]}\t{info["url"]}')
+            print(
+                "\t"
+                + "\t".join([info["email"], info["commit"].split("/")[-1], info["url"]])
+            )
 
 
 def print_items(  # pylint: disable=too-many-arguments

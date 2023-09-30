@@ -29,10 +29,15 @@ from cachetools import cached
 from utils import utc_date
 
 
-CODE_TO_HOST = {
-    "bgo": "bugzilla.gnome.org",
-    "bmo": "bugzilla.mozilla.org",
-    "brc": "bugzilla.redhat.com",
+TAG_REGEX = "|".join(
+    [
+        r"(?:bnc|bsc|boo|poo)#[0-9]+",
+        r"(?:gh|gl|gsd)#[^#]+#[0-9]+",
+        r"jsc#[A-Z]+-[0-9]+",
+    ]
+)
+
+TAG_TO_HOST = {
     "bnc": "bugzilla.suse.com",
     "bsc": "bugzilla.suse.com",
     "boo": "bugzilla.suse.com",
@@ -103,20 +108,19 @@ def get_item(string: str) -> dict[str, str] | None:
             "repo": repo,
         }
     # Tag
+    if not re.fullmatch(TAG_REGEX, string):
+        logging.warning("Skipping unsupported %s", string)
+        return None
     try:
         code, repo, issue = string.split("#", 2)
     except ValueError:
         code, issue = string.split("#", 1)
         repo = ""
-    try:
-        return {
-            "item_id": issue,
-            "host": CODE_TO_HOST[code],
-            "repo": repo,
-        }
-    except KeyError:
-        logging.warning("Unsupported %s", string)
-    return None
+    return {
+        "item_id": issue,
+        "host": TAG_TO_HOST[code],
+        "repo": repo,
+    }
 
 
 class Service:
