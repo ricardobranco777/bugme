@@ -219,40 +219,33 @@ def print_items(  # pylint: disable=too-many-arguments
         urltags = list(xtags.keys())
     items = get_items(creds, urltags, statuses, output_type)
 
-    fields = dict.fromkeys(output_format.split(","), 0)
-
-    if output_type == "text":
-        for item in items:
-            fields |= {
-                field: max(width, len(item[field]))
-                for field, width in fields.items()
-                if field not in {"created", "updated", "title"}
-            }
-        for field in set(fields.keys()) & {"created", "updated"}:
-            fields |= {
-                field: 15 if time_format == "timeago" else 35,
-            }
-
-    output_format = "  ".join(
-        f"{{{field}:<{align}}}" for field, align in fields.items()
-    )
-    print_header(output_type, output_format, fields)
-
     if sort_key in {"tag", "url"}:
         items.sort(key=Item.sort_key, reverse=reverse)
     elif sort_key is not None:
         items.sort(key=itemgetter(sort_key), reverse=reverse)  # type:ignore
 
+    fields = dict.fromkeys(output_format.split(","), 0)
     for item in items:
         item.created = dateit(item.created, time_format)
         item.updated = dateit(item.updated, time_format)
         item.files = xtags.get(item.tag, [])
-        print_item(item, output_type, output_format, time_format, fields)
+        if output_type == "text":
+            fields |= {
+                field: max(width, len(item[field]))
+                for field, width in fields.items()
+                if field != "title"
+            }
 
+    if output_type == "json":
+        print(json.dumps([it.__dict__ for it in items], sort_keys=True))
+        return
+
+    output_format = "  ".join(f"{{{field}:{align}}}" for field, align in fields.items())
+    print_header(output_type, output_format, fields)
+    for item in items:
+        print_item(item, output_type, output_format, time_format, fields)
     if output_type == "html":
         print("</tbody></table>")
-    elif output_type == "json":
-        print(json.dumps([it.__dict__ for it in items], sort_keys=True))
 
 
 def main():
