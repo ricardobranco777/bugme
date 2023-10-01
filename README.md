@@ -13,7 +13,12 @@ List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-au
 ## Usage
 
 ```
-usage: bugme.py [-h] [-c CREDS] [-f FIELDS] [-l {none,debug,info,warning,error,critical}] [-o {text,html,json}] [-r] [-s {tag,url,status,created,updated}] [-S STATUS] [-t TIME_FORMAT] [--version] [url ...]
+usage: bugme.py [-h] [-c CREDS] [-f FIELDS]
+                [-l {none,debug,info,warning,error,critical}]
+                [-o {text,html,json}] [-r]
+                [-s {tag,url,status,created,updated,assignee,creator}]
+                [-S STATUS] [-t TIME_FORMAT] [--version]
+                [url ...]
 
 positional arguments:
   url
@@ -29,7 +34,7 @@ options:
   -o {text,html,json}, --output {text,html,json}
                         output type (default: text)
   -r, --reverse         reverse sort (default: False)
-  -s {tag,url,status,created,updated}, --sort {tag,url,status,created,updated}
+  -s {tag,url,status,created,updated,assignee,creator}, --sort {tag,url,status,created,updated,assignee,creator}
                         sort key (default: None)
   -S STATUS, --status STATUS
                         filter by status (may be specified multiple times) (default: None)

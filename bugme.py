@@ -67,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-s",
         "--sort",
-        choices=["tag", "url", "status", "created", "updated"],
+        choices=["tag", "url", "status", "created", "updated", "assignee", "creator"],
         help="sort key",
     )
     argparser.add_argument(
