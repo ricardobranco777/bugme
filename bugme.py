@@ -162,7 +162,6 @@ def print_item(
     item: Item,
     output_type: str,
     output_format: str,
-    time_format: str,
     fields: dict[str, int],
 ):
     """
@@ -184,7 +183,7 @@ def print_item(
                 k: html.escape(v) if isinstance(v, str) else v for k, v in info.items()
             }
             author = html_tag("a", info["author"], href=f'mailto:{info["email"]}')
-            date = html_tag("a", dateit(info["date"], time_format), href=info["commit"])
+            date = html_tag("a", info["date"], href=info["commit"])
             cells = (
                 html_tag("td", "") * (len(fields) - 3)
                 + html_tag("td", author)
@@ -233,6 +232,8 @@ def print_items(  # pylint: disable=too-many-arguments
         item.created = dateit(item.created, time_format)
         item.updated = dateit(item.updated, time_format)
         item.files = xtags.get(item.tag, [])
+        for info in item.files:
+            info["date"] = dateit(info["date"], time_format)  # type: ignore
         if output_type == "text":
             fields |= {
                 field: max(width, len(item[field]))
@@ -247,7 +248,7 @@ def print_items(  # pylint: disable=too-many-arguments
     output_format = "  ".join(f"{{{field}:{align}}}" for field, align in fields.items())
     print_header(output_type, output_format, fields)
     for item in items:
-        print_item(item, output_type, output_format, time_format, fields)
+        print_item(item, output_type, output_format, fields)
     if output_type == "html":
         print("</tbody></table>")
 
