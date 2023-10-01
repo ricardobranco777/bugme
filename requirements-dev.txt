@@ -1,5 +1,4 @@
 atlassian-python-api
-dulwich
 PyGithub
 python-bugzilla
 python-gitlab

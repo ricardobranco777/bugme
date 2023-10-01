@@ -8,12 +8,12 @@ import logging
 import os
 import re
 from collections import defaultdict
+from configparser import ConfigParser
 from datetime import datetime
 from operator import itemgetter
 from typing import Iterator
 
 from github import Github  # , Auth
-from dulwich.repo import Repo
 
 from gitblame import GitBlame
 from services import TAG_REGEX
@@ -23,34 +23,45 @@ FILE_PATTERN = "*.pm"
 LINE_REGEX = rf"soft_fail.*?({TAG_REGEX})"
 
 
-def git_branch(repo: Repo) -> str:
+def git_branch(directory: str) -> str:
     """
     Get branch
     """
-    (_, ref), _ = repo.refs.follow(b"HEAD")
-    return ref.decode("utf-8").split("/")[-1]
+    with open(os.path.join(directory, ".git", "HEAD"), encoding="utf-8") as file:
+        data = file.read().rstrip()
+    if not data.startswith("ref: refs/heads/"):
+        raise RuntimeError(f"{directory} is detached")
+    return data.removeprefix("ref: refs/heads/")
 
 
-def git_remote(repo: Repo) -> str:
+def git_last_commit(directory: str, branch: str) -> str:
+    """
+    Get last commit for branch on disk
+    """
+    with open(
+        os.path.join(directory, ".git", "refs", "heads", branch), encoding="utf-8"
+    ) as file:
+        return file.read().rstrip()
+
+
+def git_remote(directory: str) -> str:
     """
     Get remote
     """
-    url = repo.get_config().get(("remote", "origin"), "url").decode("utf-8")
+    config = ConfigParser()
+    _ = config.read(os.path.join(directory, ".git", "config"))
+    url = config.get('remote "origin"', "url")
     if not url.startswith("https://") and "@" in url:
         url = url.split("@", 1)[1].replace(":", "/", 1)
         url = f"https://{url}"
     return url.rstrip("/").removesuffix(".git")
 
 
-def check_repo(repo: Repo, repo_name: str, branch: str, token: str) -> None:
+def check_repo(directory: str, repo_name: str, branch: str, token: str) -> None:
     """
     Check repository
     """
-    if repo.bare:
-        raise RuntimeError(f"{repo.path} is bare")
-    if not repo.has_index():
-        raise RuntimeError(f"{repo.path} lacks index")
-    last_commit = repo.head().decode("utf-8")
+    last_commit = git_last_commit(directory, branch)
     # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
     # auth = Auth.Token(**creds)
     # client = Github(auth=auth)
@@ -101,13 +112,12 @@ def scan_tags(  # pylint: disable=too-many-locals
     """
     Scan tags in repository
     """
-    repo = Repo(directory)
-    base_url = git_remote(repo)
+    base_url = git_remote(directory)
     if "gitlab" in base_url:
         base_url = f"{base_url}/-"
-    branch = git_branch(repo)
+    branch = git_branch(directory)
     owner_repo = base_url.split("/", 3)[-1]
-    check_repo(repo, owner_repo, branch, token)
+    check_repo(directory, owner_repo, branch, token)
     blame = GitBlame(repo=owner_repo, branch=branch, access_token=token)
 
     def process_line(
