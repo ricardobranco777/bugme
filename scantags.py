@@ -9,6 +9,7 @@ import os
 import re
 from collections import defaultdict
 from configparser import ConfigParser
+from contextlib import closing
 from datetime import datetime
 from operator import itemgetter
 from typing import Iterator
@@ -118,44 +119,43 @@ def scan_tags(  # pylint: disable=too-many-locals
     branch = git_branch(directory)
     owner_repo = base_url.split("/", 3)[-1]
     check_repo(directory, owner_repo, branch, token)
-    blame = GitBlame(repo=owner_repo, branch=branch, access_token=token)
 
-    def process_line(
-        file: str, line_number: int, tag: str
-    ) -> tuple[str, dict[str, str | int | datetime]]:
-        try:
-            author, email, commit, date = blame.blame_line(file, line_number)
-        except KeyError as exc:
-            logging.warning("%s: %s: %s: %s", file, line_number, tag, exc)
-            return tag, {}
-        info: dict[str, str | int | datetime] = {
-            "file": file,
-            "line_number": line_number,
-            "author": author,
-            "email": email,
-            "date": utc_date(date),
-            "commit": f"{base_url}/commit/{commit}",
-            "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
-        }
-        return tag, info
+    with closing(GitBlame(repo=owner_repo, branch=branch, access_token=token)) as blame:
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for file, line_number, tag in recursive_grep(
-            directory,
-            line_regex=LINE_REGEX,
-            file_pattern=FILE_PATTERN,
-            ignore_dirs=[".git", "t"],
-        ):
-            file = file.removeprefix(f"{directory}/")
-            futures.append(executor.submit(process_line, file, line_number, tag))
+        def process_line(
+            file: str, line_number: int, tag: str
+        ) -> tuple[str, dict[str, str | int | datetime]]:
+            try:
+                author, email, commit, date = blame.blame_line(file, line_number)
+            except KeyError as exc:
+                logging.warning("%s: %s: %s: %s", file, line_number, tag, exc)
+                return tag, {}
+            info: dict[str, str | int | datetime] = {
+                "file": file,
+                "line_number": line_number,
+                "author": author,
+                "email": email,
+                "date": utc_date(date),
+                "commit": f"{base_url}/commit/{commit}",
+                "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
+            }
+            return tag, info
 
-        # Wait for all futures to complete and retrieve results
-        results = [
-            future.result() for future in concurrent.futures.as_completed(futures)
-        ]
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for file, line_number, tag in recursive_grep(
+                directory,
+                line_regex=LINE_REGEX,
+                file_pattern=FILE_PATTERN,
+                ignore_dirs=[".git", "t"],
+            ):
+                file = file.removeprefix(f"{directory}/")
+                futures.append(executor.submit(process_line, file, line_number, tag))
 
-    blame.close()
+            # Wait for all futures to complete and retrieve results
+            results = [
+                future.result() for future in concurrent.futures.as_completed(futures)
+            ]
 
     # Group the results by tag in a dictionary
     tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
