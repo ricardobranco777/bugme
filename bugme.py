@@ -216,7 +216,7 @@ def print_items(  # pylint: disable=too-many-arguments
     """
     xtags = {}
     if not urltags:
-        xtags = scan_tags()
+        xtags = scan_tags(directory=".", token=creds["github.com"]["login_or_token"])
         urltags = list(xtags.keys())
     items = get_items(creds, urltags, statuses, output_type)
 

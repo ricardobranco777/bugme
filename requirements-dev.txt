@@ -1,8 +1,9 @@
 atlassian-python-api
-pygit2
+dulwich
 PyGithub
 python-bugzilla
 python-gitlab
 python-redmine
 python-dateutil
 pytz
+requests

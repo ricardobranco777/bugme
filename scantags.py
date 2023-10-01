@@ -8,12 +8,14 @@ import logging
 import os
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from operator import itemgetter
 from typing import Iterator
 
-from pygit2 import Repository  # type: ignore
+from github import Github  # , Auth
+from dulwich.repo import Repo
 
+from gitblame import GitBlame
 from services import TAG_REGEX
 from utils import utc_date
 
@@ -21,52 +23,48 @@ FILE_PATTERN = "*.pm"
 LINE_REGEX = rf"soft_fail.*?({TAG_REGEX})"
 
 
-def git_blame(
-    repo: Repository, file: str, line_number: int
-) -> tuple[str, str, str, datetime]:
+def git_branch(repo: Repo) -> str:
     """
-    Get all the blame
+    Get branch
     """
-    blame = repo.blame(file, min_line=line_number, max_line=line_number).for_line(
-        line_number
-    )
-    if "@" in blame.final_committer.email:
-        name, email = blame.final_committer.name, blame.final_committer.email
-    else:
-        name, email = blame.final_committer.email, blame.final_committer.name
-    tzone = timezone(timedelta(minutes=blame.final_committer.offset))
-    date = datetime.fromtimestamp(blame.final_committer.time).replace(tzinfo=tzone)
-    return name, email, blame.final_commit_id, date
+    (_, ref), _ = repo.refs.follow(b"HEAD")
+    return ref.decode("utf-8").split("/")[-1]
 
 
-def git_remote(repo: Repository) -> str:
+def git_remote(repo: Repo) -> str:
     """
     Get remote
     """
-    for remote in repo.remotes:
-        if remote.name == "origin":
-            url = remote.url
-            if not url.startswith("https://") and "@" in url:
-                url = url.split("@", 1)[1].replace(":", "/", 1)
-                url = f"https://{url}"
-            return url.rstrip("/").removesuffix(".git")
-    return ""
+    url = repo.get_config().get(("remote", "origin"), "url").decode("utf-8")
+    if not url.startswith("https://") and "@" in url:
+        url = url.split("@", 1)[1].replace(":", "/", 1)
+        url = f"https://{url}"
+    return url.rstrip("/").removesuffix(".git")
 
 
-def check_repo(repo: Repository) -> None:
+def check_repo(repo: Repo, repo_name: str, branch: str, token: str) -> None:
     """
-    Check repo health
+    Check repository
     """
-    if repo.is_bare:
+    if repo.bare:
         raise RuntimeError(f"{repo.path} is bare")
-    if repo.is_empty:
-        raise RuntimeError(f"{repo.path} is emtpy")
-    if repo.is_shallow:
-        raise RuntimeError(f"{repo.path} is shallow")
-    if repo.head_is_detached:
-        raise RuntimeError(f"{repo.path} HEAD is detached")
-    if repo.head_is_unborn:
-        raise RuntimeError(f"{repo.path} HEAD is unborn")
+    if not repo.has_index():
+        raise RuntimeError(f"{repo.path} lacks index")
+    last_commit = repo.head().decode("utf-8")
+    # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
+    # auth = Auth.Token(**creds)
+    # client = Github(auth=auth)
+    client = Github(login_or_token=token)
+    if (
+        last_commit
+        != client.get_repo(repo_name, lazy=True).get_branch(branch).commit.sha
+    ):
+        raise RuntimeError("Repo in filesystem and remote are not in sync")
+    # NOTE: Remove exception handling when latest PyGithub is published on Tumbleweed
+    try:
+        client.close()
+    except AttributeError:
+        pass
 
 
 def recursive_grep(
@@ -97,22 +95,26 @@ def recursive_grep(
                 pass
 
 
-def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | datetime]]]:
+def scan_tags(  # pylint: disable=too-many-locals
+    directory: str, token: str
+) -> dict[str, list[dict[str, str | int | datetime]]]:
     """
-    Scan tags using multithreading without locking and by returning results from process_line
+    Scan tags in repository
     """
-    repo = Repository(directory)
-    check_repo(repo)
+    repo = Repo(directory)
     base_url = git_remote(repo)
     if "gitlab" in base_url:
         base_url = f"{base_url}/-"
-    branch = repo.head.shorthand
+    branch = git_branch(repo)
+    owner_repo = base_url.split("/", 3)[-1]
+    check_repo(repo, owner_repo, branch, token)
+    blame = GitBlame(repo=owner_repo, branch=branch, access_token=token)
 
     def process_line(
         file: str, line_number: int, tag: str
     ) -> tuple[str, dict[str, str | int | datetime]]:
         try:
-            author, email, commit, date = git_blame(repo, file, line_number)
+            author, email, commit, date = blame.blame_line(file, line_number)
         except KeyError as exc:
             logging.warning("%s: %s: %s: %s", file, line_number, tag, exc)
             return tag, {}
@@ -127,7 +129,7 @@ def scan_tags(directory: str = ".") -> dict[str, list[dict[str, str | int | date
         }
         return tag, info
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         for file, line_number, tag in recursive_grep(
             directory,

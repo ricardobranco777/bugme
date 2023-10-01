@@ -17,7 +17,7 @@ from atlassian import Jira  # type: ignore
 from atlassian.errors import ApiError  # type: ignore
 from bugzilla import Bugzilla  # type: ignore
 from bugzilla.exceptions import BugzillaError  # type: ignore
-from github import Github, GithubException
+from github import Github, GithubException  # , Auth
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabError
 from redminelib import Redmine  # type: ignore
@@ -250,12 +250,18 @@ class MyGithub(Service):
 
     def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
-        # Uncomment when latest PyGithub is published on Tumbleweed
+        # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
         kwargs |= creds
         self.client = Github(**kwargs)
         self.tag = "gh"
+
+    def __del__(self):
+        try:
+            self.client.close()
+        except (AttributeError, GithubException):
+            pass
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
