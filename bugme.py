@@ -27,7 +27,7 @@ from services import (
 from utils import dateit, html_tag
 
 
-VERSION = "1.9.6"
+VERSION = "2.0.0"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
