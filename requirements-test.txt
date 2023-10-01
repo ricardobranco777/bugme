@@ -4,7 +4,6 @@ black
 flake8
 pylint
 mypy
-types-cachetools
 types-python-dateutil
 types-pytz
 types-requests

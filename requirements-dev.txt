@@ -1,5 +1,4 @@
 atlassian-python-api
-cachetools
 pygit2
 PyGithub
 python-bugzilla

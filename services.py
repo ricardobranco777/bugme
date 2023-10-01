@@ -6,6 +6,7 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
+from functools import cache
 from urllib.parse import urlparse, parse_qs
 from typing import Any
 
@@ -24,7 +25,6 @@ from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # typ
 
 import requests
 from requests.exceptions import RequestException
-from cachetools import cached
 
 from utils import utc_date
 
@@ -428,7 +428,7 @@ class MyJira(Service):
         )
 
 
-@cached(cache={})
+@cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
     Guess service
