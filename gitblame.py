@@ -7,6 +7,7 @@ from functools import cache
 from datetime import datetime
 
 import requests
+from requests.adapters import HTTPAdapter
 from requests import RequestException
 
 from utils import utc_date
@@ -53,7 +54,16 @@ class GitBlame:
             "Authorization": f"Bearer {access_token}",
         }
         self.session = requests.Session()
+        self.session.mount(
+            "https://", HTTPAdapter(pool_connections=50, pool_maxsize=50)
+        )
         self.timeout = 30
+
+    def close(self):
+        """
+        Close connections
+        """
+        self.session.close()
 
     @cache  # pylint: disable=method-cache-max-size-none
     def blame_file(self, file: str) -> dict | None:

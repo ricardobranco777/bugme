@@ -139,7 +139,7 @@ def scan_tags(  # pylint: disable=too-many-locals
         }
         return tag, info
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for file, line_number, tag in recursive_grep(
             directory,
@@ -154,6 +154,8 @@ def scan_tags(  # pylint: disable=too-many-locals
         results = [
             future.result() for future in concurrent.futures.as_completed(futures)
         ]
+
+    blame.close()
 
     # Group the results by tag in a dictionary
     tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
