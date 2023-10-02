@@ -2,7 +2,7 @@
 
 # bugme
 
-Show bug and issue status for Bugzilla, Github, Gitlab, Jira & Redmine
+Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine & Gitea
 
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
@@ -59,6 +59,9 @@ https://gitlab.suse.de/qac/container-release-bot/-/issues/7  OPENED       1 year
 https://jira.suse.com/browse/SCL-8                           IN_PROGRESS  1 year ago   Documentation
 ```
 
+NOTE:
+- Credentials are not needed in most Git forges for public issues
+
 To scan a repository:
 
 ```
@@ -67,12 +70,13 @@ $ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-dist
 
 ## Supported tags
 
-- bnc# boo# bsc#: SUSE's Bugzilla
-- gh#: Github
-- gl#: Gitlab
-- gsd#: SUSE's Gitlab
-- jsc#: SUSE's Jira
-- poo#: openSUSE's Redmine
+- bnc# boo# bsc#: [https://bugzilla.suse.com](openSUSE's Bugzilla)
+- gh#: [https://github.com](Github)
+- gl#: [https://gitlab.com](Gitlab)
+- gsd#: [https://gitlab.suse.de](SUSE's Gitlab)
+- jsc#: [https://jira.suse.com](SUSE's Jira)
+- poo#: [https://progress.opensuse.org](openSUSE's Redmine)
+- soo#: [https://src.opensuse.org](openSUSE's Gitea)
 
 ## Requirements
 

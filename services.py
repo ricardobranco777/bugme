@@ -32,7 +32,7 @@ from utils import utc_date
 TAG_REGEX = "|".join(
     [
         r"(?:bnc|bsc|boo|poo)#[0-9]+",
-        r"(?:gh|gl|gsd)#[^#]+#[0-9]+",
+        r"(?:gh|gl|gsd|soo)#[^#]+#[0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
 )
@@ -46,6 +46,7 @@ TAG_TO_HOST = {
     "gsd": "gitlab.suse.de",
     "jsc": "jira.suse.com",
     "poo": "progress.opensuse.org",
+    "soo": "src.opensuse.org",
 }
 
 
@@ -93,13 +94,13 @@ def get_item(string: str) -> dict[str, str] | None:
         url = urlparse(string)
         hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
         repo: str = ""
-        if hostname.startswith("git"):
+        if hostname.startswith("bugzilla"):
+            issue_id = parse_qs(url.query)["id"][0]
+        elif not url.path.startswith("/issues/") and "/issues/" in url.path:
             repo = os.path.dirname(
                 os.path.dirname(url.path.replace("/-/", "/"))
             ).lstrip("/")
             issue_id = os.path.basename(url.path)
-        elif hostname.startswith("bugzilla"):
-            issue_id = parse_qs(url.query)["id"][0]
         else:
             issue_id = os.path.basename(url.path)
         return {
@@ -434,6 +435,63 @@ class MyJira(Service):
         )
 
 
+class MyGitea(Service):
+    """
+    Gitea
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url)
+        self.api_url = f"https://{url}/api/v1"
+        token = creds.get("token")
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "Authorization": f"token {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+        )
+        self.timeout = 30
+
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+        """
+        Get Gitea issue
+        """
+        repo = kwargs.pop("repo")
+        try:
+            got = self.session.get(
+                f"{self.api_url}/repos/{repo}/issues/{item_id}", timeout=self.timeout
+            )
+            got.raise_for_status()
+            info = got.json()
+        except RequestException as exc:
+            try:
+                if getattr(exc.response, "status_code") == 404:
+                    return self._not_found(
+                        url=f"{self.url}/{repo}/issues/{item_id}",
+                        tag=f"{self.tag}#{repo}#{item_id}",
+                    )
+            except AttributeError:
+                pass
+            logging.error("Gitea: get_item(%s, %s): %s", repo, item_id, exc)
+            return None
+        return self._to_item(info, repo)
+
+    def _to_item(self, info: Any, repo: str) -> Item:
+        return Item(
+            tag=f'{self.tag}#{repo}#{info["number"]}',
+            url=f'{self.url}/{repo}/issues/{info["number"]}',
+            assignee=info["assignee"]["name"] if info["assignee"] else "none",
+            creator=info["user"]["login"],
+            created=utc_date(info["created_at"]),
+            updated=utc_date(info["updated_at"]),
+            status=info["state"].upper().replace(" ", "_"),
+            title=info["title"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -451,12 +509,14 @@ def guess_service(server: str) -> Any:
     endpoints = {
         MyJira: "rest/api/",
         MyRedmine: "issues.json",
+        MyGitea: "swagger.v1.json",
     }
 
     for cls, endpoint in endpoints.items():
         api_endpoint = f"https://{server}/{endpoint}"
         try:
             response = requests.head(api_endpoint, allow_redirects=True, timeout=7)
+            response.raise_for_status()
             if response.status_code == 200:
                 return cls
         except RequestException:

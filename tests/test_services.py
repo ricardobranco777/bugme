@@ -9,6 +9,7 @@ from services import (
     MyBugzilla,
     MyGithub,
     MyGitlab,
+    MyGitea,
     MyJira,
     MyRedmine,
 )
@@ -186,3 +187,4 @@ def test_guess_service():
     assert guess_service("progress.opensuse.org") is MyRedmine
     assert guess_service("bugzilla.suse.com") is MyBugzilla
     assert guess_service("jira.suse.com") is MyJira
+    assert guess_service("src.opensuse.org") is MyGitea

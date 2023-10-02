@@ -22,5 +22,8 @@
   },
   "github.com": {
     "login_or_token": "GITHUB_TOKEN"
+  },
+  "src.opensuse.org": {
+    "token": "GITEA_TOKEN"
   }
 }
