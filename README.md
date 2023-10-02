@@ -67,13 +67,13 @@ $ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-dist
 
 ## Supported tags
 
-- bnc# boo# bsc#: [https://bugzilla.suse.com](openSUSE's Bugzilla)
-- gh#: [https://github.com](Github)
-- gl#: [https://gitlab.com](Gitlab)
-- gsd#: [https://gitlab.suse.de](SUSE's Gitlab)
-- jsc#: [https://jira.suse.com](SUSE's Jira)
-- poo#: [https://progress.opensuse.org](openSUSE's Redmine)
-- soo#: [https://src.opensuse.org](openSUSE's Gitea)
+- bnc# boo# bsc#: [openSUSE's Bugzilla](https://bugzilla.suse.com)
+- gh#: [Github](https://github.com)
+- gl#: [Gitlab](https://gitlab.com)
+- gsd#: [SUSE's Gitlab](https://gitlab.suse.de)
+- jsc#: [SUSE's Jira](https://jira.suse.com)
+- poo#: [openSUSE's Redmine](https://progress.opensuse.org)
+- soo#: [openSUSE's Gitea](https://src.opensuse.org)
 
 ## Requirements
 
