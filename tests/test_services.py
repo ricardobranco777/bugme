@@ -2,8 +2,8 @@
 
 import pytest
 from services import (
-    get_item,
-    Item,
+    get_urltag,
+    Issue,
     Service,
     guess_service,
     MyBugzilla,
@@ -16,129 +16,135 @@ from services import (
 )
 
 
-# Test cases for the Item class
-def test_Item():
-    # Create an Item instance and test its attributes
-    item = Item(item_id="123", host="github.com", repo="user/repo")
-    assert item.item_id == "123"
-    assert item.host == "github.com"
-    assert item.repo == "user/repo"
+# Test cases for the Issue class
+def test_Issue():
+    # Create an Issue instance and test its attributes
+    issue = Issue(issue_id="123", host="github.com", repo="user/repo")
+    assert issue.issue_id == "123"
+    assert issue.host == "github.com"
+    assert issue.repo == "user/repo"
 
-    # Test item representation (__repr__ method)
-    expected_repr = "Item(item_id='123', host='github.com', repo='user/repo')"
-    assert repr(item) == expected_repr
+    # Test issue representation (__repr__ method)
+    expected_repr = "Issue(issue_id='123', host='github.com', repo='user/repo')"
+    assert repr(issue) == expected_repr
 
-    # Test item dictionary access
-    assert item["item_id"] == "123"
-    assert item["host"] == "github.com"
-    assert item["repo"] == "user/repo"
+    # Test issue dictionary access
+    assert issue["issue_id"] == "123"
+    assert issue["host"] == "github.com"
+    assert issue["repo"] == "user/repo"
 
-    # Test item dictionary access with a nonexistent key
+    # Test issue dictionary access with a nonexistent key
     with pytest.raises(KeyError):
-        _ = item["nonexistent_key"]
+        _ = issue["nonexistent_key"]
 
 
-# Test cases for the get_item function with supported formats
-def test_get_item_with_bsc_format():
+# Test cases for the get_urltag function with supported formats
+def test_get_urltag_with_bsc_format():
     string = "bsc#1213811"
-    item = get_item(string)
-    expected_item = dict(item_id="1213811", host="bugzilla.suse.com", repo="")
-    assert item == expected_item
+    issue = get_urltag(string)
+    expected_issue = dict(issue_id="1213811", host="bugzilla.suse.com", repo="")
+    assert issue == expected_issue
 
 
-def test_get_item_with_gh_format():
+def test_get_urltag_with_gh_format():
     string = "gh#containers/podman#19529"
-    item = get_item(string)
-    expected_item = dict(item_id="19529", host="github.com", repo="containers/podman")
-    assert item == expected_item
+    issue = get_urltag(string)
+    expected_issue = dict(issue_id="19529", host="github.com", repo="containers/podman")
+    assert issue == expected_issue
 
 
-def test_get_item_with_gl_format():
+def test_get_urltag_with_gl_format():
     string = "gl#gitlab-org/gitlab#424503"
-    item = get_item(string)
-    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item == expected_item
+    issue = get_urltag(string)
+    expected_issue = dict(
+        issue_id="424503", host="gitlab.com", repo="gitlab-org/gitlab"
+    )
+    assert issue == expected_issue
 
 
-def test_get_item_with_gsd_format():
+def test_get_urltag_with_gsd_format():
     string = "gsd#qac/container-release-bot#7"
-    item = get_item(string)
-    expected_item = dict(
-        item_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
+    issue = get_urltag(string)
+    expected_issue = dict(
+        issue_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
     )
-    assert item == expected_item
+    assert issue == expected_issue
 
 
-def test_get_item_with_poo_format():
+def test_get_urltag_with_poo_format():
     string = "poo#133910"
-    item = get_item(string)
-    expected_item = dict(item_id="133910", host="progress.opensuse.org", repo="")
-    assert item == expected_item
+    issue = get_urltag(string)
+    expected_issue = dict(issue_id="133910", host="progress.opensuse.org", repo="")
+    assert issue == expected_issue
 
 
-# Test cases for the get_item function with URLs
-def test_get_item_with_bugzilla_url():
+# Test cases for the get_urltag function with URLs
+def test_get_urltag_with_bugzilla_url():
     url = "https://bugzilla.suse.com/show_bug.cgi?id=1213811"
-    item = get_item(url)
-    expected_item = dict(item_id="1213811", host="bugzilla.suse.com", repo="")
-    assert item == expected_item
+    issue = get_urltag(url)
+    expected_issue = dict(issue_id="1213811", host="bugzilla.suse.com", repo="")
+    assert issue == expected_issue
 
 
-def test_get_item_with_github_url():
+def test_get_urltag_with_github_url():
     url = "https://github.com/containers/podman/issues/19529"
-    item = get_item(url)
-    expected_item = dict(item_id="19529", host="github.com", repo="containers/podman")
-    assert item == expected_item
+    issue = get_urltag(url)
+    expected_issue = dict(issue_id="19529", host="github.com", repo="containers/podman")
+    assert issue == expected_issue
 
 
-def test_get_item_with_progress_url():
+def test_get_urltag_with_progress_url():
     url = "https://progress.opensuse.org/issues/133910"
-    item = get_item(url)
-    expected_item = dict(item_id="133910", host="progress.opensuse.org", repo="")
-    assert item == expected_item
+    issue = get_urltag(url)
+    expected_issue = dict(issue_id="133910", host="progress.opensuse.org", repo="")
+    assert issue == expected_issue
 
 
-def test_get_item_with_gitlab_url():
+def test_get_urltag_with_gitlab_url():
     url = "https://gitlab.com/gitlab-org/gitlab/-/issues/424503"
-    item = get_item(url)
-    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item == expected_item
-
-
-def test_get_item_with_gsd_url():
-    url = "https://gitlab.suse.de/qac/container-release-bot/-/issues/7"
-    item = get_item(url)
-    expected_item = dict(
-        item_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
+    issue = get_urltag(url)
+    expected_issue = dict(
+        issue_id="424503", host="gitlab.com", repo="gitlab-org/gitlab"
     )
-    assert item == expected_item
+    assert issue == expected_issue
 
 
-def test_get_item_with_www_prefix():
+def test_get_urltag_with_gsd_url():
+    url = "https://gitlab.suse.de/qac/container-release-bot/-/issues/7"
+    issue = get_urltag(url)
+    expected_issue = dict(
+        issue_id="7", host="gitlab.suse.de", repo="qac/container-release-bot"
+    )
+    assert issue == expected_issue
+
+
+def test_get_urltag_with_www_prefix():
     url = "https://gitlab.com/gitlab-org/gitlab/-/issues/424503"
-    item = get_item(url)
-    expected_item = dict(item_id="424503", host="gitlab.com", repo="gitlab-org/gitlab")
-    assert item == expected_item
+    issue = get_urltag(url)
+    expected_issue = dict(
+        issue_id="424503", host="gitlab.com", repo="gitlab-org/gitlab"
+    )
+    assert issue == expected_issue
 
 
 # Test case for an unsupported format
-def test_get_item_with_unsupported_format():
+def test_get_urltag_with_unsupported_format():
     string = "unsupported#12345"
-    item = get_item(string)
-    assert item is None
+    issue = get_urltag(string)
+    assert issue is None
 
 
 # Test case for an unsupported URL
-def test_get_item_with_unsupported_url():
+def test_get_urltag_with_unsupported_url():
     url = "bsd#666"
-    item = get_item(url)
-    assert item is None
+    issue = get_urltag(url)
+    assert issue is None
 
 
 # Mock Service class for testing
 class MockService(Service):
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
-        return Item(item_id=item_id, host=self.url, repo="mock_repo")
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
+        return Issue(issue_id=issue_id, host=self.url, repo="mock_repo")
 
 
 # Test cases for the Service class
@@ -154,31 +160,31 @@ def test_service_repr():
     assert repr(service) == f"Service(url='https://{url}')"
 
 
-def test_mock_service_get_item():
+def test_mock_service_get_issue():
     url = "https://example.com"
     service = MockService(url)
-    item_id = "123"
-    item = service.get_item(item_id)
-    expected_item = Item(item_id=item_id, host=url, repo="mock_repo")
-    assert item.__dict__ == expected_item.__dict__
+    issue_id = "123"
+    issue = service.get_issue(issue_id)
+    expected_issue = Issue(issue_id=issue_id, host=url, repo="mock_repo")
+    assert issue.__dict__ == expected_issue.__dict__
 
 
-def test_mock_service_get_items():
+def test_mock_service_get_issues():
     url = "https://example.com"
     service = MockService(url)
-    items = [{"item_id": "1"}, {"item_id": "2"}, {"item_id": "3"}]
-    expected_items = [
-        Item(item_id=i["item_id"], host=url, repo="mock_repo") for i in items
+    issues = [{"issue_id": "1"}, {"issue_id": "2"}, {"issue_id": "3"}]
+    expected_issues = [
+        Issue(issue_id=i["issue_id"], host=url, repo="mock_repo") for i in issues
     ]
 
-    results = service.get_items(items)
+    results = service.get_issues(issues)
 
-    assert len(results) == len(expected_items)
+    assert len(results) == len(expected_issues)
 
-    for result, expected_item in zip(results, expected_items):
-        assert result.item_id == expected_item.item_id
-        assert result.host == expected_item.host
-        assert result.repo == expected_item.repo
+    for result, expected_issue in zip(results, expected_issues):
+        assert result.issue_id == expected_issue.issue_id
+        assert result.host == expected_issue.host
+        assert result.repo == expected_issue.repo
 
 
 def test_guess_service():

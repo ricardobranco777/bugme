@@ -50,9 +50,9 @@ TAG_TO_HOST = {
 }
 
 
-class Item:  # pylint: disable=too-few-public-methods
+class Issue:  # pylint: disable=too-few-public-methods
     """
-    Item class
+    Issue class
     """
 
     def __init__(self, **kwargs):
@@ -67,10 +67,10 @@ class Item:  # pylint: disable=too-few-public-methods
         """
         Key for numeric sort of URL's ending with digits
         """
-        base, item_id, _ = re.split(
+        base, issue_id, _ = re.split(
             r"([0-9]+)$", self.url, maxsplit=1  # pylint: disable=no-member
         )
-        return base, int(item_id)
+        return base, int(issue_id)
 
     # Allow access this object as a dictionary
 
@@ -84,9 +84,9 @@ class Item:  # pylint: disable=too-few-public-methods
         setattr(self, item, value)
 
 
-def get_item(string: str) -> dict[str, str] | None:
+def get_urltag(string: str) -> dict[str, str] | None:
     """
-    Get Item from string
+    Get tag or URL from string
     """
     if "#" not in string:
         # URL
@@ -104,7 +104,7 @@ def get_item(string: str) -> dict[str, str] | None:
         else:
             issue_id = os.path.basename(url.path)
         return {
-            "item_id": issue_id,
+            "issue_id": issue_id,
             "host": hostname,
             "repo": repo,
         }
@@ -118,7 +118,7 @@ def get_item(string: str) -> dict[str, str] | None:
         code, issue = string.split("#", 1)
         repo = ""
     return {
-        "item_id": issue,
+        "issue_id": issue,
         "host": TAG_TO_HOST[code],
         "repo": repo,
     }
@@ -150,9 +150,9 @@ class Service:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
 
-    def _not_found(self, url: str, tag: str) -> Item:
+    def _not_found(self, url: str, tag: str) -> Issue:
         now = datetime.now(tz=utc)
-        return Item(
+        return Issue(
             tag=tag,
             url=url,
             assignee="none",
@@ -164,18 +164,18 @@ class Service:
             raw={},
         )
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
-        This method must be overriden if get_items() isn't overriden
+        This method must be overriden if get_issues() isn't overriden
         """
-        raise NotImplementedError(f"{self.__class__.__name__}: get_item()")
+        raise NotImplementedError(f"{self.__class__.__name__}: get_issue()")
 
-    def get_items(self, items: list[dict]) -> list[Item | None]:
+    def get_issues(self, issues: list[dict]) -> list[Issue | None]:
         """
-        Multithreaded get_items()
+        Multithreaded get_issues()
         """
-        with ThreadPoolExecutor(max_workers=min(10, len(items))) as executor:
-            return list(executor.map(lambda it: self.get_item(**it), items))
+        with ThreadPoolExecutor(max_workers=min(10, len(issues))) as executor:
+            return list(executor.map(lambda it: self.get_issue(**it), issues))
 
 
 class MyBugzilla(Service):
@@ -203,52 +203,52 @@ class MyBugzilla(Service):
         self.__del__()
         super().__exit__(exc_type, exc_value, traceback)
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
-        Get Bugzilla item
+        Get Bugzilla issue
         """
         try:
-            return self._to_item(
-                self.client.getbug(item_id, include_fields=self._include_fields)
+            return self._to_issue(
+                self.client.getbug(issue_id, include_fields=self._include_fields)
             )
         except IndexError:
             return self._not_found(
-                url=f"{self.url}/show_bug.cgi?id={item_id}",
-                tag=f"{self.tag}#{item_id}",
+                url=f"{self.url}/show_bug.cgi?id={issue_id}",
+                tag=f"{self.tag}#{issue_id}",
             )
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_item(%s): %s", self.url, item_id, exc)
+            logging.error("Bugzilla: %s: get_issue(%s): %s", self.url, issue_id, exc)
         return None
 
-    def get_items(self, items: list[dict]) -> list[Item | None]:
+    def get_issues(self, issues: list[dict]) -> list[Issue | None]:
         """
-        Get Bugzilla items
+        Get Bugzilla issues
         """
         try:
             found = [
-                self._to_item(info)
+                self._to_issue(info)
                 for info in self.client.getbugs(
-                    [item["item_id"] for item in items],
+                    [issue["issue_id"] for issue in issues],
                     include_fields=self._include_fields,
                 )
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_items(): %s", self.url, exc)
+            logging.error("Bugzilla: %s: get_issues(): %s", self.url, exc)
             return []
-        # Bugzilla silently fails on not found items
-        found_ids = {str(item.raw["id"]) for item in found}
+        # Bugzilla silently fails on not found issues
+        found_ids = {str(issue.raw["id"]) for issue in found}
         not_found = [
             self._not_found(
-                url=f"{self.url}/show_bug.cgi?id={item['item_id']}",
-                tag=f"{self.tag}#{item['item_id']}",
+                url=f"{self.url}/show_bug.cgi?id={issue['issue_id']}",
+                tag=f"{self.tag}#{issue['issue_id']}",
             )
-            for item in items
-            if item["item_id"] not in found_ids
+            for issue in issues
+            if issue["issue_id"] not in found_ids
         ]
         return found + not_found  # type: ignore
 
-    def _to_item(self, info: Any) -> Item:
-        return Item(
+    def _to_issue(self, info: Any) -> Issue:
+        return Issue(
             tag=f"{self.tag}#{info.id}",
             url=f"{self.url}/show_bug.cgi?id={info.id}",
             assignee=info.assigned_to or "none",
@@ -281,25 +281,25 @@ class MyGithub(Service):
         except (AttributeError, GithubException):
             pass
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Github issue
         """
         repo = kwargs.pop("repo")
         try:
-            info = self.client.get_repo(repo, lazy=True).get_issue(int(item_id))
+            info = self.client.get_repo(repo, lazy=True).get_issue(int(issue_id))
         except (GithubException, RequestException) as exc:
             if getattr(exc, "status", None) == 404:
                 return self._not_found(
-                    url=f"{self.url}/{repo}/issues/{item_id}",
-                    tag=f"{self.tag}#{repo}#{item_id}",
+                    url=f"{self.url}/{repo}/issues/{issue_id}",
+                    tag=f"{self.tag}#{repo}#{issue_id}",
                 )
-            logging.error("Github: get_item(%s, %s): %s", repo, item_id, exc)
+            logging.error("Github: get_issue(%s, %s): %s", repo, issue_id, exc)
             return None
-        return self._to_item(info, repo)
+        return self._to_issue(info, repo)
 
-    def _to_item(self, info: Any, repo: str) -> Item:
-        return Item(
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
             tag=f"{self.tag}#{repo}#{info.number}",
             url=f"{self.url}/{repo}/issues/{info.number}",
             assignee=info.assignee.login if info.assignee else "none",
@@ -334,27 +334,27 @@ class MyGitlab(Service):
         self.__del__()
         super().__exit__(exc_type, exc_value, traceback)
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Gitlab issue
         """
         repo = kwargs.pop("repo")
         try:
-            info = self.client.projects.get(repo, lazy=True).issues.get(item_id)
+            info = self.client.projects.get(repo, lazy=True).issues.get(issue_id)
         except (GitlabError, RequestException) as exc:
             if getattr(exc, "response_code", None) == 404:
                 return self._not_found(
-                    url=f"{self.url}/{repo}/-/issues/{item_id}",
-                    tag=f"{self.tag}#{repo}#{item_id}",
+                    url=f"{self.url}/{repo}/-/issues/{issue_id}",
+                    tag=f"{self.tag}#{repo}#{issue_id}",
                 )
             logging.error(
-                "Gitlab: %s: get_item(%s, %s): %s", self.url, repo, item_id, exc
+                "Gitlab: %s: get_issue(%s, %s): %s", self.url, repo, issue_id, exc
             )
             return None
-        return self._to_item(info, repo)
+        return self._to_issue(info, repo)
 
-    def _to_item(self, info: Any, repo: str) -> Item:
-        return Item(
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
             tag=f"{self.tag}#{repo}#{info.iid}",
             url=f"{self.url}/{repo}/-/issues/{info.iid}",
             assignee=info.assignee["name"] if info.assignee else "none",
@@ -383,23 +383,23 @@ class MyRedmine(Service):
             self.client.engine.requests["headers"]["X-Redmine-API-Key"] = key
             del self.client.engine.requests["params"]["key"]
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Redmine ticket
         """
         try:
-            info = self.client.issue.get(item_id)
+            info = self.client.issue.get(issue_id)
         except ResourceNotFoundError:
             return self._not_found(
-                url=f"{self.url}/issues/{item_id}", tag=f"{self.tag}#{item_id}"
+                url=f"{self.url}/issues/{issue_id}", tag=f"{self.tag}#{issue_id}"
             )
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_item(%s): %s", self.url, item_id, exc)
+            logging.error("Redmine: %s: get_issue(%s): %s", self.url, issue_id, exc)
             return None
-        return self._to_item(info)
+        return self._to_issue(info)
 
-    def _to_item(self, info: Any) -> Item:
-        return Item(
+    def _to_issue(self, info: Any) -> Issue:
+        return Issue(
             tag=f"{self.tag}#{info.id}",
             url=f"{self.url}/issues/{info.id}",
             assignee=info.assigned_to.name if info.assigned_to else "none",
@@ -422,26 +422,27 @@ class MyJira(Service):
         kwargs |= creds
         self.client = Jira(url=self.url, **kwargs)
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Jira ticket
         """
         try:
-            info = self.client.issue(item_id)
+            info = self.client.issue(issue_id)
         except (ApiError, RequestException) as exc:
             try:
                 if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
-                        url=f"{self.url}/browse/{item_id}", tag=f"{self.tag}#{item_id}"
+                        url=f"{self.url}/browse/{issue_id}",
+                        tag=f"{self.tag}#{issue_id}",
                     )
             except AttributeError:
                 pass
-            logging.error("Jira: %s: get_item(%s): %s", self.url, item_id, exc)
+            logging.error("Jira: %s: get_issue(%s): %s", self.url, issue_id, exc)
             return None
-        return self._to_item(info)
+        return self._to_issue(info)
 
-    def _to_item(self, info: Any) -> Item:
-        return Item(
+    def _to_issue(self, info: Any) -> Issue:
+        return Issue(
             tag=f"{self.tag}#{info['key']}",
             url=f"{self.url}/browse/{info['key']}",
             assignee=info["fields"]["assignee"]["name"]
@@ -477,14 +478,14 @@ class Generic(Service):
         self.__del__()
         super().__exit__(exc_type, exc_value, traceback)
 
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Git issue
         """
         repo = kwargs.pop("repo")
         try:
             got = self.session.get(
-                self.api_url.format(repo=repo, issue=item_id), timeout=self.timeout
+                self.api_url.format(repo=repo, issue=issue_id), timeout=self.timeout
             )
             got.raise_for_status()
             info = got.json()
@@ -492,19 +493,23 @@ class Generic(Service):
             try:
                 if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
-                        url=self.issue_url.format(repo=repo, issue=item_id),
-                        tag=f"{self.tag}#{repo}#{item_id}",
+                        url=self.issue_url.format(repo=repo, issue=issue_id),
+                        tag=f"{self.tag}#{repo}#{issue_id}",
                     )
             except AttributeError:
                 pass
             logging.error(
-                "%s: get_item(%s, %s): %s", self.__class__.__name__, repo, item_id, exc
+                "%s: get_issue(%s, %s): %s",
+                self.__class__.__name__,
+                repo,
+                issue_id,
+                exc,
             )
             return None
-        return self._to_item(info, repo)
+        return self._to_issue(info, repo)
 
-    def _to_item(self, info: Any, repo: str) -> Item:
-        raise NotImplementedError(f"{self.__class__.__name__}: to_item()")
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        raise NotImplementedError(f"{self.__class__.__name__}: to_issue()")
 
 
 class MyGitea(Generic):
@@ -517,8 +522,8 @@ class MyGitea(Generic):
         self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
         self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
 
-    def _to_item(self, info: Any, repo: str) -> Item:
-        return Item(
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
             tag=f'{self.tag}#{repo}#{info["number"]}',
             url=f'{self.url}/{repo}/issues/{info["number"]}',
             assignee=info["assignee"]["name"] if info["assignee"] else "none",
@@ -541,8 +546,8 @@ class MyPagure(Generic):
         self.api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
         self.issue_url = f"{self.url}/{{repo}}/issue/{{issue}}"
 
-    def _to_item(self, info: Any, repo: str) -> Item:
-        return Item(
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
             tag=f'{self.tag}#{repo}#{info["id"]}',
             url=f'{self.url}/{repo}/issue/{info["id"]}',
             assignee=info["assignee"]["name"] if info["assignee"] else "none",

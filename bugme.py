@@ -15,8 +15,8 @@ from typing import Any
 
 from scantags import scan_tags
 from services import (
-    get_item,
-    Item,
+    get_urltag,
+    Issue,
     MyBugzilla,
     MyGitlab,
     MyRedmine,
@@ -82,18 +82,18 @@ def parse_args() -> argparse.Namespace:
     return argparser.parse_args()
 
 
-def get_items(
+def get_issues(
     creds: dict[str, dict[str, str]],
     urltags: list[str],
     statuses: list[str] | None,
     output_type: str,
-) -> list[Item]:
+) -> list[Issue]:
     """
-    Get items
+    Get issues
     """
     host_items: dict[str, list[dict]] = defaultdict(list)
     for urltag in urltags:
-        item = get_item(urltag)
+        item = get_urltag(urltag)
         if item is None:
             continue
         host_items[item["host"]].append(item)
@@ -125,21 +125,21 @@ def get_items(
     if len(clients) == 0:
         sys.exit(0)
 
-    all_items = []
+    all_issues = []
     with ThreadPoolExecutor(max_workers=len(clients)) as executor:
         iterator = executor.map(
-            lambda host: clients[host].get_items(host_items[host]), clients
+            lambda host: clients[host].get_issues(host_items[host]), clients
         )
-        for items in iterator:
-            all_items.extend(
+        for issues in iterator:
+            all_issues.extend(
                 [
-                    item
-                    for item in items
-                    if item is not None
-                    and (statuses is None or item.status in set(statuses))
+                    issue
+                    for issue in issues
+                    if issue is not None
+                    and (statuses is None or issue.status in set(statuses))
                 ]
             )
-    return all_items
+    return all_issues
 
 
 def print_header(output_type: str, output_format: str, fields: dict[str, int]):
@@ -154,27 +154,27 @@ def print_header(output_type: str, output_format: str, fields: dict[str, int]):
         print(output_format.format(**{field: field.upper() for field in fields}))
 
 
-def print_item(
-    item: Item,
+def print_issue(
+    issue: Issue,
     output_type: str,
     output_format: str,
     fields: dict[str, int],
 ):
     """
-    Print item
+    Print issue
     """
     if output_type == "html":
         info = {
-            field: html.escape(item[field])
-            if isinstance(item[field], str)
-            else item[field]
+            field: html.escape(issue[field])
+            if isinstance(issue[field], str)
+            else issue[field]
             for field in fields
         }
-        info["tag"] = html_tag("a", item.tag, href=item.url)
-        info["url"] = html_tag("a", item.url, href=item.url)
+        info["tag"] = html_tag("a", issue.tag, href=issue.url)
+        info["url"] = html_tag("a", issue.url, href=issue.url)
         cells = "".join(html_tag("td", info[field]) for field in fields)
         print(html_tag("tr", cells, **{"class": "info"}))
-        for info in item.files:
+        for info in issue.files:
             info = {
                 k: html.escape(v) if isinstance(v, str) else v for k, v in info.items()
             }
@@ -188,15 +188,15 @@ def print_item(
             )
             print(html_tag("tr", cells))
     elif output_type == "text":
-        print(output_format.format(**item.__dict__))
-        for info in item.files:
+        print(output_format.format(**issue.__dict__))
+        for info in issue.files:
             print(
                 "\t"
                 + "\t".join([info["email"], info["commit"].split("/")[-1], info["url"]])
             )
 
 
-def print_items(  # pylint: disable=too-many-arguments
+def print_issues(  # pylint: disable=too-many-arguments
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,
@@ -207,44 +207,44 @@ def print_items(  # pylint: disable=too-many-arguments
     reverse: bool,
 ) -> None:
     """
-    Print items
+    Print issues
     """
     xtags = {}
     if not urltags:
         xtags = scan_tags(directory=".", token=creds["github.com"]["login_or_token"])
         urltags = list(xtags.keys())
-    items = get_items(creds, urltags, statuses, output_type)
+    issues = get_issues(creds, urltags, statuses, output_type)
 
     if sort_key in {"tag", "url"}:
-        items.sort(key=Item.sort_key, reverse=reverse)
+        issues.sort(key=Issue.sort_key, reverse=reverse)
     elif sort_key is not None:
-        items.sort(
+        issues.sort(
             key=lambda it: (it[sort_key], *it.sort_key()),  # type:ignore
             reverse=reverse,
         )
 
     fields = {field: len(field) for field in output_format.split(",")}
-    for item in items:
-        item.created = dateit(item.created, time_format)
-        item.updated = dateit(item.updated, time_format)
-        item.files = xtags.get(item.tag, [])
-        for info in item.files:
+    for issue in issues:
+        issue.created = dateit(issue.created, time_format)
+        issue.updated = dateit(issue.updated, time_format)
+        issue.files = xtags.get(issue.tag, [])
+        for info in issue.files:
             info["date"] = dateit(info["date"], time_format)  # type: ignore
         if output_type == "text":
             fields |= {
-                field: max(width, len(item[field]))
+                field: max(width, len(issue[field]))
                 for field, width in fields.items()
                 if field != "title"
             }
 
     if output_type == "json":
-        print(json.dumps([it.__dict__ for it in items], default=str, sort_keys=True))
+        print(json.dumps([it.__dict__ for it in issues], default=str, sort_keys=True))
         return
 
     output_format = "  ".join(f"{{{field}:{align}}}" for field, align in fields.items())
     print_header(output_type, output_format, fields)
-    for item in items:
-        print_item(item, output_type, output_format, fields)
+    for issue in issues:
+        print_issue(issue, output_type, output_format, fields)
     if output_type == "html":
         print("</tbody></table>")
 
@@ -253,12 +253,22 @@ def main():
     """
     Main function
     """
+    args = parse_args()
+    if args.log == "none":
+        logging.disable()
+    else:
+        logging.basicConfig(
+            format="%(levelname)-8s %(message)s",
+            stream=sys.stderr,
+            level=args.log.upper(),
+        )
+
     with open(args.creds, encoding="utf-8") as file:
         if os.fstat(file.fileno()).st_mode & 0o77:
             sys.exit(f"ERROR: {args.creds} has insecure permissions")
         creds = json.load(file)
 
-    print_items(
+    print_issues(
         creds,
         args.url,
         args.time,
@@ -271,15 +281,6 @@ def main():
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    if args.log == "none":
-        logging.disable()
-    else:
-        logging.basicConfig(
-            format="%(levelname)-8s %(message)s",
-            stream=sys.stderr,
-            level=args.log.upper(),
-        )
     try:
         main()
     except KeyboardInterrupt:
