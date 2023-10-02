@@ -242,7 +242,7 @@ def print_items(  # pylint: disable=too-many-arguments
             }
 
     if output_type == "json":
-        print(json.dumps([it.__dict__ for it in items], sort_keys=True))
+        print(json.dumps([it.__dict__ for it in items], default=str, sort_keys=True))
         return
 
     output_format = "  ".join(f"{{{field}:{align}}}" for field, align in fields.items())
