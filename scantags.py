@@ -19,8 +19,9 @@ from gitblame import GitBlame
 from services import TAG_REGEX
 from utils import utc_date
 
-FILE_PATTERN = "*.pm"
-LINE_REGEX = rf"soft_fail.*?({TAG_REGEX})"
+IGNORE_DIRECTORIES = [".git", "t"]
+FILE_PATTERNS = ["*.pm", "bug_refs.json"]
+LINE_REGEX = re.compile(rf"soft_fail.*?({TAG_REGEX})")
 
 
 def git_branch(directory: str) -> str:
@@ -78,10 +79,23 @@ def check_repo(directory: str, repo_name: str, branch: str, token: str) -> None:
         pass
 
 
-def recursive_grep(
+def grep_file(filename: str, line_regex: re.Pattern) -> Iterator[tuple[str, int, str]]:
+    """
+    Grep file
+    """
+    try:
+        with open(filename, encoding="utf-8") as file:
+            for line_number, line in enumerate(file, start=1):
+                for match in line_regex.findall(line):
+                    yield (filename, line_number, match)
+    except UnicodeError:
+        pass
+
+
+def grep_dir(
     directory: str,
-    line_regex: str | re.Pattern,
-    file_pattern: str = "*",
+    line_regex: re.Pattern,
+    file_patterns: list[str],
     ignore_dirs: list[str] | None = None,
 ) -> Iterator[tuple[str, int, str]]:
     """
@@ -89,21 +103,15 @@ def recursive_grep(
     """
     if ignore_dirs is None:
         ignore_dirs = []
-    line_regex = re.compile(line_regex)
     for root, dirs, files in os.walk(directory):
         for ignore in set(ignore_dirs) & set(dirs):
             dirs.remove(ignore)
         for filename in files:
-            if not fnmatch.fnmatch(filename, file_pattern):
-                continue
-            filename = os.path.join(root, filename)
-            try:
-                with open(filename, encoding="utf-8") as file:
-                    for line_number, line in enumerate(file, start=1):
-                        for match in line_regex.findall(line):
-                            yield (filename, line_number, match)
-            except UnicodeError:
-                pass
+            for file_pattern in file_patterns:
+                if fnmatch.fnmatch(filename, file_pattern):
+                    filename = os.path.join(root, filename)
+                    yield from grep_file(filename, line_regex)
+                    break
 
 
 def scan_tags(  # pylint: disable=too-many-locals
@@ -142,11 +150,18 @@ def scan_tags(  # pylint: disable=too-many-locals
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []
-            for file, line_number, tag in recursive_grep(
+            for file, line_number, tag in grep_dir(
                 directory,
                 line_regex=LINE_REGEX,
-                file_pattern=FILE_PATTERN,
-                ignore_dirs=[".git", "t"],
+                file_patterns=FILE_PATTERNS,
+                ignore_dirs=IGNORE_DIRECTORIES,
+            ):
+                file = file.removeprefix(f"{directory}/")
+                futures.append(executor.submit(process_line, file, line_number, tag))
+
+            for file, line_number, tag in grep_file(
+                os.path.join(directory, "data", "journal_check", "bug_refs.json"),
+                line_regex=re.compile(f"({TAG_REGEX})"),
             ):
                 file = file.removeprefix(f"{directory}/")
                 futures.append(executor.submit(process_line, file, line_number, tag))
