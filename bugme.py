@@ -262,6 +262,10 @@ def main():
             stream=sys.stderr,
             level=args.log.upper(),
         )
+    if os.getenv("DEBUG"):
+        requests_log = logging.getLogger("urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
 
     with open(args.creds, encoding="utf-8") as file:
         if os.fstat(file.fileno()).st_mode & 0o77:

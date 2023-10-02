@@ -25,6 +25,7 @@ from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # typ
 
 import requests
 from requests.exceptions import RequestException
+from requests_toolbelt.utils import dump  # type: ignore
 
 from utils import utc_date
 
@@ -48,6 +49,15 @@ TAG_TO_HOST = {
     "poo": "progress.opensuse.org",
     "soo": "src.opensuse.org",
 }
+
+
+def debugme(got, *args, **kwargs):  # pylint: disable=unused-argument
+    """
+    Print requests response
+    """
+    got.hook_called = True
+    print(dump.dump_all(got).decode("utf-8"))
+    return got
 
 
 class Issue:  # pylint: disable=too-few-public-methods
@@ -192,6 +202,8 @@ class MyBugzilla(Service):
             self.client = Bugzilla(self.url, **kwargs)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
+        if os.getenv("DEBUG"):
+            self.client._session._session.hooks["response"].append(debugme)
 
     def __del__(self):
         try:
@@ -271,9 +283,11 @@ class MyGithub(Service):
         # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
+        self.tag = "gh"
         kwargs |= creds
         self.client = Github(**kwargs)
-        self.tag = "gh"
+        if os.getenv("DEBUG"):
+            logging.getLogger("github").setLevel(logging.DEBUG)
 
     def __del__(self):
         try:
@@ -320,9 +334,11 @@ class MyGitlab(Service):
     def __init__(self, url: str, creds: dict, **kwargs):
         super().__init__(url)
         kwargs |= creds
-        self.client = Gitlab(url=self.url, **kwargs)
         hostname = str(urlparse(self.url).hostname)
         self.tag = "gl" if hostname == "gitlab.com" else self.tag
+        self.client = Gitlab(url=self.url, **kwargs)
+        if os.getenv("DEBUG"):
+            self.client.session.hooks["response"].append(debugme)
 
     def __del__(self):
         try:
@@ -376,6 +392,8 @@ class MyRedmine(Service):
         super().__init__(url)
         kwargs |= creds
         self.client = Redmine(url=self.url, **kwargs)
+        if os.getenv("DEBUG"):
+            self.client.engine.session.hooks["response"].append(debugme)
         # Avoid API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
         key = self.client.engine.requests["params"].get("key")
         # Workaround inspired from https://github.com/maxtepkeev/python-redmine/pull/328
@@ -421,6 +439,8 @@ class MyJira(Service):
         super().__init__(url)
         kwargs |= creds
         self.client = Jira(url=self.url, **kwargs)
+        if os.getenv("DEBUG"):
+            self.client.session.hooks["response"].append(debugme)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -469,6 +489,8 @@ class Generic(Service):
         if token is not None:
             self.session.headers["Authorization"] = f"token {token}"
         self.session.headers["Accept"] = "application/json"
+        if os.getenv("DEBUG"):
+            self.session.hooks["response"].append(debugme)
         self.timeout = 10
 
     def __del__(self):
@@ -518,7 +540,7 @@ class MyGitea(Generic):
     """
 
     def __init__(self, url: str, creds: dict, **_):
-        super().__init__(url, creds.get("token"))
+        super().__init__(url, token=creds.get("token"))
         self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
         self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
 
@@ -542,7 +564,7 @@ class MyPagure(Generic):
     """
 
     def __init__(self, url: str, creds: dict, **_):
-        super().__init__(url, creds.get("token"))
+        super().__init__(url, token=creds.get("token"))
         self.api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
         self.issue_url = f"{self.url}/{{repo}}/issue/{{issue}}"
 

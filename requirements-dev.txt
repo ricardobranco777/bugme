@@ -6,3 +6,4 @@ python-redmine
 python-dateutil
 pytz
 requests
+requests-toolbelt
