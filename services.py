@@ -134,12 +134,6 @@ class Service:
         self.url = url if url.startswith("https://") else f"https://{url}"
         self.tag = "".join([s[0] for s in str(urlparse(self.url).hostname).split(".")])
 
-    def __del__(self):
-        try:
-            self.session.close()
-        except AttributeError:
-            pass
-
     def __enter__(self):
         return self
 
@@ -152,7 +146,6 @@ class Service:
                 exc_value,
                 traceback,
             )
-        self.__del__()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(url='{self.url}')"
@@ -463,33 +456,35 @@ class MyJira(Service):
         )
 
 
-class MyGitea(Service):
+class Generic(Service):
     """
-    Gitea
+    Generic class for services using python requests
     """
 
-    def __init__(self, url: str, creds: dict, **_):
+    def __init__(self, url: str, token: str | None):
         super().__init__(url)
-        self.api_url = f"https://{url}/api/v1"
-        token = creds.get("token")
+        self.api_url = "OVERRIDE"
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"token {token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            }
-        )
-        self.timeout = 30
+        if token is not None:
+            self.session.headers["Authorization"] = f"token {token}"
+        self.session.headers["Accept"] = "application/json"
+        self.timeout = 10
+
+    def __del__(self):
+        self.session.close()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        super().__exit__(exc_type, exc_value, traceback)
 
     def get_item(self, item_id: str = "", **kwargs) -> Item | None:
         """
-        Get Gitea issue
+        Get Git issue
         """
         repo = kwargs.pop("repo")
         try:
             got = self.session.get(
-                f"{self.api_url}/repos/{repo}/issues/{item_id}", timeout=self.timeout
+                self.api_url.format(repo=repo, issue=item_id), timeout=self.timeout
             )
             got.raise_for_status()
             info = got.json()
@@ -497,14 +492,30 @@ class MyGitea(Service):
             try:
                 if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
-                        url=f"{self.url}/{repo}/issues/{item_id}",
+                        url=self.issue_url.format(repo=repo, issue=item_id),
                         tag=f"{self.tag}#{repo}#{item_id}",
                     )
             except AttributeError:
                 pass
-            logging.error("Gitea: get_item(%s, %s): %s", repo, item_id, exc)
+            logging.error(
+                "%s: get_item(%s, %s): %s", self.__class__.__name__, repo, item_id, exc
+            )
             return None
         return self._to_item(info, repo)
+
+    def _to_item(self, info: Any, repo: str) -> Item:
+        raise NotImplementedError(f"{self.__class__.__name__}: to_item()")
+
+
+class MyGitea(Generic):
+    """
+    Gitea
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url, creds.get("token"))
+        self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
+        self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
@@ -520,48 +531,15 @@ class MyGitea(Service):
         )
 
 
-class MyPagure(Service):
+class MyPagure(Generic):
     """
     Pagure
     """
 
     def __init__(self, url: str, creds: dict, **_):
-        super().__init__(url)
-        self.api_url = f"https://{url}/api/0"
-        token = creds.get("token")
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"token {token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            }
-        )
-        self.timeout = 30
-
-    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
-        """
-        Get Pagure issue
-        """
-        repo = kwargs.pop("repo")
-        try:
-            got = self.session.get(
-                f"{self.api_url}/{repo}/issue/{item_id}", timeout=self.timeout
-            )
-            got.raise_for_status()
-            info = got.json()
-        except RequestException as exc:
-            try:
-                if getattr(exc.response, "status_code") == 404:
-                    return self._not_found(
-                        url=f"{self.url}/{repo}/issue/{item_id}",
-                        tag=f"{self.tag}#{repo}#{item_id}",
-                    )
-            except AttributeError:
-                pass
-            logging.error("Pagure: get_item(%s, %s): %s", repo, item_id, exc)
-            return None
-        return self._to_item(info, repo)
+        super().__init__(url, creds.get("token"))
+        self.api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
+        self.issue_url = f"{self.url}/{{repo}}/issue/{{issue}}"
 
     def _to_item(self, info: Any, repo: str) -> Item:
         return Item(
