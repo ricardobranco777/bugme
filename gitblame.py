@@ -50,10 +50,12 @@ class GitBlame:
         self.owner, self.repo = repo.split("/", 1)
         self.branch = branch
         self.api_url = "https://api.github.com/graphql"
-        self.headers = {
-            "Authorization": f"Bearer {access_token}",
-        }
         self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {access_token}",
+            }
+        )
         self.session.mount(
             "https://", HTTPAdapter(pool_connections=50, pool_maxsize=50)
         )
@@ -80,7 +82,6 @@ class GitBlame:
             response = self.session.post(
                 self.api_url,
                 timeout=self.timeout,
-                headers=self.headers,
                 json={"query": _QUERY, "variables": variables},
             )
             response.raise_for_status()
