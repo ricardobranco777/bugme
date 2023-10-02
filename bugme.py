@@ -18,9 +18,7 @@ from services import (
     get_item,
     Item,
     MyBugzilla,
-    MyGithub,
     MyGitlab,
-    MyJira,
     MyRedmine,
     guess_service,
 )
@@ -108,14 +106,12 @@ def get_items(
             if output_type != "json"
             else None,
         },
-        MyGithub: {},
         MyGitlab: {
             "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
         },
         MyRedmine: {
             "raise_attr_exception": False,
         },
-        MyJira: {},
     }
 
     clients: dict[str, Any] = {}
@@ -124,7 +120,7 @@ def get_items(
         if cls is None:
             logging.error("Unknown: %s", host)
             sys.exit(1)
-        clients[host] = cls(host, creds[host], **options[cls])
+        clients[host] = cls(host, creds.get(host, {}), **options.get(cls, {}))
 
     if len(clients) == 0:
         sys.exit(0)
