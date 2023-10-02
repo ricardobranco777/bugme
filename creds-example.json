@@ -25,5 +25,8 @@
   },
   "src.opensuse.org": {
     "token": "GITEA_TOKEN"
+  },
+  "pagure.io": {
+    "token": "PAGURE_TOKEN"
   }
 }

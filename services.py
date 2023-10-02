@@ -96,7 +96,7 @@ def get_item(string: str) -> dict[str, str] | None:
         repo: str = ""
         if hostname.startswith("bugzilla"):
             issue_id = parse_qs(url.query)["id"][0]
-        elif not url.path.startswith("/issues/") and "/issues/" in url.path:
+        elif not url.path.startswith("/issues/") and "/issue" in url.path:
             repo = os.path.dirname(
                 os.path.dirname(url.path.replace("/-/", "/"))
             ).lstrip("/")
@@ -492,6 +492,63 @@ class MyGitea(Service):
         )
 
 
+class MyPagure(Service):
+    """
+    Pagure
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url)
+        self.api_url = f"https://{url}/api/0"
+        token = creds.get("token")
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "Authorization": f"token {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+        )
+        self.timeout = 30
+
+    def get_item(self, item_id: str = "", **kwargs) -> Item | None:
+        """
+        Get Pagure issue
+        """
+        repo = kwargs.pop("repo")
+        try:
+            got = self.session.get(
+                f"{self.api_url}/{repo}/issue/{item_id}", timeout=self.timeout
+            )
+            got.raise_for_status()
+            info = got.json()
+        except RequestException as exc:
+            try:
+                if getattr(exc.response, "status_code") == 404:
+                    return self._not_found(
+                        url=f"{self.url}/{repo}/issue/{item_id}",
+                        tag=f"{self.tag}#{repo}#{item_id}",
+                    )
+            except AttributeError:
+                pass
+            logging.error("Pagure: get_item(%s, %s): %s", repo, item_id, exc)
+            return None
+        return self._to_item(info, repo)
+
+    def _to_item(self, info: Any, repo: str) -> Item:
+        return Item(
+            tag=f'{self.tag}#{repo}#{info["id"]}',
+            url=f'{self.url}/{repo}/issue/{info["id"]}',
+            assignee=info["assignee"]["name"] if info["assignee"] else "none",
+            creator=info["user"]["name"],
+            created=utc_date(info["date_created"]),
+            updated=utc_date(info["last_updated"]),
+            status=info["status"].upper().replace(" ", "_"),
+            title=info["title"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -510,6 +567,7 @@ def guess_service(server: str) -> Any:
         MyJira: "rest/api/",
         MyRedmine: "issues.json",
         MyGitea: "swagger.v1.json",
+        MyPagure: "api/0/version",
     }
 
     for cls, endpoint in endpoints.items():

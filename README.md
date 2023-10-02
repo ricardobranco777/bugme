@@ -2,7 +2,7 @@
 
 # bugme
 
-Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine & Gitea
+Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine, Gitea & Pagure
 
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
@@ -58,9 +58,6 @@ https://gitlab.com/gitlab-org/gitlab/-/issues/424503         CLOSED       12 day
 https://gitlab.suse.de/qac/container-release-bot/-/issues/7  OPENED       1 year ago   Explore new schedule options
 https://jira.suse.com/browse/SCL-8                           IN_PROGRESS  1 year ago   Documentation
 ```
-
-NOTE:
-- Credentials are not needed in most Git forges for public issues
 
 To scan a repository:
 
