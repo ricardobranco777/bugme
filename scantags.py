@@ -22,6 +22,7 @@ from utils import utc_date
 FILE_PATTERN = "*.pm"
 IGNORE_DIRECTORIES = [".git", "t"]
 LINE_REGEX = re.compile(rf"soft_fail.*?({TAG_REGEX})")
+INCLUDE_FILES = ["data/journal_check/bug_refs.json"]
 
 
 def git_branch(directory: str) -> str:
@@ -157,12 +158,15 @@ def scan_tags(  # pylint: disable=too-many-locals
                 file = file.removeprefix(f"{directory}/")
                 futures.append(executor.submit(process_line, file, line_number, tag))
 
-            for file, line_number, tag in grep_file(
-                os.path.join(directory, "data", "journal_check", "bug_refs.json"),
-                line_regex=re.compile(f"({TAG_REGEX})"),
-            ):
-                file = file.removeprefix(f"{directory}/")
-                futures.append(executor.submit(process_line, file, line_number, tag))
+            for filename in INCLUDE_FILES:
+                for file, line_number, tag in grep_file(
+                    os.path.join(directory, filename),
+                    line_regex=re.compile(f"({TAG_REGEX})"),
+                ):
+                    file = file.removeprefix(f"{directory}/")
+                    futures.append(
+                        executor.submit(process_line, file, line_number, tag)
+                    )
 
             # Wait for all futures to complete and retrieve results
             results = [
