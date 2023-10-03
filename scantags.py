@@ -19,8 +19,8 @@ from gitblame import GitBlame
 from services import TAG_REGEX
 from utils import utc_date
 
+FILE_PATTERN = "*.pm"
 IGNORE_DIRECTORIES = [".git", "t"]
-FILE_PATTERNS = ["*.pm", "bug_refs.json"]
 LINE_REGEX = re.compile(rf"soft_fail.*?({TAG_REGEX})")
 
 
@@ -95,7 +95,7 @@ def grep_file(filename: str, line_regex: re.Pattern) -> Iterator[tuple[str, int,
 def grep_dir(
     directory: str,
     line_regex: re.Pattern,
-    file_patterns: list[str],
+    file_pattern: str,
     ignore_dirs: list[str] | None = None,
 ) -> Iterator[tuple[str, int, str]]:
     """
@@ -106,12 +106,10 @@ def grep_dir(
     for root, dirs, files in os.walk(directory):
         for ignore in set(ignore_dirs) & set(dirs):
             dirs.remove(ignore)
-        for filename in files:
-            for file_pattern in file_patterns:
-                if fnmatch.fnmatch(filename, file_pattern):
-                    filename = os.path.join(root, filename)
-                    yield from grep_file(filename, line_regex)
-                    break
+        for file in files:
+            if fnmatch.fnmatch(file, file_pattern):
+                file = os.path.join(root, file)
+                yield from grep_file(file, line_regex)
 
 
 def scan_tags(  # pylint: disable=too-many-locals
@@ -153,7 +151,7 @@ def scan_tags(  # pylint: disable=too-many-locals
             for file, line_number, tag in grep_dir(
                 directory,
                 line_regex=LINE_REGEX,
-                file_patterns=FILE_PATTERNS,
+                file_pattern=FILE_PATTERN,
                 ignore_dirs=IGNORE_DIRECTORIES,
             ):
                 file = file.removeprefix(f"{directory}/")
