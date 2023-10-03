@@ -51,11 +51,7 @@ class GitBlame:
         self.branch = branch
         self.api_url = "https://api.github.com/graphql"
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"Bearer {access_token}",
-            }
-        )
+        self.session.headers["Authorization"] = f"Bearer {access_token}"
         self.session.mount(
             "https://", HTTPAdapter(pool_connections=50, pool_maxsize=50)
         )
@@ -65,7 +61,12 @@ class GitBlame:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.session.close()
+        try:
+            self.session.close()
+        except RequestException:
+            pass
+        if exc_type is not None:
+            logging.error("GitBlame: %s: %s: %s", exc_type, exc_value, traceback)
 
     @cache  # pylint: disable=method-cache-max-size-none
     def blame_file(self, file: str) -> dict | None:
