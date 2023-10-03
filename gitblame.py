@@ -3,6 +3,7 @@ Module to get Git blame from Github's GraphQL API
 """
 
 import logging
+import os
 from functools import cache
 from datetime import datetime
 
@@ -10,6 +11,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests import RequestException
 
+from services import debugme
 from utils import utc_date
 
 
@@ -56,6 +58,8 @@ class GitBlame:
             "https://", HTTPAdapter(pool_connections=50, pool_maxsize=50)
         )
         self.timeout = 30
+        if os.getenv("DEBUG"):
+            self.session.hooks["response"].append(debugme)
 
     def __enter__(self):
         return self
