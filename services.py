@@ -148,7 +148,11 @@ class Service:
     def __enter__(self):
         return self
 
+    def __del__(self):
+        pass
+
     def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
         if exc_type is not None:
             logging.error(
                 "%s: %s: %s: %s",
@@ -213,10 +217,6 @@ class MyBugzilla(Service):
             self.client.disconnect()
         except (AttributeError, BugzillaError):
             pass
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        super().__exit__(exc_type, exc_value, traceback)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -348,10 +348,6 @@ class MyGitlab(Service):
         except (AttributeError, GitlabError):
             pass
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        super().__exit__(exc_type, exc_value, traceback)
-
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Gitlab issue
@@ -407,6 +403,9 @@ class MyRedmine(Service):
             self.client.engine.requests["headers"]["X-Redmine-API-Key"] = key
             del self.client.engine.requests["params"]["key"]
 
+    def __del__(self):
+        self.client.engine.session.close()
+
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Redmine ticket
@@ -447,6 +446,9 @@ class MyJira(Service):
         self.client = Jira(url=self.url, **creds)
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
+
+    def __del__(self):
+        self.client.session.close()
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -502,10 +504,6 @@ class Generic(Service):
 
     def __del__(self):
         self.session.close()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        super().__exit__(exc_type, exc_value, traceback)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
