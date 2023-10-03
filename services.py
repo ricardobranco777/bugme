@@ -591,6 +591,33 @@ class MyPagure(Generic):
         )
 
 
+class MyGogs(Generic):
+    """
+    Gogs
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url, token=creds.get("token"))
+        self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
+        self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
+
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
+            tag=f'{self.tag}#{repo}#{info["number"]}',
+            url=f'{self.url}/{repo}/issues/{info["number"]}',
+            assignee=info["assignee"]["username"] if info["assignee"] else "none",
+            creator=info["user"]["username"],
+            created=utc_date(info["created_at"]),
+            updated=utc_date(info["updated_at"]),
+            closed=utc_date(
+                info["milestone"]["closed_at"] if info["milestone"] else None
+            ),
+            status=info["state"].upper().replace(" ", "_"),
+            title=info["title"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -598,14 +625,18 @@ def guess_service(server: str) -> Any:
     """
     if server == "github.com":
         return MyGithub
-    if server.startswith("jira"):
-        return MyJira
-    if server.startswith("gitlab"):
-        return MyGitlab
-    if server.startswith("bugzilla"):
-        return MyBugzilla
+    prefixes: dict[str, Any] = {
+        "jira": MyJira,
+        "gitlab": MyGitlab,
+        "bugzilla": MyBugzilla,
+    }
+    for prefix, cls in prefixes.items():
+        if server.startswith(prefix):
+            return cls
+    if "gogs" in server:
+        return MyGogs
 
-    endpoints = {
+    endpoints: dict[Any, str] = {
         MyJira: "rest/api/",
         MyRedmine: "issues.json",
         MyGitea: "swagger.v1.json",
