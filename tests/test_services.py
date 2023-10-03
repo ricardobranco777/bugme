@@ -13,8 +13,6 @@ from services import (
     MyJira,
     MyRedmine,
     MyPagure,
-    MyGogs,
-    MyLaunchpad,
 )
 
 
@@ -198,5 +196,3 @@ def test_guess_service():
     assert guess_service("jira.suse.com") is MyJira
     assert guess_service("src.opensuse.org") is MyGitea
     assert guess_service("code.opensuse.org") is MyPagure
-    assert guess_service("try.gogs.io") is MyGogs
-    assert guess_service("launchpad.net") is MyLaunchpad

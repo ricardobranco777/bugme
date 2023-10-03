@@ -32,7 +32,7 @@ from utils import utc_date
 
 TAG_REGEX = "|".join(
     [
-        r"(?:bnc|bsc|boo|poo|lp)#[0-9]+",
+        r"(?:bnc|bsc|boo|poo)#[0-9]+",
         r"(?:gh|gl|gsd|coo|soo)#[^#]+#[0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
@@ -49,7 +49,6 @@ TAG_TO_HOST = {
     "poo": "progress.opensuse.org",
     "coo": "code.opensuse.org",
     "soo": "src.opensuse.org",
-    "lp": "api.launchpad.net",
 }
 
 
@@ -512,7 +511,7 @@ class Generic(Service):
         """
         Get Git issue
         """
-        repo = kwargs.get("repo", "")
+        repo = kwargs.pop("repo")
         try:
             got = self.session.get(
                 self.api_url.format(repo=repo, issue=issue_id), timeout=self.timeout
@@ -524,16 +523,15 @@ class Generic(Service):
                 if getattr(exc.response, "status_code") == 404:
                     return self._not_found(
                         url=self.issue_url.format(repo=repo, issue=issue_id),
-                        tag=f"{self.tag}#{repo}#{issue_id}"
-                        if repo
-                        else f"{self.tag}#{issue_id}",
+                        tag=f"{self.tag}#{repo}#{issue_id}",
                     )
             except AttributeError:
                 pass
             logging.error(
-                "%s: get_issue(%s): %s",
+                "%s: get_issue(%s, %s): %s",
                 self.__class__.__name__,
-                f"{repo}, {issue_id}" if repo else issue_id,
+                repo,
+                issue_id,
                 exc,
             )
             return None
@@ -620,32 +618,6 @@ class MyGogs(Generic):
         )
 
 
-class MyLaunchpad(Generic):
-    """
-    Launchpad
-    """
-
-    def __init__(self, url: str, creds: dict, **_):
-        super().__init__(url, token=creds.get("token"))
-        self.api_url = "https://api.launchpad.net/1.0/bugs/{issue}"
-        self.issue_url = "https://bugs.launchpad.net/bugs/{{issue}}"
-        self.tag = "lp"
-
-    def _to_issue(self, info: Any, _: str) -> Issue:
-        return Issue(
-            tag=f'{self.tag}#{info["id"]}',
-            url=info["web_link"],
-            assignee="none",
-            creator=info["owner_link"].rsplit("~", 1)[1],
-            created=utc_date(info["date_created"]),
-            updated=utc_date(info["date_last_updated"]),
-            closed=utc_date(None),
-            status="none",
-            title=info["title"],
-            raw=info,
-        )
-
-
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -653,8 +625,6 @@ def guess_service(server: str) -> Any:
     """
     if server == "github.com":
         return MyGithub
-    if "launchpad" in server:
-        return MyLaunchpad
     prefixes: dict[str, Any] = {
         "jira": MyJira,
         "gitlab": MyGitlab,
