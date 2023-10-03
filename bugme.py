@@ -18,7 +18,7 @@ from services import get_urltag, Issue, guess_service
 from utils import dateit, html_tag
 
 
-VERSION = "2.1.2"
+VERSION = "2.1.3"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
