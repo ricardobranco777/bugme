@@ -74,6 +74,7 @@ $ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-dist
 - jsc#: [SUSE's Jira](https://jira.suse.com)
 - poo#: [openSUSE's Redmine](https://progress.opensuse.org)
 - soo#: [openSUSE's Gitea](https://src.opensuse.org)
+- coo#: [openSUSE's Pagure](https://code.opensuse.org)
 
 ## Requirements
 

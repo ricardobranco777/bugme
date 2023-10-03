@@ -33,7 +33,7 @@ from utils import utc_date
 TAG_REGEX = "|".join(
     [
         r"(?:bnc|bsc|boo|poo)#[0-9]+",
-        r"(?:gh|gl|gsd|soo)#[^#]+#[0-9]+",
+        r"(?:gh|gl|gsd|coo|soo)#[^#]+#[0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
 )
@@ -47,6 +47,7 @@ TAG_TO_HOST = {
     "gsd": "gitlab.suse.de",
     "jsc": "jira.suse.com",
     "poo": "progress.opensuse.org",
+    "coo": "code.opensuse.org",
     "soo": "src.opensuse.org",
 }
 
@@ -239,9 +240,7 @@ class MyBugzilla(Service):
         try:
             found = [
                 self._to_issue(info)
-                for info in self.client.getbugs(
-                    [issue["issue_id"] for issue in issues]
-                )
+                for info in self.client.getbugs([issue["issue_id"] for issue in issues])
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_issues(): %s", self.url, exc)

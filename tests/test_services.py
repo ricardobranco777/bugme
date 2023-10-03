@@ -195,4 +195,4 @@ def test_guess_service():
     assert guess_service("bugzilla.suse.com") is MyBugzilla
     assert guess_service("jira.suse.com") is MyJira
     assert guess_service("src.opensuse.org") is MyGitea
-    assert guess_service("pagure.io") is MyPagure
+    assert guess_service("code.opensuse.org") is MyPagure
