@@ -105,7 +105,7 @@ def get_urltag(string: str) -> dict[str, str] | None:
         url = urlparse(string)
         hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
         repo: str = ""
-        if hostname.startswith("bugzilla"):
+        if hostname.startswith("bugzilla") and url.query:
             issue_id = parse_qs(url.query)["id"][0]
         elif not url.path.startswith("/issues/") and "/issue" in url.path:
             repo = os.path.dirname(
