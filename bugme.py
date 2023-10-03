@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     """
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        epilog="output fields for --fields: tag,url,status,created,updated,title,assignee,creator",
+        epilog="output fields for --fields: tag url status created updated closed title assignee creator",
     )
     argparser.add_argument(
         "-c",
@@ -65,7 +65,16 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-s",
         "--sort",
-        choices=["tag", "url", "status", "created", "updated", "assignee", "creator"],
+        choices=[
+            "tag",
+            "url",
+            "status",
+            "created",
+            "updated",
+            "closed",
+            "assignee",
+            "creator",
+        ],
         help="sort key",
     )
     argparser.add_argument(
@@ -102,7 +111,7 @@ def get_issues(
         MyBugzilla: {
             "force_rest": True,
             "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
-            "include_fields": "id assigned_to creator status summary creation_time last_change_time".split()
+            "include_fields": "id assigned_to creator status summary creation_time last_change_time is_open".split()
             if output_type != "json"
             else None,
         },
@@ -225,8 +234,9 @@ def print_issues(  # pylint: disable=too-many-arguments
 
     fields = {field: len(field) for field in output_format.split(",")}
     for issue in issues:
-        issue.created = dateit(issue.created, time_format)
-        issue.updated = dateit(issue.updated, time_format)
+        for field in "created", "updated", "closed":
+            if field in fields:
+                issue[field] = dateit(issue[field], time_format)
         issue.files = xtags.get(issue.tag, [])
         for info in issue.files:
             info["date"] = dateit(info["date"], time_format)  # type: ignore

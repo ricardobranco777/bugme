@@ -51,16 +51,20 @@ def dateit(date: datetime, time_format: str = "%a %b %d %H:%M:%S %Z %Y") -> str:
     """
     Return date in desired format
     """
+    if date == datetime.max.replace(tzinfo=utc):
+        return "not yet"
     date = date.astimezone()
     if time_format == "timeago":
         return timeago(date)
     return date.strftime(time_format)
 
 
-def utc_date(date: str | datetime) -> datetime:
+def utc_date(date: str | datetime | None) -> datetime:
     """
     Return UTC normalized datetime object from date
     """
+    if date is None:
+        return datetime.max.replace(tzinfo=utc)
     if isinstance(date, str):
         if date.isdigit():
             date = datetime.fromtimestamp(int(date))

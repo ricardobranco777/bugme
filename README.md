@@ -16,7 +16,7 @@ List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-au
 usage: bugme.py [-h] [-c CREDS] [-f FIELDS]
                 [-l {none,debug,info,warning,error,critical}]
                 [-o {text,html,json}] [-r]
-                [-s {tag,url,status,created,updated,assignee,creator}]
+                [-s {tag,url,status,created,updated,closed,assignee,creator}]
                 [-S STATUS] [-t TIME_FORMAT] [--version]
                 [url ...]
 
@@ -34,14 +34,14 @@ options:
   -o {text,html,json}, --output {text,html,json}
                         output type (default: text)
   -r, --reverse         reverse sort (default: False)
-  -s {tag,url,status,created,updated,assignee,creator}, --sort {tag,url,status,created,updated,assignee,creator}
+  -s {tag,url,status,created,updated,closed,assignee,creator}, --sort {tag,url,status,created,updated,closed,assignee,creator}
                         sort key (default: None)
   -S STATUS, --status STATUS
                         filter by status (may be specified multiple times) (default: None)
   -t TIME_FORMAT, --time TIME_FORMAT
   --version             show program's version number and exit
 
-output fields for --fields: tag,url,status,created,updated,title,assignee,creator
+output fields for --fields: tag url status created updated closed title assignee creator
 ```
 
 ## Example
