@@ -14,14 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from scantags import scan_tags
-from services import (
-    get_urltag,
-    Issue,
-    MyBugzilla,
-    MyGitlab,
-    MyRedmine,
-    guess_service,
-)
+from services import get_urltag, Issue, guess_service
 from utils import dateit, html_tag
 
 
@@ -95,7 +88,6 @@ def get_issues(
     creds: dict[str, dict[str, str]],
     urltags: list[str],
     statuses: list[str] | None,
-    output_type: str,
 ) -> list[Issue]:
     """
     Get issues
@@ -107,29 +99,13 @@ def get_issues(
             continue
         host_items[item["host"]].append(item)
 
-    options = {
-        MyBugzilla: {
-            "force_rest": True,
-            "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
-            "include_fields": "id assigned_to creator status summary creation_time last_change_time is_open".split()
-            if output_type != "json"
-            else None,
-        },
-        MyGitlab: {
-            "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
-        },
-        MyRedmine: {
-            "raise_attr_exception": False,
-        },
-    }
-
     clients: dict[str, Any] = {}
     for host in host_items:
         cls = guess_service(host)
         if cls is None:
             logging.error("Unknown: %s", host)
             sys.exit(1)
-        clients[host] = cls(host, creds.get(host, {}), **options.get(cls, {}))
+        clients[host] = cls(host, creds.get(host, {}))
 
     if len(clients) == 0:
         sys.exit(0)
@@ -222,7 +198,7 @@ def print_issues(  # pylint: disable=too-many-arguments
     if not urltags:
         xtags = scan_tags(directory=".", token=creds["github.com"]["login_or_token"])
         urltags = list(xtags.keys())
-    issues = get_issues(creds, urltags, statuses, output_type)
+    issues = get_issues(creds, urltags, statuses)
 
     if sort_key in {"tag", "url"}:
         issues.sort(key=Issue.sort_key, reverse=reverse)

@@ -193,13 +193,15 @@ class MyBugzilla(Service):
     Bugzilla
     """
 
-    def __init__(self, url: str, creds: dict, **kwargs):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        if "include_fields" in kwargs:
-            self._include_fields = kwargs.pop("include_fields")
-        kwargs |= creds
+        options = {
+            "force_rest": True,
+            "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
+        }
+        options |= creds
         try:
-            self.client = Bugzilla(self.url, **kwargs)
+            self.client = Bugzilla(self.url, **options)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
         if os.getenv("DEBUG"):
@@ -220,9 +222,7 @@ class MyBugzilla(Service):
         Get Bugzilla issue
         """
         try:
-            return self._to_issue(
-                self.client.getbug(issue_id, include_fields=self._include_fields)
-            )
+            return self._to_issue(self.client.getbug(issue_id))
         except IndexError:
             return self._not_found(
                 url=f"{self.url}/show_bug.cgi?id={issue_id}",
@@ -240,8 +240,7 @@ class MyBugzilla(Service):
             found = [
                 self._to_issue(info)
                 for info in self.client.getbugs(
-                    [issue["issue_id"] for issue in issues],
-                    include_fields=self._include_fields,
+                    [issue["issue_id"] for issue in issues]
                 )
             ]
         except (AttributeError, BugzillaError, RequestException) as exc:
@@ -279,14 +278,13 @@ class MyGithub(Service):
     Github
     """
 
-    def __init__(self, url: str, creds: dict, **kwargs):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url)
         # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
         self.tag = "gh"
-        kwargs |= creds
-        self.client = Github(**kwargs)
+        self.client = Github(**creds)
         if os.getenv("DEBUG"):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
@@ -333,12 +331,15 @@ class MyGitlab(Service):
     Gitlab
     """
 
-    def __init__(self, url: str, creds: dict, **kwargs):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        kwargs |= creds
+        options: dict[str, Any] = {
+            "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
+        }
+        options |= creds
         hostname = str(urlparse(self.url).hostname)
         self.tag = "gl" if hostname == "gitlab.com" else self.tag
-        self.client = Gitlab(url=self.url, **kwargs)
+        self.client = Gitlab(url=self.url, **options)
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
 
@@ -391,10 +392,13 @@ class MyRedmine(Service):
     Redmine
     """
 
-    def __init__(self, url: str, creds: dict, **kwargs):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        kwargs |= creds
-        self.client = Redmine(url=self.url, **kwargs)
+        options = {
+            "raise_attr_exception": False,
+        }
+        options |= creds
+        self.client = Redmine(url=self.url, **options)
         if os.getenv("DEBUG"):
             self.client.engine.session.hooks["response"].append(debugme)
         # Avoid API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
@@ -439,10 +443,9 @@ class MyJira(Service):
     Jira
     """
 
-    def __init__(self, url: str, creds: dict, **kwargs):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        kwargs |= creds
-        self.client = Jira(url=self.url, **kwargs)
+        self.client = Jira(url=self.url, **creds)
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
 
