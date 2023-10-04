@@ -404,7 +404,10 @@ class MyRedmine(Service):
             del self.client.engine.requests["params"]["key"]
 
     def __del__(self):
-        self.client.engine.session.close()
+        try:
+            self.client.engine.session.close()
+        except AttributeError:
+            pass
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -448,7 +451,10 @@ class MyJira(Service):
             self.client.session.hooks["response"].append(debugme)
 
     def __del__(self):
-        self.client.session.close()
+        try:
+            self.client.session.close()
+        except AttributeError:
+            pass
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -503,7 +509,10 @@ class Generic(Service):
         self.timeout = 10
 
     def __del__(self):
-        self.session.close()
+        try:
+            self.session.close()
+        except AttributeError:
+            pass
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

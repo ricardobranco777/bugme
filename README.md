@@ -49,14 +49,16 @@ output fields for --fields: tag url status created updated closed title assignee
 Copy [creds-example.json](creds-example.json) to `~/creds.json` and run:
 
 ```
-$ podman run --rm -v ~/creds.json:/root/creds.json:ro ghcr.io/ricardobranco777/bugme -f url,status,updated,title bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7 jsc#SCL-8
-URL                                                          STATUS       UPDATED      TITLE
-https://bugzilla.suse.com/show_bug.cgi?id=1213811            NEW          15 days ago  podman network unreachable after starting docker
-https://github.com/containers/podman/issues/19529            CLOSED       1 month ago  Unexpected error with --volumes-from
-https://progress.opensuse.org/issues/133910                  RESOLVED     1 month ago  We need a suite of tests to check volume operations in container runtimes
-https://gitlab.com/gitlab-org/gitlab/-/issues/424503         CLOSED       12 days ago  Prepare UI/UX when monetisation transition period ends (cut-off)
-https://gitlab.suse.de/qac/container-release-bot/-/issues/7  OPENED       1 year ago   Explore new schedule options
-https://jira.suse.com/browse/SCL-8                           IN_PROGRESS  1 year ago   Documentation
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro ghcr.io/ricardobranco777/bugme -f url,status,updated,title bsc#1213811 gh#containers/podman#19529 poo#133910 gl#gitlab-org/gitlab#424503 gsd#qac/container-release-bot#7 jsc#SCL-8 soo#horse-race/Live-Broadcast-tv#1 coo#rbranco/test#1
+URL                                                             STATUS       UPDATED        TITLE
+https://bugzilla.suse.com/show_bug.cgi?id=1213811               NEW          19 days ago    podman network unreachable after starting docker
+https://github.com/containers/podman/issues/19529               CLOSED       1 month ago    Unexpected error with --volumes-from
+https://progress.opensuse.org/issues/133910                     RESOLVED     1 month ago    We need a suite of tests to check volume operations in container runtimes
+https://gitlab.com/gitlab-org/gitlab/-/issues/424503            CLOSED       16 days ago    Prepare UI/UX when monetisation transition period ends (cut-off)
+https://gitlab.suse.de/qac/container-release-bot/-/issues/7     OPENED       1 year ago     Explore new schedule options
+https://jira.suse.com/browse/SCL-8                              IN_PROGRESS  1 year ago     Documentation
+https://src.opensuse.org/horse-race/Live-Broadcast-tv/issues/1  ERROR        0 seconds ago  NOT FOUND
+https://code.opensuse.org/rbranco/test/issue/1                  OPEN         1 day ago      test
 ```
 
 To scan a repository:
