@@ -396,12 +396,6 @@ class MyRedmine(Service):
         self.client = Redmine(url=self.url, **options)
         if os.getenv("DEBUG"):
             self.client.engine.session.hooks["response"].append(debugme)
-        # Avoid API key leak: https://github.com/maxtepkeev/python-redmine/issues/330
-        key = self.client.engine.requests["params"].get("key")
-        # Workaround inspired from https://github.com/maxtepkeev/python-redmine/pull/328
-        if key is not None:
-            self.client.engine.requests["headers"]["X-Redmine-API-Key"] = key
-            del self.client.engine.requests["params"]["key"]
 
     def __del__(self):
         try:
