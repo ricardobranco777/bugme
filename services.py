@@ -112,6 +112,9 @@ def get_urltag(string: str) -> dict[str, str] | None:
                 os.path.dirname(url.path.replace("/-/", "/"))
             ).lstrip("/")
             issue_id = os.path.basename(url.path)
+        elif url.path.startswith("/p/") and "/bugs/" in url.path:  # Sourceforge
+            repo = os.path.basename(os.path.dirname(os.path.dirname(url.path)))
+            issue_id = os.path.basename(url.path.rstrip("/"))
         else:
             issue_id = os.path.basename(url.path)
         return {
@@ -619,13 +622,46 @@ class MyGogs(Generic):
         )
 
 
+class MySourceForge(Generic):
+    """
+    SourceForge
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url, token=creds.get("token"))
+        self.api_url = f"{self.url}/rest/p/{{repo}}/bugs/{{issue}}"
+        self.issue_url = f"{self.url}/p/{{repo}}/bugs/{{issue}}"
+        self.tag = "sf"
+
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        info = info["ticket"]
+        return Issue(
+            tag=f'{self.tag}#{repo}#{info["ticket_num"]}',
+            url=f'{self.url}/p/{repo}/bugs/{info["ticket_num"]}',
+            assignee=info.get("assigned_to", "none"),
+            creator=info["reported_by"],
+            created=utc_date(info["created_date"]),
+            updated=utc_date(info["mod_date"]),
+            closed=utc_date(None),
+            status=info["status"].upper().replace(" ", "_"),
+            title=info["summary"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
     Guess service
     """
-    if server == "github.com":
-        return MyGithub
+    servers: dict[str, Any] = {
+        "github.com": MyGithub,
+        "sourceforge.net": MySourceForge,
+    }
+    for hostname, cls in servers.items():
+        if hostname == server:
+            return cls
+
     prefixes: dict[str, Any] = {
         "jira": MyJira,
         "gitlab": MyGitlab,

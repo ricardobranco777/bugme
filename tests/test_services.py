@@ -14,6 +14,7 @@ from services import (
     MyRedmine,
     MyPagure,
     MyGogs,
+    MySourceForge,
 )
 
 
@@ -198,3 +199,4 @@ def test_guess_service():
     assert guess_service("src.opensuse.org") is MyGitea
     assert guess_service("code.opensuse.org") is MyPagure
     assert guess_service("try.gogs.io") is MyGogs
+    assert guess_service("sourceforge.net") is MySourceForge
