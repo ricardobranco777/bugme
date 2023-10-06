@@ -559,7 +559,7 @@ class MyGitea(Generic):
         return Issue(
             tag=f'{self.tag}#{repo}#{info["number"]}',
             url=f'{self.url}/{repo}/issues/{info["number"]}',
-            assignee=info["assignee"]["name"] if info["assignee"] else "none",
+            assignee=info["assignee"]["login"] if info["assignee"] else "none",
             creator=info["user"]["login"],
             created=utc_date(info["created_at"]),
             updated=utc_date(info["updated_at"]),
