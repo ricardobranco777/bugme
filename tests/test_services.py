@@ -16,6 +16,7 @@ from services import (
     MyGogs,
     MySourceForge,
     MyBitbucket,
+    MyLaunchpad,
 )
 
 
@@ -202,3 +203,4 @@ def test_guess_service():
     assert guess_service("try.gogs.io") is MyGogs
     assert guess_service("sourceforge.net") is MySourceForge
     assert guess_service("bitbucket.org") is MyBitbucket
+    assert guess_service("launchpad.net") is MyLaunchpad

@@ -112,6 +112,9 @@ def get_urltag(string: str) -> dict[str, str] | None:
                 os.path.dirname(url.path.replace("/-/", "/"))
             ).lstrip("/")
             issue_id = os.path.basename(url.path)
+        elif "/+bug/" in url.path:  # Launchpad
+            repo = url.path[: url.path.index("/+bug/")]
+            issue_id = os.path.basename(url.path)
         elif url.path.startswith("/p/") and "/bugs/" in url.path:  # Sourceforge
             repo = os.path.basename(os.path.dirname(os.path.dirname(url.path)))
             issue_id = os.path.basename(url.path.rstrip("/"))
@@ -677,6 +680,46 @@ class MyBitbucket(Generic):
         )
 
 
+class MyLaunchpad(Generic):
+    """
+    Launchpad
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url, token=creds.get("token"))
+        self.api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
+        self.issue_url = "https://bugs.launchpad.net/{repo}/+bug/{issue}"
+        self.tag = "LP:"
+
+    def _extra(self, issue_id: str) -> dict:
+        try:
+            got = self.session.get(f"https://api.launchpad.net/1.0/bugs/{issue_id}")
+            got.raise_for_status()
+        except RequestException as exc:
+            logging.error("LaunchPad: %s: %s", issue_id, exc)
+            return {}
+        return got.json()
+
+    def _to_issue(self, info: Any, _: str) -> Issue:
+        issue_id = os.path.basename(info["web_link"])
+        extra = self._extra(issue_id)
+        info["_extra"] = extra
+        return Issue(
+            tag=f"{self.tag}#{issue_id}",
+            url=info["web_link"],
+            assignee=info["assignee_link"].rsplit("~", 1)[1]
+            if info["assignee_link"]
+            else "none",
+            creator=info["owner_link"].rsplit("~", 1)[1],
+            created=utc_date(info["date_created"]),
+            updated=utc_date(extra.get("date_last_updated")),
+            closed=utc_date(info.get("date_closed")),
+            status=info["status"].upper().replace(" ", "_").replace("'", ""),
+            title=info["title"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -699,8 +742,16 @@ def guess_service(server: str) -> Any:
     for prefix, cls in prefixes.items():
         if server.startswith(prefix):
             return cls
+
     if "gogs" in server:
         return MyGogs
+
+    suffixes: dict[str, Any] = {
+        "launchpad.net": MyLaunchpad,
+    }
+    for suffix, cls in suffixes.items():
+        if server.endswith(suffix):
+            return cls
 
     endpoints: dict[Any, str] = {
         MyJira: "rest/api/",

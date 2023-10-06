@@ -2,7 +2,7 @@
 
 # bugme
 
-Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine, Gitea, Pagure & Gogs
+Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine, Gitea, Pagure, Gogs, Sourceforge, Bitbucket and Launchpad.
 
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
