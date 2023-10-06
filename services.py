@@ -649,6 +649,34 @@ class MySourceForge(Generic):
         )
 
 
+class MyBitbucket(Generic):
+    """
+    Bitbucket
+    """
+
+    def __init__(self, url: str, creds: dict, **_):
+        super().__init__(url, token=creds.get("token"))
+        self.api_url = (
+            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue}"
+        )
+        self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
+        self.tag = "bb"
+
+    def _to_issue(self, info: Any, repo: str) -> Issue:
+        return Issue(
+            tag=f'{self.tag}#{repo}#{info["id"]}',
+            url=f'{self.url}/{repo}/issues/{info["id"]}',
+            assignee=info["assignee"]["display_name"] if info["assignee"] else "none",
+            creator=info["reporter"]["display_name"] if info["reporter"] else "none",
+            created=utc_date(info["created_on"]),
+            updated=utc_date(info["updated_on"]),
+            closed=utc_date(None),
+            status=info["state"].upper().replace(" ", "_"),
+            title=info["title"],
+            raw=info,
+        )
+
+
 @cache  # pylint: disable=method-cache-max-size-none
 def guess_service(server: str) -> Any:
     """
@@ -656,6 +684,7 @@ def guess_service(server: str) -> Any:
     """
     servers: dict[str, Any] = {
         "github.com": MyGithub,
+        "bitbucket.org": MyBitbucket,
         "sourceforge.net": MySourceForge,
     }
     for hostname, cls in servers.items():
