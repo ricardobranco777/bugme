@@ -697,13 +697,13 @@ class MyLaunchpad(Generic):
         if not repo:
             try:
                 response = self.session.head(
-                    f"https://bugs.launchpad.net/bugs/{issue_id}", allow_redirects=False
+                    f"https://bugs.launchpad.net/bugs/{issue_id}", allow_redirects=True
                 )
                 response.raise_for_status()
             except RequestException as exc:
                 logging.error("MyLaunchpad: %s: %s", issue_id, exc)
                 return None
-            url = urlparse(response.headers["Location"])
+            url = urlparse(response.url)
             repo = url.path[: url.path.index("/+bug/")]
             kwargs["repo"] = repo
         return super().get_issue(issue_id, **kwargs)
