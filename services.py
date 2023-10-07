@@ -691,6 +691,22 @@ class MyLaunchpad(Generic):
         self.issue_url = "https://bugs.launchpad.net/{repo}/+bug/{issue}"
         self.tag = "LP:"
 
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
+        repo = kwargs.get("repo")
+        if not repo:
+            try:
+                response = self.session.head(
+                    f"https://bugs.launchpad.net/bugs/{issue_id}", allow_redirects=False
+                )
+                response.raise_for_status()
+            except RequestException as exc:
+                logging.error("MyLaunchpad: %s: %s", issue_id, exc)
+                return None
+            url = urlparse(response.headers["Location"])
+            repo = url.path[: url.path.index("/+bug/")]
+            kwargs["repo"] = repo
+        return super().get_issue(issue_id, **kwargs)
+
     def _extra(self, issue_id: str) -> dict:
         try:
             got = self.session.get(f"https://api.launchpad.net/1.0/bugs/{issue_id}")
