@@ -1,23 +1,19 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member,use-dict-literal
 
 import pytest
-from services import (
-    get_urltag,
-    Issue,
-    Service,
-    guess_service,
-    MyBugzilla,
-    MyGithub,
-    MyGitlab,
-    MyGitea,
-    MyJira,
-    MyRedmine,
-    MyPagure,
-    MyGogs,
-    MySourceForge,
-    MyBitbucket,
-    MyLaunchpad,
-)
+from services import get_urltag, Issue, Service
+from services.guess import guess_service
+from services.bitbucket import MyBitbucket
+from services.bugzilla import MyBugzilla
+from services.gitea import MyGitea
+from services.github import MyGithub
+from services.gitlab import MyGitlab
+from services.gogs import MyGogs
+from services.jira import MyJira
+from services.launchpad import MyLaunchpad
+from services.pagure import MyPagure
+from services.redmine import MyRedmine
+from services.allura import MyAllura
 
 
 # Test cases for the Issue class
@@ -201,6 +197,7 @@ def test_guess_service():
     assert guess_service("src.opensuse.org") is MyGitea
     assert guess_service("code.opensuse.org") is MyPagure
     assert guess_service("try.gogs.io") is MyGogs
-    assert guess_service("sourceforge.net") is MySourceForge
     assert guess_service("bitbucket.org") is MyBitbucket
     assert guess_service("launchpad.net") is MyLaunchpad
+    assert guess_service("sourceforge.net") is MyAllura
+    assert guess_service("forge-allura.apache.org") is MyAllura

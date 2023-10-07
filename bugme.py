@@ -14,7 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from scantags import scan_tags
-from services import get_urltag, Issue, guess_service
+from services import get_urltag, Issue
+from services.guess import guess_service
 from utils import dateit, html_tag
 
 
@@ -29,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     """
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        epilog="output fields for --fields: tag url status created updated closed title assignee creator",
+        epilog="output fields for --fields: tag url status created updated title assignee creator",
     )
     argparser.add_argument(
         "-c",
@@ -64,7 +65,6 @@ def parse_args() -> argparse.Namespace:
             "status",
             "created",
             "updated",
-            "closed",
             "assignee",
             "creator",
         ],
@@ -210,7 +210,7 @@ def print_issues(  # pylint: disable=too-many-arguments
 
     fields = {field: len(field) for field in output_format.split(",")}
     for issue in issues:
-        for field in "created", "updated", "closed":
+        for field in "created", "updated":
             if field in fields:
                 issue[field] = dateit(issue[field], time_format)
         issue.files = xtags.get(issue.tag, [])

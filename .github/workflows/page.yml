@@ -54,7 +54,7 @@ jobs:
           REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
           REDMINE_USER: ${{ secrets.REDMINE_USER }}
         run: |
-          python creds.py
+          python scripts/creds.py
       - name: Run bugme
         run: |
           docker run --rm -v $PWD/creds.json:/root/creds.json -v $PWD/os-autoinst-distri-opensuse:/bugme:ro bugme --log none --sort status -o html > body.html

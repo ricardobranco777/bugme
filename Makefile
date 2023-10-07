@@ -9,7 +9,7 @@ flake8:
 
 .PHONY: pylint
 pylint:
-	@pylint --disable=line-too-long $(FILES)
+	@pylint $(FILES)
 
 .PHONY: mypy
 mypy:

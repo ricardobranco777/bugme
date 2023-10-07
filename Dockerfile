@@ -16,6 +16,7 @@ RUN	zypper addrepo https://download.opensuse.org/repositories/SUSE:/CA/openSUSE_
 
 RUN	git config --global --add safe.directory /bugme
 
+COPY	services/ /services
 COPY	*.py /
 
 ENV	REQUESTS_CA_BUNDLE=/etc/ssl/ca-bundle.pem
