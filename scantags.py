@@ -4,12 +4,12 @@ Scan a repo such as https://github.com/os-autoinst/os-autoinst-distri-opensuse f
 
 import concurrent.futures
 import fnmatch
-import logging
 import os
 import re
 from collections import defaultdict
 from configparser import ConfigParser
 from datetime import datetime
+from itertools import chain
 from operator import itemgetter
 from typing import Iterator
 
@@ -133,8 +133,7 @@ def scan_tags(  # pylint: disable=too-many-locals
         ) -> tuple[str, dict[str, str | int | datetime]]:
             try:
                 author, email, commit, date = blame.blame_line(file, line_number)
-            except KeyError as exc:
-                logging.warning("%s: %s: %s: %s", file, line_number, tag, exc)
+            except KeyError:
                 return tag, {}
             info: dict[str, str | int | datetime] = {
                 "file": file,
@@ -149,24 +148,17 @@ def scan_tags(  # pylint: disable=too-many-locals
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []
-            for file, line_number, tag in grep_dir(
-                directory,
-                line_regex=LINE_REGEX,
-                file_pattern=FILE_PATTERN,
-                ignore_dirs=IGNORE_DIRECTORIES,
+            for file, line_number, tag in chain(
+                grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
+                *map(
+                    lambda f: grep_file(
+                        os.path.join(directory, f), re.compile(f"({TAG_REGEX})")
+                    ),
+                    INCLUDE_FILES,
+                ),
             ):
                 file = file.removeprefix(f"{directory}/")
                 futures.append(executor.submit(process_line, file, line_number, tag))
-
-            for filename in INCLUDE_FILES:
-                for file, line_number, tag in grep_file(
-                    os.path.join(directory, filename),
-                    line_regex=re.compile(f"({TAG_REGEX})"),
-                ):
-                    file = file.removeprefix(f"{directory}/")
-                    futures.append(
-                        executor.submit(process_line, file, line_number, tag)
-                    )
 
             # Wait for all futures to complete and retrieve results
             results = [
