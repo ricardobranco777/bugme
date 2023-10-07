@@ -689,23 +689,29 @@ class MyLaunchpad(Generic):
     def __init__(self, url: str, creds: dict, **_):
         super().__init__(url, token=creds.get("token"))
         self.api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
-        self.issue_url = "https://bugs.launchpad.net/{repo}/+bug/{issue}"
+        self.issue_url = f"{self.url}/{{repo}}/+bug/{{issue}}"
         self.tag = "lp"
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        repo = kwargs.get("repo")
-        if not repo:
+        if not kwargs.get("repo"):
             try:
                 response = self.session.head(
-                    f"https://bugs.launchpad.net/bugs/{issue_id}", allow_redirects=True
+                    f"{self.url}/bugs/{issue_id}", allow_redirects=True
                 )
                 response.raise_for_status()
             except RequestException as exc:
+                try:
+                    if getattr(exc.response, "status_code") == 404:
+                        return self._not_found(
+                            url=f"{self.url}/bugs/{issue_id}",
+                            tag=f"{self.tag}#{issue_id}",
+                        )
+                except AttributeError:
+                    pass
                 logging.error("MyLaunchpad: %s: %s", issue_id, exc)
                 return None
             url = urlparse(response.url)
-            repo = url.path[: url.path.index("/+bug/")]
-            kwargs["repo"] = repo
+            kwargs["repo"] = url.path[: url.path.index("/+bug/")]
         return super().get_issue(issue_id, **kwargs)
 
     def _extra(self, issue_id: str) -> dict:
@@ -713,14 +719,14 @@ class MyLaunchpad(Generic):
             got = self.session.get(f"https://api.launchpad.net/1.0/bugs/{issue_id}")
             got.raise_for_status()
         except RequestException as exc:
-            logging.error("LaunchPad: %s: %s", issue_id, exc)
+            logging.error("Launchpad: %s: %s", issue_id, exc)
             return {}
         return got.json()
 
     def _to_issue(self, info: Any, _: str) -> Issue:
         issue_id = os.path.basename(info["web_link"])
         extra = self._extra(issue_id)
-        info["_extra"] = extra
+        info["extra"] = extra
         return Issue(
             tag=f"{self.tag}#{issue_id}",
             url=info["web_link"],
@@ -729,7 +735,7 @@ class MyLaunchpad(Generic):
             else "none",
             creator=info["owner_link"].rsplit("~", 1)[1],
             created=utc_date(info["date_created"]),
-            updated=utc_date(extra.get("date_last_updated")),
+            updated=utc_date(info["extra"].get("date_last_updated")),
             closed=utc_date(info.get("date_closed")),
             status=info["status"].upper().replace(" ", "_").replace("'", ""),
             title=info["title"],
