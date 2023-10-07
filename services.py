@@ -32,7 +32,7 @@ from utils import utc_date
 
 TAG_REGEX = "|".join(
     [
-        r"(?:bnc|bsc|boo|poo)#[0-9]+",
+        r"(?:bnc|bsc|boo|poo|lp)#[0-9]+",
         r"(?:gh|gl|gsd|coo|soo)#[^#]+#[0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
@@ -49,6 +49,7 @@ TAG_TO_HOST = {
     "poo": "progress.opensuse.org",
     "coo": "code.opensuse.org",
     "soo": "src.opensuse.org",
+    "lp": "launchpad.net",
 }
 
 
@@ -689,7 +690,7 @@ class MyLaunchpad(Generic):
         super().__init__(url, token=creds.get("token"))
         self.api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
         self.issue_url = "https://bugs.launchpad.net/{repo}/+bug/{issue}"
-        self.tag = "LP:"
+        self.tag = "lp"
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         repo = kwargs.get("repo")
