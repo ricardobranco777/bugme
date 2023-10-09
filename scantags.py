@@ -4,6 +4,7 @@ Scan a repo such as https://github.com/os-autoinst/os-autoinst-distri-opensuse f
 
 import concurrent.futures
 import fnmatch
+import logging
 import os
 import re
 from collections import defaultdict
@@ -13,7 +14,8 @@ from itertools import chain
 from operator import itemgetter
 from typing import Iterator
 
-from github import Github  # , Auth
+from github import Github, GithubException
+from requests.exceptions import RequestException
 
 from gitblame import GitBlame
 from services import TAG_REGEX
@@ -25,14 +27,15 @@ LINE_REGEX = re.compile(rf"soft_fail.*?({TAG_REGEX})")
 INCLUDE_FILES = ["data/journal_check/bug_refs.json"]
 
 
-def git_branch(directory: str) -> str:
+def git_branch(directory: str) -> str | None:
     """
     Get branch
     """
     with open(os.path.join(directory, ".git", "HEAD"), encoding="utf-8") as file:
         data = file.read().rstrip()
     if not data.startswith("ref: refs/heads/"):
-        raise RuntimeError(f"{directory} is detached")
+        logging.error("%s: repository is detached")
+        return None
     return data.removeprefix("ref: refs/heads/")
 
 
@@ -59,25 +62,34 @@ def git_remote(directory: str) -> str:
     return url.rstrip("/").removesuffix(".git")
 
 
-def check_repo(directory: str, repo_name: str, branch: str, token: str) -> None:
+def check_repo(directory: str, repo_name: str, branch: str, token: str) -> bool:
     """
     Check repository
     """
     last_commit = git_last_commit(directory, branch)
-    # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
-    # auth = Auth.Token(**creds)
-    # client = Github(auth=auth)
-    client = Github(login_or_token=token)
-    if (
-        last_commit
-        != client.get_repo(repo_name, lazy=True).get_branch(branch).commit.sha
-    ):
-        raise RuntimeError("Repo in filesystem and remote are not in sync")
-    # NOTE: Remove exception handling when latest PyGithub is published on Tumbleweed
     try:
-        client.close()
-    except AttributeError:
-        pass
+        client = Github(login_or_token=token)
+        if (
+            last_commit
+            != client.get_repo(repo_name, lazy=True).get_branch(branch).commit.sha
+        ):
+            logging.error(
+                "%s: %s: %s: Local repository is not in sync with remote",
+                directory,
+                repo_name,
+                branch,
+            )
+            return False
+    except (GithubException, RequestException) as exc:
+        logging.error("%s: %s: %s: %s", directory, repo_name, branch, exc)
+        return False
+    finally:
+        # NOTE: Remove exception handling when latest PyGithub is published on Tumbleweed
+        try:
+            client.close()
+        except AttributeError:
+            pass
+    return True
 
 
 def grep_file(filename: str, line_regex: re.Pattern) -> Iterator[tuple[str, int, str]]:
@@ -133,8 +145,11 @@ def scan_tags(  # pylint: disable=too-many-locals
     if "gitlab" in base_url:
         base_url = f"{base_url}/-"
     branch = git_branch(directory)
+    if branch is None:
+        return {}
     owner_repo = base_url.split("/", 3)[-1]
-    check_repo(directory, owner_repo, branch, token)
+    if not check_repo(directory, owner_repo, branch, token):
+        return {}
 
     with GitBlame(repo=owner_repo, branch=branch, access_token=token) as blame:
 

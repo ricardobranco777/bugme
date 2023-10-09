@@ -233,7 +233,7 @@ class Generic(Service):
             info = got.json()
         except RequestException as exc:
             try:
-                if getattr(exc.response, "status_code") == 404:
+                if exc.response.status_code == 404:  # type: ignore
                     return self._not_found(
                         url=self.issue_url.format(repo=repo, issue=issue_id),
                         tag=f"{self.tag}#{repo}#{issue_id}",

@@ -2,7 +2,19 @@
 
 # bugme
 
-Show bug and issue status for Bugzilla, Github, Gitlab, Jira, Redmine, Gitea, Pagure, Gogs, Allura, Bitbucket and Launchpad.
+Show bug and issue status for:
+
+- [Apache Allura](https://allura.apache.org/)
+- [Bitbucket](https://bitbucket.org/)
+- [Bugzilla](https://www.bugzilla.org/)
+- [Gitea](https://about.gitea.com/)
+- [GitHub](https://github.com/)
+- [GitLab](https://gitlab.com/)
+- [Gogs](https://gogs.io/)
+- [Jira](https://www.atlassian.com/software/jira)
+- [Launchpad](https://launchpad.net/)
+- [Pagure](https://pagure.io/)
+- [Redmine](https://www.redmine.org/)
 
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 

@@ -40,7 +40,7 @@ class MyLaunchpad(Generic):
                 response.raise_for_status()
             except RequestException as exc:
                 try:
-                    if getattr(exc.response, "status_code") == 404:
+                    if exc.response.status_code == 404:  # type: ignore
                         return self._not_found(
                             url=f"{self.url}/bugs/{issue_id}",
                             tag=f"{self.tag}#{issue_id}",
