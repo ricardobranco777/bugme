@@ -105,8 +105,8 @@ def get_urltag(string: str) -> dict[str, str] | None:
             issue_id = parse_qs(url.query)["id"][0]
         elif not path.startswith("issues/") and "/issue" in path:
             # Support Bitbucket optional description after issue number
-            if not os.path.basename(path).isdigit():
-                path = os.path.dirname(path)
+            if not re.search("/[0-9]+$", path):
+                path = path.rsplit("/", 1)[0]
             # Gitlab stuff
             path = path.replace("/-/", "/")
             repo, _, issue_id = path.rsplit("/", 2)

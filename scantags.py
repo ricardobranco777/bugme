@@ -93,6 +93,16 @@ def grep_file(filename: str, line_regex: re.Pattern) -> Iterator[tuple[str, int,
         pass
 
 
+def grep_files(
+    directory: str, filenames: list[str], line_regex: re.Pattern
+) -> Iterator[tuple[str, int, str]]:
+    """
+    Grep files
+    """
+    for filename in filenames:
+        yield from grep_file(os.path.join(directory, filename), line_regex)
+
+
 def grep_dir(
     directory: str,
     line_regex: re.Pattern,
@@ -150,12 +160,7 @@ def scan_tags(  # pylint: disable=too-many-locals
             futures = []
             for file, line_number, tag in chain(
                 grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
-                *map(
-                    lambda f: grep_file(
-                        os.path.join(directory, f), re.compile(f"({TAG_REGEX})")
-                    ),
-                    INCLUDE_FILES,
-                ),
+                grep_files(directory, INCLUDE_FILES, re.compile(f"({TAG_REGEX})")),
             ):
                 file = file.removeprefix(f"{directory}/")
                 futures.append(executor.submit(process_line, file, line_number, tag))
