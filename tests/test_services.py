@@ -2,7 +2,7 @@
 
 import pytest
 from services import get_urltag, Issue, Service
-from services.guess import guess_service
+from services.guess import guess_service, guess_service2
 from services.bitbucket import MyBitbucket
 from services.bugzilla import MyBugzilla
 from services.gitea import MyGitea
@@ -189,15 +189,18 @@ def test_mock_service_get_issues():
 
 def test_guess_service():
     assert guess_service("github.com") is MyGithub
-    assert guess_service("gitlab.com") is MyGitlab
-    assert guess_service("issues.redhat.com") is MyJira
-    assert guess_service("progress.opensuse.org") is MyRedmine
-    assert guess_service("bugzilla.suse.com") is MyBugzilla
-    assert guess_service("jira.suse.com") is MyJira
-    assert guess_service("src.opensuse.org") is MyGitea
-    assert guess_service("code.opensuse.org") is MyPagure
-    assert guess_service("try.gogs.io") is MyGogs
-    assert guess_service("bitbucket.org") is MyBitbucket
     assert guess_service("launchpad.net") is MyLaunchpad
-    assert guess_service("sourceforge.net") is MyAllura
-    assert guess_service("forge-allura.apache.org") is MyAllura
+    assert guess_service("try.gogs.io") is MyGogs
+
+
+def test_guess_service2():
+    assert guess_service2("gitlab.com") is MyGitlab
+    assert guess_service2("issues.redhat.com") is MyJira
+    assert guess_service2("progress.opensuse.org") is MyRedmine
+    assert guess_service2("bugzilla.suse.com") is MyBugzilla
+    assert guess_service2("jira.suse.com") is MyJira
+    assert guess_service2("src.opensuse.org") is MyGitea
+    assert guess_service2("code.opensuse.org") is MyPagure
+    assert guess_service2("api.bitbucket.org") is MyBitbucket
+    assert guess_service2("sourceforge.net") is MyAllura
+    assert guess_service2("forge-allura.apache.org") is MyAllura

@@ -2,12 +2,15 @@
 Guess service
 """
 
+import os
+from contextlib import closing
 from functools import cache
 from typing import Any
 
 import requests
 from requests.exceptions import RequestException
 
+from . import debugme
 from .bitbucket import MyBitbucket
 from .bugzilla import MyBugzilla
 from .gitea import MyGitea
@@ -27,8 +30,9 @@ def guess_service(server: str) -> Any:
     Guess service
     """
     servers: dict[str, Any] = {
-        "github.com": MyGithub,
-        "bitbucket.org": MyBitbucket,
+        "code.opensuse.org": MyPagure,
+        "progress.opensuse.org": MyRedmine,
+        "src.opensuse.org": MyGitea,
     }
     for hostname, cls in servers.items():
         if hostname == server:
@@ -43,33 +47,56 @@ def guess_service(server: str) -> Any:
         if server.startswith(prefix):
             return cls
 
-    if "gogs" in server:
-        return MyGogs
-
     suffixes: dict[str, Any] = {
+        "github.com": MyGithub,
         "launchpad.net": MyLaunchpad,
+        "bitbucket.org": MyBitbucket,
     }
     for suffix, cls in suffixes.items():
         if server.endswith(suffix):
             return cls
 
-    endpoints: dict[Any, str] = {
-        MyJira: "rest/api/2/serverInfo",
-        MyAllura: "rest/",
-        MyRedmine: "issues.json",
-        MyGitea: "swagger.v1.json",
-        # MyGitea: "api/v1/version",
-        MyPagure: "api/0/version",
+    if "gogs" in server:
+        return MyGogs
+
+    return guess_service2(server)
+
+
+def guess_service2(server: str) -> Any | None:
+    """
+    Guess service
+    """
+    # These should be tried in order
+    endpoints = {
+        "GET": (
+            (MyGitlab, "api/v4/version", 401),
+            (MyJira, "rest/api/2/serverInfo", 200),
+            (MyBugzilla, "rest/version", 200),
+            (MyGitea, "api/v1/version", 200),
+            (MyPagure, "api/0/version", 200),
+            (MyBitbucket, "2.0/user", 401),
+        ),
+        "HEAD": (
+            (MyRedmine, "issues.json", 200),
+            (MyAllura, "rest/", 200),
+        ),
     }
 
-    for cls, endpoint in endpoints.items():
-        api_endpoint = f"https://{server}/{endpoint}"
-        try:
-            response = requests.head(api_endpoint, allow_redirects=True, timeout=5)
-            response.raise_for_status()
-            if response.status_code == 200:
-                return cls
-        except RequestException:
-            pass
+    session = requests.Session()
+    session.headers["Accept"] = "application/json"
+    session.verify = os.environ.get("REQUESTS_CA_BUNDLE", True)
+    if os.getenv("DEBUG"):
+        session.hooks["response"].append(debugme)
+
+    with closing(session):
+        for method, want in endpoints.items():
+            for cls, endpoint, status in want:
+                url = f"https://{server}/{endpoint}"
+                try:
+                    response = session.request(method, url, timeout=5)
+                    if response.status_code == status:
+                        return cls
+                except RequestException:
+                    pass
 
     return None
