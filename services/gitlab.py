@@ -15,6 +15,9 @@ from utils import utc_date
 from . import Service, Issue, debugme, status
 
 
+# References:
+# https://docs.gitlab.com/ee/api/issues.html
+# https://docs.gitlab.com/ee/api/merge_requests.html
 class MyGitlab(Service):
     """
     Gitlab
@@ -41,6 +44,63 @@ class MyGitlab(Service):
             self.client.__exit__(None, None, None)
         except (AttributeError, GitlabError):
             pass
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        pull_requests: bool = False,
+        state: str = "opened",
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        if involved:
+            assigned = created = True
+        filters = {
+            "all": True,  # No pagination
+            "state": state,
+        }
+        issues: list[Any] = []
+        try:
+            if username:
+                user = self.client.users.list(username=username)[0]  # type: ignore
+            else:
+                user = self.client.user
+            if assigned:
+                if pull_requests:
+                    issues = list(
+                        self.client.mergerequests.list(assignee_id=user.id, **filters)
+                    )
+                else:
+                    issues = list(
+                        self.client.issues.list(assignee_id=user.id, **filters)
+                    )
+            found_ids = {i.iid for i in issues}
+            if created:
+                if pull_requests:
+                    issues.extend(
+                        issue
+                        for issue in self.client.mergerequests.list(
+                            author=user.id, **filters
+                        )
+                        if issue.iid not in found_ids
+                    )
+                else:
+                    issues.extend(
+                        issue
+                        for issue in self.client.issues.list(author=user.id, **filters)
+                        if issue.iid not in found_ids
+                    )
+        except (GitlabError, RequestException) as exc:
+            logging.error(
+                "Gitlab: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
+            return None
+        return [self._to_issue(issue) for issue in set(issues)]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

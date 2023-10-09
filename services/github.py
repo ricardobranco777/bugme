@@ -13,6 +13,8 @@ from utils import utc_date
 from . import Service, Issue, status
 
 
+# Reference:
+# https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests
 class MyGithub(Service):
     """
     Github
@@ -33,6 +35,38 @@ class MyGithub(Service):
             self.client.close()
         except (AttributeError, GithubException):
             pass
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        pull_requests: bool = False,
+        state: str = "open",
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        issue_type = "pr" if pull_requests else "issue"
+        filters = f"state:{state} type:{issue_type} "
+        if involved:
+            filters += "involved"
+        elif assigned:
+            filters += "assignee"
+        elif created:
+            filters += "author"
+        try:
+            user = (
+                self.client.get_user(username) if username else self.client.get_user()
+            )
+            filters += f"{filters}:{user.login}"
+            issues = self.client.search_issues(filters)
+        except (GithubException, RequestException) as exc:
+            logging.error("Github: get_user_issues(%s): %s", username, exc)
+            return None
+        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -59,7 +93,8 @@ class MyGithub(Service):
             return None
         return self._to_issue(info, repo, is_pr)
 
-    def _to_issue(self, info: Any, repo: str, is_pr: bool) -> Issue:
+    def _to_issue(self, info: Any, repo: str = "", is_pr: bool = False) -> Issue:
+        repo = repo or info.repository.full_name
         mark = "!" if is_pr else "#"
         return Issue(
             tag=f"{self.tag}#{repo}{mark}{info.number}",

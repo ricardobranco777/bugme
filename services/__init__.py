@@ -186,6 +186,12 @@ class Service:
         """
         raise NotImplementedError(f"{self.__class__.__name__}: get_issue()")
 
+    def get_user_issues(self, **_) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        return []
+
     def get_issues(self, issues: list[dict]) -> list[Issue | None]:
         """
         Multithreaded get_issues()

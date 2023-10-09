@@ -14,6 +14,7 @@ from utils import utc_date
 from . import Service, Issue, debugme, status
 
 
+# Reference: https://bugzilla.readthedocs.io/en/latest/api/index.html#apis
 class MyBugzilla(Service):
     """
     Bugzilla
@@ -38,6 +39,42 @@ class MyBugzilla(Service):
             self.client.disconnect()
         except (AttributeError, BugzillaError):
             pass
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = True,
+        created: bool = True,
+        involved: bool = True,
+        closed: bool = False,
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        if involved:
+            assigned = created = True
+        username = username or self.client.user
+        issues = []
+        try:
+            user = self.client.getuser(username)
+            if assigned:
+                issues = self.client.query({"assigned_to": user.email})
+            found_ids = {i.id for i in issues}
+            if created:
+                issues.extend(
+                    issue
+                    for issue in self.client.query({"reporter": user.email})
+                    if issue.id not in found_ids
+                )
+        except (AttributeError, BugzillaError, RequestException) as exc:
+            logging.error(
+                "Bugzilla: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
+            return None
+        if not closed:
+            issues = [issue for issue in issues if issue.is_open]
+        return [self._to_issue(issue) for issue in set(issues)]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

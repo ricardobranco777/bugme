@@ -9,6 +9,8 @@ from . import Generic, Issue, status
 
 
 # Reference: https://try.gitea.io/api/swagger
+# Not possible to filter issues because of:
+# https://github.com/go-gitea/gitea/issues/25979
 class MyGitea(Generic):
     """
     Gitea
@@ -23,7 +25,7 @@ class MyGitea(Generic):
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.pop("repo")
-        is_pr = kwargs.pop("is_pr")
+        is_pr = bool(kwargs.get("is_pr"))
         mark = "!" if is_pr else "#"
         return Issue(
             tag=f'{self.tag}#{repo}{mark}{info["number"]}',

@@ -1,12 +1,12 @@
 {
   "bugzilla.suse.com": {
+    "user": "SUSE_BUGZILLA_USER",
     "api_key": "SUSE_BUGZILLA_API_KEY"
   },
   "bugzilla.redhat.com": {
     "api_key": "REDHAT_BUGZILLA_API_KEY"
   },
   "jira.suse.com": {
-    "username": "JIRA_USER",
     "cookies": {
       "seraph.rememberme.cookie": "JIRA_COOKIE",
       "JIRASESSIONID": "JIRA_SESSION_ID",
@@ -30,5 +30,8 @@
   },
   "code.opensuse.org": {
     "token": "PAGURE_TOKEN"
+  },
+  "launchpad.net": {
+    "username": "LAUNCHPAD_USER"
   }
 }

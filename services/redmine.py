@@ -36,6 +36,38 @@ class MyRedmine(Service):
         except AttributeError:
             pass
 
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "me",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        if involved:
+            assigned = created = True
+        issues = []
+        try:
+            user = self.client.user.get(username)
+            if assigned:
+                issues = list(self.client.issue.filter(assigned_to_id=user.id))
+            found_ids = {i.id for i in issues}
+            if created:
+                issues.extend(
+                    issue
+                    for issue in self.client.issue.filter(author_id=user.id)
+                    if issue.id not in found_ids
+                )
+        except (BaseRedmineError, RequestException) as exc:
+            logging.error(
+                "Redmine: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
+            return None
+        return [self._to_issue(issue) for issue in set(issues)]
+
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
         Get Redmine ticket

@@ -30,6 +30,51 @@ class MyLaunchpad(Generic):
         self.issue_api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
         self.issue_web_url = f"{self.url}/{{repo}}/+bug/{{issue}}"
         self.tag = "lp"
+        self.username = creds.get("username", "")
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        if involved:
+            assigned = created = True
+        username = username or self.username
+        user_url = f"https://api.launchpad.net/1.0/~{username}"
+        params = {
+            "ws.op": "searchTasks",
+        }
+        issues = []
+        try:
+            if assigned:
+                got = self.session.get(
+                    "https://api.launchpad.net/1.0/bugs",
+                    params=params | {"assignee": user_url},
+                )
+                got.raise_for_status()
+                issues = got.json()["entries"]
+            found_ids = {i["web_link"] for i in issues}
+            if created:
+                got = self.session.get(
+                    "https://api.launchpad.net/1.0/bugs",
+                    params=params | {"bug_reporter": user_url},
+                )
+                got.raise_for_status()
+                issues.extend(
+                    issue
+                    for issue in got.json()["entries"]
+                    if issue["web_link"] not in found_ids
+                )
+        except RequestException as exc:
+            logging.error("Launchpad: get_user_issues(%s): %s", username, exc)
+            return None
+        return [self._to_issue(issue) for issue in set(issues)]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         if not kwargs.get("repo"):

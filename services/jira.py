@@ -14,6 +14,8 @@ from utils import utc_date
 from . import Service, Issue, debugme, status
 
 
+# References:
+# https://support.atlassian.com/jira-service-management-cloud/docs/jql-functions/
 class MyJira(Service):
     """
     Jira
@@ -30,6 +32,40 @@ class MyJira(Service):
             self.client.session.close()
         except AttributeError:
             pass
+
+    def _get_issues(self, filters: str) -> list[dict]:
+        filters = f"{filters} AND resolution IS EMPTY"
+        data = self.client.jql(filters)
+        issues = data["issues"]
+        while len(issues) < data["total"]:
+            data = self.client.jql(filters, start=len(issues))
+            issues.extend(data["issues"])
+        return issues
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        username = username or self.client.username or "currentUser()"
+        if involved:
+            filters = f"watcher = {username}"
+        elif assigned:
+            filters = f"assignee = {username}"
+        elif created:
+            filters = f"reporter = {username}"
+        try:
+            issues = self._get_issues(filters)
+        except (ApiError, RequestException) as exc:
+            logging.error("Jira: %s: get_user_issues(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
