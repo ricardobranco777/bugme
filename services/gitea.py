@@ -14,7 +14,7 @@ class MyGitea(Generic):
     Gitea
     """
 
-    def __init__(self, url: str, creds: dict, **_):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url, token=creds.get("token"))
         self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
         self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"

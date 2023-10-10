@@ -14,7 +14,7 @@ class MyAllura(Generic):
     Allura
     """
 
-    def __init__(self, url: str, creds: dict, **_):
+    def __init__(self, url: str, creds: dict):
         super().__init__(url, token=creds.get("token"))
         self.bugs = "bugs" if "sourceforge" in url else "tickets"
         self.api_url = f"{self.url}/rest/p/{{repo}}/{self.bugs}/{{issue}}"
