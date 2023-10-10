@@ -3,7 +3,6 @@ Guess service
 """
 
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import closing
 from functools import cache
 from typing import Any
@@ -89,28 +88,15 @@ def guess_service2(server: str) -> Any | None:
     if os.getenv("DEBUG"):
         session.hooks["response"].append(debugme)
 
-    def make_request(method: str, cls: Any, endpoint: str, status: int) -> Any | None:
-        url = f"https://{server}/{endpoint}"
-        try:
-            response = session.request(method, url, timeout=5)
-            if response.status_code == status:
-                return cls
-        except RequestException:
-            pass
-        return None
-
-    max_workers = min(10, len(endpoints["GET"]) + len(endpoints["HEAD"]))
-    with closing(session), ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
+    with closing(session):
         for method, want in endpoints.items():
             for cls, endpoint, status in want:
-                futures.append(
-                    executor.submit(make_request, method, cls, endpoint, status)
-                )
-
-        for future in as_completed(futures):
-            result = future.result()
-            if result:
-                return result
+                url = f"https://{server}/{endpoint}"
+                try:
+                    response = session.request(method, url, timeout=5)
+                    if response.status_code == status:
+                        return cls
+                except RequestException:
+                    pass
 
     return None
