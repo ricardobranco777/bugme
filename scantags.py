@@ -158,7 +158,8 @@ def scan_tags(  # pylint: disable=too-many-locals
         ) -> tuple[str, dict[str, str | int | datetime]]:
             try:
                 author, email, commit, date = blame.blame_line(file, line_number)
-            except KeyError:
+            except KeyError as exc:
+                logging.warning("%s", exc)
                 return tag, {}
             info: dict[str, str | int | datetime] = {
                 "file": file,

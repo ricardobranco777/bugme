@@ -102,13 +102,11 @@ class GitBlame:
         """
         blames = self.blame_file(file)
         if blames is None:
-            raise KeyError("No blame")
-        commit = None
+            raise KeyError(f"No blame for {file}")
+        commit = {}
         for blame in blames:
             if blame["startingLine"] <= line <= blame["endingLine"]:
                 commit = blame["commit"]
-        if commit is None:
-            raise KeyError("No commit")
         author, email = commit["author"]["name"], commit["author"]["email"]
         # Sometimes these are swapped
         if "@" not in email and "@" in author:
