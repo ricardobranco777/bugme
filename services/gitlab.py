@@ -65,8 +65,8 @@ class MyGitlab(Service):
         return Issue(
             tag=f'{self.tag}#{info.references["full"]}',
             url=info.web_url,
-            assignee=info.assignee["name"] if info.assignee else "none",
-            creator=info.author["name"],
+            assignee=info.assignee["username"] if info.assignee else "none",
+            creator=info.author["username"],
             created=utc_date(info.created_at),
             updated=utc_date(info.updated_at),
             status=status(info.state),
