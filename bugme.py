@@ -196,7 +196,11 @@ def print_issues(  # pylint: disable=too-many-arguments
     """
     xtags = {}
     if not urltags:
-        xtags = scan_tags(directory=".", token=creds["github.com"]["login_or_token"])
+        try:
+            xtags = scan_tags(".", token=creds["github.com"]["login_or_token"])
+        except OSError as exc:
+            logging.error("%s", exc)
+            return
         urltags = list(xtags.keys())
     issues = get_issues(creds, urltags, statuses)
 
