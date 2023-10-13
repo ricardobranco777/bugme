@@ -20,7 +20,6 @@ from .jira import MyJira
 from .launchpad import MyLaunchpad
 from .pagure import MyPagure
 from .redmine import MyRedmine
-from .allura import MyAllura
 
 
 @cache  # pylint: disable=method-cache-max-size-none
@@ -72,10 +71,7 @@ def guess_service2(server: str) -> Any | None:
             (MyPagure, "api/0/version", 200),
             (MyBitbucket, "2.0/user", 401),
         ),
-        "HEAD": (
-            (MyRedmine, "issues.json", 200),
-            (MyAllura, "rest/", 200),
-        ),
+        "HEAD": ((MyRedmine, "issues.json", 200),),
     }
 
     session = requests.Session()

@@ -12,7 +12,6 @@ from services.jira import MyJira
 from services.launchpad import MyLaunchpad
 from services.pagure import MyPagure
 from services.redmine import MyRedmine
-from services.allura import MyAllura
 
 
 # Test cases for the Issue class
@@ -176,18 +175,6 @@ def test_get_urltag():
             repo="",
             is_pr=False,
         ),
-        "https://sourceforge.net/p/corefonts/bugs/35": dict(
-            issue_id="35",
-            host="sourceforge.net",
-            repo="corefonts",
-            is_pr=False,
-        ),
-        "https://forge-allura.apache.org/p/allura/tickets/8505/": dict(
-            issue_id="8505",
-            host="forge-allura.apache.org",
-            repo="allura",
-            is_pr=False,
-        ),
         "https://bitbucket.org/mpyne/game-music-emu/issues/45/chances-of-moving-to-github": dict(
             issue_id="45",
             host="bitbucket.org",
@@ -285,5 +272,3 @@ def test_guess_service2():
     assert guess_service2("src.opensuse.org") is MyGitea
     assert guess_service2("code.opensuse.org") is MyPagure
     assert guess_service2("api.bitbucket.org") is MyBitbucket
-    assert guess_service2("sourceforge.net") is MyAllura
-    assert guess_service2("forge-allura.apache.org") is MyAllura
