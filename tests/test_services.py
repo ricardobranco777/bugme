@@ -127,6 +127,45 @@ def test_get_urltag_with_www_prefix():
     assert issue == expected_issue
 
 
+def test_get_urltag():
+    wanted = {
+        "https://bugzilla.suse.com/show_bug.cgi?id=1213811": dict(
+            issue_id="1213811", host="bugzilla.suse.com", repo=""
+        ),
+        "https://bugzilla.suse.com/1213811": dict(
+            issue_id="1213811", host="bugzilla.suse.com", repo=""
+        ),
+        "https://github.com/containers/podman/issues/19529": dict(
+            issue_id="19529", host="github.com", repo="containers/podman"
+        ),
+        "https://gitlab.com/gitlab-org/gitlab/-/issues/424503": dict(
+            issue_id="424503", host="gitlab.com", repo="gitlab-org/gitlab"
+        ),
+        "https://jira.suse.com/browse/SCL-8": dict(
+            issue_id="SCL-8", host="jira.suse.com", repo=""
+        ),
+        "https://sourceforge.net/p/corefonts/bugs/35": dict(
+            issue_id="35", host="sourceforge.net", repo="corefonts"
+        ),
+        "https://forge-allura.apache.org/p/allura/tickets/8505/": dict(
+            issue_id="8505", host="forge-allura.apache.org", repo="allura"
+        ),
+        "https://bitbucket.org/mpyne/game-music-emu/issues/45/chances-of-moving-to-github": dict(
+            issue_id="45", host="bitbucket.org", repo="mpyne/game-music-emu"
+        ),
+        "https://bugs.launchpad.net/2028931": dict(
+            issue_id="2028931", host="bugs.launchpad.net", repo=""
+        ),
+        "https://bugs.launchpad.net/ubuntu/jammy/+source/grub2/+bug/2028931": dict(
+            issue_id="2028931",
+            host="bugs.launchpad.net",
+            repo="ubuntu/jammy/+source/grub2",
+        ),
+    }
+    for url, want in wanted.items():
+        assert get_urltag(url) == want
+
+
 # Test case for an unsupported format
 def test_get_urltag_with_unsupported_format():
     string = "unsupported#12345"

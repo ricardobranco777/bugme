@@ -101,24 +101,19 @@ def get_urltag(string: str) -> dict[str, str] | None:
         hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
         path = url.path.strip("/")
         repo: str = ""
-        if url.query:
+        if url.query:  # Bugzilla
             issue_id = parse_qs(url.query)["id"][0]
-        elif not path.startswith("issues/") and "/issue" in path:
-            # Support Bitbucket optional description after issue number
-            if not re.search("/[0-9]+$", path):
+        elif "/" not in path:
+            issue_id = path.rsplit("/", 1)[-1]
+        elif re.match("[^/]+/[^/]+$", path):
+            issue_id = path.rsplit("/", 1)[-1]
+        else:  # Git forges
+            if path.startswith("p/"):  # Allura
+                path = path.removeprefix("p/")
+            if not re.search("/[0-9]+$", path):  # Bitbucket optional description
                 path = path.rsplit("/", 1)[0]
-            # Gitlab stuff
-            path = path.replace("/-/", "/")
+            path = path.replace("/-/", "/")  # Gitlab
             repo, _, issue_id = path.rsplit("/", 2)
-        elif "/+bug/" in path:  # Launchpad
-            repo, _, issue_id = path.rsplit("/", 2)
-            issue_id = path.rsplit("/", 1)[-1]
-        elif path.startswith("p/"):  # Allura
-            path = path.removeprefix("p/")
-            repo, _, issue_id = path.rsplit("/", 2)
-        else:
-            issue_id = path.rsplit("/", 1)[-1]
-
         return {
             "issue_id": issue_id,
             "host": hostname,
