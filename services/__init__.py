@@ -20,7 +20,7 @@ from requests_toolbelt.utils import dump  # type: ignore
 TAG_REGEX = "|".join(
     [
         r"(?:bnc|bsc|boo|poo|lp)#[0-9]+",
-        r"(?:gh|gl|gsd|coo|soo)#[^#]+#[0-9]+",
+        r"(?:gh|gl|gsd|coo|soo)#[^#!]+[#!][0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
 )
@@ -90,7 +90,7 @@ class Issue:  # pylint: disable=too-few-public-methods
         setattr(self, item, value)
 
 
-def get_urltag(string: str) -> dict[str, str] | None:
+def get_urltag(string: str) -> dict[str, str | bool] | None:
     """
     Get tag or URL from string
     """
@@ -101,30 +101,34 @@ def get_urltag(string: str) -> dict[str, str] | None:
         hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
         path = url.path.strip("/")
         repo: str = ""
+        is_pr: bool = False
         if url.query:  # Bugzilla
             issue_id = parse_qs(url.query)["id"][0]
         elif "/" not in path:
             issue_id = path.rsplit("/", 1)[-1]
-        elif re.match("[^/]+/[^/]+$", path):
+        elif re.match(r"[^/]+/[^/]+$", path):
             issue_id = path.rsplit("/", 1)[-1]
         else:  # Git forges
             if path.startswith("p/"):  # Allura
                 path = path.removeprefix("p/")
-            if not re.search("/[0-9]+$", path):  # Bitbucket optional description
+            if not re.search(r"/[0-9]+$", path):  # Bitbucket optional description
                 path = path.rsplit("/", 1)[0]
             path = path.replace("/-/", "/")  # Gitlab
-            repo, _, issue_id = path.rsplit("/", 2)
+            repo, issue_type, issue_id = path.rsplit("/", 2)
+            is_pr = any(s in issue_type for s in ("pull", "merge"))
         return {
             "issue_id": issue_id,
             "host": hostname,
             "repo": repo,
+            "is_pr": is_pr,
         }
     # Tag
     if not re.fullmatch(TAG_REGEX, string):
         logging.warning("Skipping unsupported %s", string)
         return None
+    is_pr = "!" in string
     try:
-        code, repo, issue = string.split("#", 2)
+        code, repo, issue = re.split(r"[#!]", string)
     except ValueError:
         code, issue = string.split("#", 1)
         repo = ""
@@ -132,6 +136,7 @@ def get_urltag(string: str) -> dict[str, str] | None:
         "issue_id": issue,
         "host": TAG_TO_HOST[code],
         "repo": repo,
+        "is_pr": is_pr,
     }
 
 
@@ -200,7 +205,8 @@ class Generic(Service):
 
     def __init__(self, url: str, token: str | None):
         super().__init__(url)
-        self.api_url = "OVERRIDE"
+        self.issue_api_url = self.pr_api_url = "OVERRIDE"
+        self.issue_web_url = self.pr_web_url = "OVERRIDE"
         self.session = requests.Session()
         if token is not None:
             self.session.headers["Authorization"] = f"token {token}"
@@ -219,10 +225,14 @@ class Generic(Service):
         """
         Get Git issue
         """
-        repo = kwargs.pop("repo")
+        repo: str = kwargs.pop("repo")
+        is_pr = bool(kwargs.get("is_pr"))
+        api_url = self.pr_api_url if is_pr else self.issue_api_url
+        web_url = self.pr_web_url if is_pr else self.issue_web_url
         try:
             got = self.session.get(
-                self.api_url.format(repo=repo, issue=issue_id), timeout=self.timeout
+                api_url.format(repo=repo, issue=issue_id),
+                timeout=self.timeout,
             )
             got.raise_for_status()
             info = got.json()
@@ -230,7 +240,7 @@ class Generic(Service):
             try:
                 if exc.response.status_code == 404:  # type: ignore
                     return self._not_found(
-                        url=self.issue_url.format(repo=repo, issue=issue_id),
+                        url=web_url.format(repo=repo, issue=issue_id),
                         tag=f"{self.tag}#{repo}#{issue_id}",
                     )
             except AttributeError:
@@ -244,7 +254,7 @@ class Generic(Service):
                 exc,
             )
             return None
-        return self._to_issue(info, repo=repo)
+        return self._to_issue(info, repo=repo, is_pr=is_pr)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         raise NotImplementedError(f"{self.__class__.__name__}: to_issue()")

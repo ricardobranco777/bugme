@@ -16,13 +16,17 @@ class MyPagure(Generic):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url, token=creds.get("token"))
-        self.api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
-        self.issue_url = f"{self.url}/{{repo}}/issue/{{issue}}"
+        self.issue_api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
+        self.issue_web_url = f"{self.url}/{{repo}}/issue/{{issue}}"
+        self.pr_api_url = f"{self.url}/api/0/{{repo}}/pull-request/{{issue}}"
+        self.pr_web_url = f"{self.url}/{{repo}}/pull-request/{{issue}}"
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.pop("repo")
+        is_pr = kwargs.pop("is_pr")
+        mark = "!" if is_pr else "#"
         return Issue(
-            tag=f'{self.tag}#{repo}#{info["id"]}',
+            tag=f'{self.tag}#{repo}{mark}{info["id"]}',
             url=info["full_url"],
             assignee=info["assignee"]["name"] if info["assignee"] else "none",
             creator=info["user"]["name"],

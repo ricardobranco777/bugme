@@ -16,6 +16,8 @@ Show bug and issue status for:
 - [Pagure](https://pagure.io/)
 - [Redmine](https://www.redmine.org/)
 
+NOTE: Git forges also support Pull/Merge Requests.
+
 Docker image available at `ghcr.io/ricardobranco777/bugme:latest`
 
 List of soft-failures for [os-autoinst-distri-opensuse](https://github.com/os-autoinst/os-autoinst-distri-opensuse) available at:

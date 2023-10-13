@@ -27,8 +27,8 @@ class MyLaunchpad(Generic):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url, token=creds.get("token"))
-        self.api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
-        self.issue_url = f"{self.url}/{{repo}}/+bug/{{issue}}"
+        self.issue_api_url = "https://api.launchpad.net/1.0/{repo}/+bug/{issue}"
+        self.issue_web_url = f"{self.url}/{{repo}}/+bug/{{issue}}"
         self.tag = "lp"
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:

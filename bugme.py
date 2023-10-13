@@ -97,7 +97,7 @@ def get_issues(
         item = get_urltag(urltag)
         if item is None:
             continue
-        host_items[item["host"]].append(item)
+        host_items[item["host"]].append(item)  # type: ignore
 
     clients: dict[str, Any] = {}
     for host in host_items:

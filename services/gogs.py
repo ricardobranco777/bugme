@@ -16,8 +16,10 @@ class MyGogs(Generic):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url, token=creds.get("token"))
-        self.api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
-        self.issue_url = f"{self.url}/{{repo}}/issues/{{issue}}"
+        self.issue_api_url = f"{self.url}/api/v1/repos/{{repo}}/issues/{{issue}}"
+        self.issue_web_url = f"{self.url}/{{repo}}/issues/{{issue}}"
+        # NOTE: Gogs' API doesn't support pull requests:
+        # https://github.com/gogs/gogs/issues/2253
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.pop("repo")

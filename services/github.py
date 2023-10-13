@@ -38,22 +38,30 @@ class MyGithub(Service):
         """
         Get Github issue
         """
-        repo = kwargs.pop("repo")
+        repo: str = kwargs.pop("repo")
+        is_pr: bool = kwargs.pop("is_pr")
+        info: Any
         try:
-            info = self.client.get_repo(repo, lazy=True).get_issue(int(issue_id))
+            git_repo = self.client.get_repo(repo, lazy=True)
+            if is_pr:
+                info = git_repo.get_pull(int(issue_id))
+            else:
+                info = git_repo.get_issue(int(issue_id))
         except (GithubException, RequestException) as exc:
             if getattr(exc, "status", None) == 404:
+                issuepr = "pull" if is_pr else "issues"
                 return self._not_found(
-                    url=f"{self.url}/{repo}/issues/{issue_id}",
+                    url=f"{self.url}/{repo}/{issuepr}/{issue_id}",
                     tag=f"{self.tag}#{repo}#{issue_id}",
                 )
             logging.error("Github: get_issue(%s, %s): %s", repo, issue_id, exc)
             return None
-        return self._to_issue(info)
+        return self._to_issue(info, repo, is_pr)
 
-    def _to_issue(self, info: Any) -> Issue:
+    def _to_issue(self, info: Any, repo: str, is_pr: bool) -> Issue:
+        mark = "!" if is_pr else "#"
         return Issue(
-            tag=f"{self.tag}#{info.repository.full_name}#{info.number}",
+            tag=f"{self.tag}#{repo}{mark}{info.number}",
             url=info.html_url,
             assignee=info.assignee.login if info.assignee else "none",
             creator=info.user.login,
