@@ -172,7 +172,7 @@ def scan_tags(  # pylint: disable=too-many-locals
             }
             return tag, info
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = []
             for file, line_number, tag in chain(
                 grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
