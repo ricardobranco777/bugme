@@ -8,7 +8,6 @@ from services.bugzilla import MyBugzilla
 from services.gitea import MyGitea
 from services.github import MyGithub
 from services.gitlab import MyGitlab
-from services.gogs import MyGogs
 from services.jira import MyJira
 from services.launchpad import MyLaunchpad
 from services.pagure import MyPagure
@@ -275,7 +274,6 @@ def test_mock_service_get_issues():
 def test_guess_service():
     assert guess_service("github.com") is MyGithub
     assert guess_service("launchpad.net") is MyLaunchpad
-    assert guess_service("try.gogs.io") is MyGogs
 
 
 def test_guess_service2():

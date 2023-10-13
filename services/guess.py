@@ -16,7 +16,6 @@ from .bugzilla import MyBugzilla
 from .gitea import MyGitea
 from .github import MyGithub
 from .gitlab import MyGitlab
-from .gogs import MyGogs
 from .jira import MyJira
 from .launchpad import MyLaunchpad
 from .pagure import MyPagure
@@ -55,9 +54,6 @@ def guess_service(server: str) -> Any:
     for suffix, cls in suffixes.items():
         if server.endswith(suffix):
             return cls
-
-    if "gogs" in server:
-        return MyGogs
 
     return guess_service2(server)
 

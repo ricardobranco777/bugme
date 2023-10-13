@@ -10,7 +10,6 @@ Show bug and issue status for:
 - [Gitea](https://about.gitea.com/)
 - [GitHub](https://github.com/)
 - [GitLab](https://gitlab.com/)
-- [Gogs](https://gogs.io/)
 - [Jira](https://www.atlassian.com/software/jira)
 - [Launchpad](https://launchpad.net/)
 - [Pagure](https://pagure.io/)
