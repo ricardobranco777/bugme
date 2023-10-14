@@ -8,6 +8,7 @@ from functools import cache
 from datetime import datetime
 
 import requests
+from requests.adapters import HTTPAdapter
 from requests import RequestException
 
 from services import debugme
@@ -53,6 +54,9 @@ class GitBlame:
         self.api_url = "https://api.github.com/graphql"
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Bearer {access_token}"
+        self.session.mount(
+            "https://", HTTPAdapter(pool_connections=50, pool_maxsize=50)
+        )
         self.timeout = 30
         if os.getenv("DEBUG"):
             self.session.hooks["response"].append(debugme)
