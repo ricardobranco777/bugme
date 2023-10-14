@@ -48,6 +48,7 @@ class MyGitlab(Service):
         """
         repo: str = kwargs.pop("repo")
         is_pr: bool = kwargs.pop("is_pr")
+        mark = "!" if is_pr else "#"
         info: Any
         try:
             git_repo = self.client.projects.get(repo, lazy=True)
@@ -60,7 +61,7 @@ class MyGitlab(Service):
                 issuepr = "merge_requests" if is_pr else "issues"
                 return self._not_found(
                     url=f"{self.url}/{repo}/-/{issuepr}/{issue_id}",
-                    tag=f"{self.tag}#{repo}#{issue_id}",
+                    tag=f"{self.tag}#{repo}{mark}{issue_id}",
                 )
             logging.error(
                 "Gitlab: %s: get_issue(%s, %s): %s", self.url, repo, issue_id, exc

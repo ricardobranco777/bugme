@@ -225,8 +225,14 @@ class Generic(Service):
         """
         repo: str = kwargs.pop("repo")
         is_pr = bool(kwargs.get("is_pr"))
-        api_url = self.pr_api_url if is_pr else self.issue_api_url
-        web_url = self.pr_web_url if is_pr else self.issue_web_url
+        if is_pr:
+            api_url = self.pr_api_url
+            web_url = self.pr_web_url
+            mark = "!"
+        else:
+            api_url = self.issue_api_url
+            web_url = self.issue_web_url
+            mark = "#"
         try:
             got = self.session.get(
                 api_url.format(repo=repo, issue=issue_id),
@@ -239,7 +245,7 @@ class Generic(Service):
                 if exc.response.status_code == 404:  # type: ignore
                     return self._not_found(
                         url=web_url.format(repo=repo, issue=issue_id),
-                        tag=f"{self.tag}#{repo}#{issue_id}",
+                        tag=f"{self.tag}#{repo}{mark}{issue_id}",
                     )
             except AttributeError:
                 pass

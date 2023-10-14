@@ -40,6 +40,7 @@ class MyGithub(Service):
         """
         repo: str = kwargs.pop("repo")
         is_pr: bool = kwargs.pop("is_pr")
+        mark = "!" if is_pr else "#"
         info: Any
         try:
             git_repo = self.client.get_repo(repo, lazy=True)
@@ -52,7 +53,7 @@ class MyGithub(Service):
                 issuepr = "pull" if is_pr else "issues"
                 return self._not_found(
                     url=f"{self.url}/{repo}/{issuepr}/{issue_id}",
-                    tag=f"{self.tag}#{repo}#{issue_id}",
+                    tag=f"{self.tag}#{repo}{mark}{issue_id}",
                 )
             logging.error("Github: get_issue(%s, %s): %s", repo, issue_id, exc)
             return None

@@ -40,6 +40,7 @@ class MyBitbucket(Service):
         repo: str = kwargs.get("repo", "")
         is_pr: bool = kwargs.get("is_pr", False)
         key, repo = repo.split("/", 1)
+        mark = "!" if is_pr else "#"
         info: Any
         try:
             if is_pr:
@@ -52,7 +53,7 @@ class MyBitbucket(Service):
                 if exc.response.status_code == 404:  # type: ignore
                     return self._not_found(
                         url=f"{self.url}/{repo}/{issuepr}/{issue_id}",
-                        tag=f"{self.tag}#{issue_id}",
+                        tag=f"{self.tag}{mark}{issue_id}",
                     )
             except AttributeError:
                 pass
