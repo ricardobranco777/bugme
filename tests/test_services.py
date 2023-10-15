@@ -3,7 +3,6 @@
 import pytest
 from services import get_urltag, Issue, Service
 from services.guess import guess_service, guess_service2
-from services.bitbucket import MyBitbucket
 from services.bugzilla import MyBugzilla
 from services.gitea import MyGitea
 from services.github import MyGithub
@@ -175,12 +174,6 @@ def test_get_urltag():
             repo="",
             is_pr=False,
         ),
-        "https://bitbucket.org/mpyne/game-music-emu/issues/45/chances-of-moving-to-github": dict(
-            issue_id="45",
-            host="bitbucket.org",
-            repo="mpyne/game-music-emu",
-            is_pr=False,
-        ),
         "https://bugs.launchpad.net/2028931": dict(
             issue_id="2028931",
             host="bugs.launchpad.net",
@@ -271,4 +264,3 @@ def test_guess_service2():
     assert guess_service2("jira.suse.com") is MyJira
     assert guess_service2("src.opensuse.org") is MyGitea
     assert guess_service2("code.opensuse.org") is MyPagure
-    assert guess_service2("api.bitbucket.org") is MyBitbucket

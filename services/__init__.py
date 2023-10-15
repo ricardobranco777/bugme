@@ -109,8 +109,6 @@ def get_urltag(string: str) -> dict[str, str | bool] | None:
         elif re.match(r"[^/]+/[^/]+$", path):
             issue_id = path.rsplit("/", 1)[-1]
         else:  # Git forges
-            if not re.search(r"/[0-9]+$", path):  # Bitbucket optional description
-                path = path.rsplit("/", 1)[0]
             path = path.replace("/-/", "/")  # Gitlab
             repo, issue_type, issue_id = path.rsplit("/", 2)
             is_pr = any(s in issue_type for s in ("pull", "merge"))

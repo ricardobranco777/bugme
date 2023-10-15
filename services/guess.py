@@ -11,7 +11,6 @@ import requests
 from requests.exceptions import RequestException
 
 from . import debugme
-from .bitbucket import MyBitbucket
 from .bugzilla import MyBugzilla
 from .gitea import MyGitea
 from .github import MyGithub
@@ -48,7 +47,6 @@ def guess_service(server: str) -> Any:
     suffixes: dict[str, Any] = {
         "github.com": MyGithub,
         "launchpad.net": MyLaunchpad,
-        "bitbucket.org": MyBitbucket,
     }
     for suffix, cls in suffixes.items():
         if server.endswith(suffix):
@@ -69,7 +67,6 @@ def guess_service2(server: str) -> Any | None:
             (MyBugzilla, "rest/version", 200),
             (MyGitea, "api/v1/version", 200),
             (MyPagure, "api/0/version", 200),
-            (MyBitbucket, "2.0/user", 401),
         ),
         "HEAD": ((MyRedmine, "issues.json", 200),),
     }

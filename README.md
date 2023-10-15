@@ -4,7 +4,6 @@
 
 Show bug and issue status for:
 
-- [Bitbucket](https://bitbucket.org/)
 - [Bugzilla](https://www.bugzilla.org/)
 - [Gitea](https://about.gitea.com/)
 - [GitHub](https://github.com/)
