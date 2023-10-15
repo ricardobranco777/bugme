@@ -49,6 +49,8 @@ jobs:
           BUGZILLA_USER: ${{ secrets.BUGZILLA_USER }}
           BUGME_GITHUB_TOKEN: ${{ secrets.BUGME_GITHUB_TOKEN }}
           GITLAB_API_KEY: ${{ secrets.GITLAB_API_KEY }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_COOKIE: ${{ secrets.JIRA_COOKIE }}
           JIRA_SESSION_ID: ${{ secrets.JIRA_SESSION_ID }}
           JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
           REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
