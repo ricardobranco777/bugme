@@ -20,8 +20,6 @@ class MyBitbucket(Service):
     """
 
     def __init__(self, url: str, creds: dict):
-        if url.endswith("bitbucket.org"):
-            url = "api.bitbucket.org"
         super().__init__(url)
         self.client = Bitbucket(url=self.url, **creds)
         if os.getenv("DEBUG"):
