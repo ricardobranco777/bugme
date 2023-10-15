@@ -106,7 +106,7 @@ def get_urltag(string: str) -> dict[str, str | bool] | None:
             issue_id = parse_qs(url.query)["id"][0]
         elif "/" not in path:
             issue_id = path.rsplit("/", 1)[-1]
-        elif re.match(r"[^/]+/[^/]+$", path):
+        elif path.count("/") == 1:
             issue_id = path.rsplit("/", 1)[-1]
         else:  # Git forges
             path = path.replace("/-/", "/")  # Gitlab

@@ -17,7 +17,7 @@ CREDS = {
             "seraph.rememberme.cookie": os.getenv("JIRA_COOKIE"),
             "JIRASESSIONID": os.getenv("JIRA_SESSION_ID"),
             "atlassian.xsrf.token": os.getenv("JIRA_TOKEN"),
-        }
+        },
     },
     "progress.opensuse.org": {
         "key": os.getenv("REDMINE_API_KEY"),
