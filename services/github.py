@@ -52,7 +52,7 @@ class MyGithub(Service):
         issue_type = "pr" if pull_requests else "issue"
         filters = f"state:{state} type:{issue_type} "
         if involved:
-            filters += "involved"
+            filters += "involves"
         elif assigned:
             filters += "assignee"
         elif created:
@@ -61,7 +61,7 @@ class MyGithub(Service):
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
-            filters += f"{filters}:{user.login}"
+            filters = f"{filters}:{user.login}"
             issues = self.client.search_issues(filters)
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
