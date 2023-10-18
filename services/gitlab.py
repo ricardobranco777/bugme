@@ -100,7 +100,7 @@ class MyGitlab(Service):
                 "Gitlab: %s: get_user_issues(%s): %s", self.url, username, exc
             )
             return None
-        return [self._to_issue(issue) for issue in set(issues)]
+        return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

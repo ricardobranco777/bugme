@@ -50,6 +50,7 @@ options:
   -S STATUS, --status STATUS
                         filter by status (may be specified multiple times) (default: None)
   -t TIME_FORMAT, --time TIME_FORMAT
+  --user                get user issues (default: False)
   --version             show program's version number and exit
 
 output fields for --fields: tag url status created updated title assignee creator

@@ -74,7 +74,7 @@ class MyBugzilla(Service):
             return None
         if not closed:
             issues = [issue for issue in issues if issue.is_open]
-        return [self._to_issue(issue) for issue in set(issues)]
+        return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

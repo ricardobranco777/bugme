@@ -79,9 +79,56 @@ def parse_args() -> argparse.Namespace:
     argparser.add_argument(
         "-t", "--time", default="timeago", metavar="TIME_FORMAT", help="strftime format"
     )
+    argparser.add_argument("--user", action="store_true", help="get user issues")
     argparser.add_argument("--version", action="version", version=f"bugme {VERSION}")
     argparser.add_argument("url", nargs="*")
     return argparser.parse_args()
+
+
+def get_clients(
+    hostnames: list[str],
+    creds: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    """
+    Get clients
+    """
+    clients: dict[str, Any] = {}
+    for host in hostnames:
+        cls = guess_service(host)
+        if cls is None:
+            logging.error("Unknown: %s", host)
+            sys.exit(1)
+        clients[host] = cls(host, creds.get(host, {}))
+
+    if len(clients) == 0:
+        sys.exit(0)
+    return clients
+
+
+def get_user_issues(
+    creds: dict[str, dict[str, str]],
+    urltags: list[str] | None,
+    statuses: list[str] | None,
+) -> list[Issue]:
+    """
+    Get user issues
+    """
+    if not urltags:
+        urltags = list(creds.keys())
+    clients = get_clients(urltags, creds)
+    all_issues = []
+    with ThreadPoolExecutor(max_workers=len(clients)) as executor:
+        iterator = executor.map(lambda host: clients[host].get_user_issues(), clients)
+        for issues in iterator:
+            all_issues.extend(
+                [
+                    issue
+                    for issue in issues
+                    if issue is not None
+                    and (statuses is None or issue.status in set(statuses))
+                ]
+            )
+    return all_issues
 
 
 def get_issues(
@@ -99,16 +146,7 @@ def get_issues(
             continue
         host_items[item["host"]].append(item)  # type: ignore
 
-    clients: dict[str, Any] = {}
-    for host in host_items:
-        cls = guess_service(host)
-        if cls is None:
-            logging.error("Unknown: %s", host)
-            sys.exit(1)
-        clients[host] = cls(host, creds.get(host, {}))
-
-    if len(clients) == 0:
-        sys.exit(0)
+    clients = get_clients(list(host_items.keys()), creds)
 
     all_issues = []
     with ThreadPoolExecutor(max_workers=len(clients)) as executor:
@@ -181,7 +219,7 @@ def print_issue(
             )
 
 
-def print_issues(  # pylint: disable=too-many-arguments
+def print_issues(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,
@@ -190,19 +228,23 @@ def print_issues(  # pylint: disable=too-many-arguments
     statuses: list[str] | None,
     sort_key: str | None,
     reverse: bool,
+    user: bool,
 ) -> None:
     """
     Print issues
     """
     xtags = {}
-    if not urltags:
-        try:
-            xtags = scan_tags(".", token=creds["github.com"]["login_or_token"])
-        except OSError as exc:
-            logging.error("%s", exc)
-            return
-        urltags = list(xtags.keys())
-    issues = get_issues(creds, urltags, statuses)
+    if user:
+        issues = get_user_issues(creds, urltags, statuses)
+    else:
+        if not urltags:
+            try:
+                xtags = scan_tags(".", token=creds["github.com"]["login_or_token"])
+            except OSError as exc:
+                logging.error("%s", exc)
+                return
+            urltags = list(xtags.keys())
+        issues = get_issues(creds, urltags, statuses)
 
     if sort_key in {"tag", "url"}:
         issues.sort(key=Issue.sort_key, reverse=reverse)
@@ -271,6 +313,7 @@ def main():
         args.status,
         args.sort,
         args.reverse,
+        args.user,
     )
 
 

@@ -74,7 +74,7 @@ class MyLaunchpad(Generic):
         except RequestException as exc:
             logging.error("Launchpad: get_user_issues(%s): %s", username, exc)
             return None
-        return [self._to_issue(issue) for issue in set(issues)]
+        return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         if not kwargs.get("repo"):

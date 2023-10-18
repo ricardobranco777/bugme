@@ -123,7 +123,7 @@ class MyPagure(Generic):
                 "Pagure: %s: get_user_issues(%s): %s", self.url, username, exc
             )
             return None
-        return [self._to_issue(issue, is_pr=pull_requests) for issue in set(issues)]
+        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", "") or info["project"]["fullname"]
