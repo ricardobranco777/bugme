@@ -81,33 +81,34 @@ class MyBugzilla(Service):
         assigned: bool = True,
         created: bool = True,
         involved: bool = True,
-        closed: bool = False,
-        **_,
+        **kwargs,
     ) -> list[Issue] | None:
         """
         Get user issues
         """
         if involved:
             assigned = created = True
-        issues: list[Issue] = []
+        all_issues: list[Issue] = []
 
-        def get_assigned_issues():
-            more = self.get_assigned(username, closed=closed)
-            if more is not None:
-                issues.extend(more)
+        def get_assigned_issues() -> list[Issue] | None:
+            return self.get_assigned(username, **kwargs)
 
-        def get_created_issues():
-            more = self.get_created(username, closed=closed)
-            if more is not None:
-                issues.extend(more)
+        def get_created_issues() -> list[Issue] | None:
+            return self.get_created(username, **kwargs)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = []
             if assigned:
-                executor.submit(get_assigned_issues)
+                futures.append(executor.submit(get_assigned_issues))
             if created:
-                executor.submit(get_created_issues)
+                futures.append(executor.submit(get_created_issues))
+            for future in futures:
+                issues = future.result()
+                if issues is None:
+                    return None
+                all_issues.extend(issues)
 
-        return list(set(issues))
+        return list(set(all_issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

@@ -74,25 +74,27 @@ class MyRedmine(Service):
         """
         if involved:
             assigned = created = True
-        issues: list[Issue] = []
+        all_issues: list[Issue] = []
 
-        def get_assigned_issues():
-            more = self.get_assigned(username)
-            if more is not None:
-                issues.extend(more)
+        def get_assigned_issues() -> list[Issue] | None:
+            return self.get_assigned(username)
 
-        def get_created_issues():
-            more = self.get_created(username)
-            if more is not None:
-                issues.extend(more)
+        def get_created_issues() -> list[Issue] | None:
+            return self.get_created(username)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = []
             if assigned:
-                executor.submit(get_assigned_issues)
+                futures.append(executor.submit(get_assigned_issues))
             if created:
-                executor.submit(get_created_issues)
+                futures.append(executor.submit(get_created_issues))
+            for future in futures:
+                issues = future.result()
+                if issues is None:
+                    return None
+                all_issues.extend(issues)
 
-        return list(set(issues))
+        return list(set(all_issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
