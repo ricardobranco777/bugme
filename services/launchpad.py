@@ -3,6 +3,7 @@ Launchpad
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import urlparse
 
@@ -88,16 +89,23 @@ class MyLaunchpad(Generic):
         if involved:
             assigned = created = True
         issues: list[Issue] = []
-        if assigned:
+
+        def get_assigned_issues():
             more = self.get_assigned(username)
-            if more is None:
-                return None
-            issues.extend(more)
-        if created:
+            if more is not None:
+                issues.extend(more)
+
+        def get_created_issues():
             more = self.get_created(username)
-            if more is None:
-                return None
-            issues.extend(more)
+            if more is not None:
+                issues.extend(more)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            if assigned:
+                executor.submit(get_assigned_issues)
+            if created:
+                executor.submit(get_created_issues)
+
         return list(set(issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:

@@ -4,6 +4,7 @@ Gitlab
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import urlparse
 
@@ -112,18 +113,36 @@ class MyGitlab(Service):
         if involved:
             assigned = created = True
         issues: list[Issue] = []
-        if assigned:
-            for is_pr in (False, True):
+
+        def get_issues(is_pr: bool, is_assigned: bool):
+            if is_assigned:
                 more = self.get_assigned(username, pull_requests=is_pr, state=state)
-                if more is None:
-                    return None
-                issues.extend(more)
-        if created:
-            for is_pr in (False, True):
+            else:
                 more = self.get_created(username, pull_requests=is_pr, state=state)
+            return more
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            if assigned:
+                futures.append(
+                    executor.submit(get_issues, False, True)
+                )  # Get assigned non-PR issues
+                futures.append(
+                    executor.submit(get_issues, True, True)
+                )  # Get assigned PR issues
+            if created:
+                futures.append(
+                    executor.submit(get_issues, False, False)
+                )  # Get created non-PR issues
+                futures.append(
+                    executor.submit(get_issues, True, False)
+                )  # Get created PR issues
+            for future in futures:
+                more = future.result()
                 if more is None:
                     return None
                 issues.extend(more)
+
         return list(set(issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
