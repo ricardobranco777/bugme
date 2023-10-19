@@ -36,37 +36,60 @@ class MyGithub(Service):
         except (AttributeError, GithubException):
             pass
 
+    def get_assigned(
+        self, username: str = "", state: str = "open", **_
+    ) -> list[Issue] | None:
+        """
+        Get assigned issues
+        """
+        return self.get_user_issues(
+            username, assigned=True, involved=False, state=state
+        )
+
+    def get_created(
+        self, username: str = "", state: str = "open", **_
+    ) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        return self.get_user_issues(username, created=True, involved=False, state=state)
+
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
         username: str = "",
         assigned: bool = False,
         created: bool = False,
         involved: bool = True,
-        pull_requests: bool = False,
         state: str = "open",
         **_,
     ) -> list[Issue] | None:
         """
         Get user issues
         """
-        issue_type = "pr" if pull_requests else "issue"
-        filters = f"state:{state} type:{issue_type} "
+        base_filters = f"state:{state} "
         if involved:
-            filters += "involves"
+            base_filters += "involves"
         elif assigned:
-            filters += "assignee"
+            base_filters += "assignee"
         elif created:
-            filters += "author"
+            base_filters += "author"
+        issues: list[Issue] = []
         try:
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
-            filters = f"{filters}:{user.login}"
-            issues = self.client.search_issues(filters)
+            base_filters = f"{base_filters}:{user.login}"
+            for issue_type in ("pr", "issue"):
+                filters = f"{base_filters} type:{issue_type}"
+                more = self.client.search_issues(filters)
+                issues.extend(
+                    self._to_issue(issue, is_pr=bool(issue_type == "pr"))
+                    for issue in more
+                )
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
             return None
-        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
+        return issues
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

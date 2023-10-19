@@ -65,6 +65,14 @@ class Issue:  # pylint: disable=too-few-public-methods
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
+    # The __eq__ & __hash__ methods allows us to use sets
+
+    def __eq__(self, other) -> bool:
+        return self.url == other.url  # pylint: disable=no-member
+
+    def __hash__(self) -> int:
+        return hash(self.url)  # pylint: disable=no-member
+
     def __repr__(self):
         attrs = ", ".join(f"{attr}={getattr(self, attr)!r}" for attr in vars(self))
         return f"{self.__class__.__name__}({attrs})"
@@ -185,6 +193,18 @@ class Service:
         This method must be overriden if get_issues() isn't overriden
         """
         raise NotImplementedError(f"{self.__class__.__name__}: get_issue()")
+
+    def get_assigned(self, **_) -> list[Issue] | None:
+        """
+        Get assigned issues
+        """
+        return []
+
+    def get_created(self, **_) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        return []
 
     def get_user_issues(self, **_) -> list[Issue] | None:
         """

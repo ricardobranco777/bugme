@@ -73,13 +73,52 @@ class MyPagure(Generic):
             url, params=params, key="requests", next_key="pagination"
         )
 
+    def get_assigned(
+        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
+    ) -> list[Issue] | None:
+        """
+        Get assigned issues
+        """
+        username = username or self.username
+        filters = {
+            "status": state,
+        }
+        try:
+            if pull_requests:
+                issues = self._get_pullrequests(username, created=False, **filters)
+            else:
+                issues = self._get_issues(username, assignee=1, author=0, **filters)
+        except RequestException as exc:
+            logging.error("Pagure: %s: get_assigned(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
+
+    def get_created(
+        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
+    ) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        username = username or self.username
+        filters = {
+            "status": state,
+        }
+        try:
+            if pull_requests:
+                issues = self._get_pullrequests(username, created=True, **filters)
+            else:
+                issues = self._get_issues(username, assignee=0, author=1, **filters)
+        except RequestException as exc:
+            logging.error("Pagure: %s: get_created(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
+
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
         username: str = "",
         assigned: bool = False,
         created: bool = False,
         involved: bool = True,
-        pull_requests: bool = False,
         state: str = "Open",
         **_,
     ) -> list[Issue] | None:
@@ -88,42 +127,20 @@ class MyPagure(Generic):
         """
         if involved:
             assigned = created = True
-        username = username or self.username
-        filters = {
-            "status": state,
-        }
-        issues = []
-        try:
-            if pull_requests:
-                if assigned:
-                    issues = self._get_pullrequests(username, created=False, **filters)
-                found_ids = {i["id"] for i in issues}
-                if created:
-                    issues.extend(
-                        issue
-                        for issue in self._get_pullrequests(
-                            username, created=True, **filters
-                        )
-                        if issue["id"] not in found_ids
-                    )
-            else:
-                if assigned:
-                    issues = self._get_issues(username, assignee=1, author=0, **filters)
-                found_ids = {i["id"] for i in issues}
-                if created:
-                    issues.extend(
-                        issue
-                        for issue in self._get_issues(
-                            username, assignee=0, author=1, **filters
-                        )
-                        if issue["id"] not in found_ids
-                    )
-        except RequestException as exc:
-            logging.error(
-                "Pagure: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
-            return None
-        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
+        issues: list[Issue] = []
+        if assigned:
+            for is_pr in (False, True):
+                more = self.get_assigned(username, pull_requests=is_pr, state=state)
+                if more is None:
+                    return None
+                issues.extend(more)
+        if created:
+            for is_pr in (False, True):
+                more = self.get_created(username, pull_requests=is_pr, state=state)
+                if more is None:
+                    return None
+                issues.extend(more)
+        return list(set(issues))
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", "") or info["project"]["fullname"]

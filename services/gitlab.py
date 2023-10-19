@@ -45,21 +45,12 @@ class MyGitlab(Service):
         except (AttributeError, GitlabError):
             pass
 
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        pull_requests: bool = False,
-        state: str = "opened",
-        **_,
+    def get_assigned(
+        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
     ) -> list[Issue] | None:
         """
-        Get user issues
+        Get assigned issues
         """
-        if involved:
-            assigned = created = True
         filters = {
             "all": True,  # No pagination
             "state": state,
@@ -70,37 +61,70 @@ class MyGitlab(Service):
                 user = self.client.users.list(username=username)[0]  # type: ignore
             else:
                 user = self.client.user
-            if assigned:
-                if pull_requests:
-                    issues = list(
-                        self.client.mergerequests.list(assignee_id=user.id, **filters)
-                    )
-                else:
-                    issues = list(
-                        self.client.issues.list(assignee_id=user.id, **filters)
-                    )
-            found_ids = {i.iid for i in issues}
-            if created:
-                if pull_requests:
-                    issues.extend(
-                        issue
-                        for issue in self.client.mergerequests.list(
-                            author=user.id, **filters
-                        )
-                        if issue.iid not in found_ids
-                    )
-                else:
-                    issues.extend(
-                        issue
-                        for issue in self.client.issues.list(author=user.id, **filters)
-                        if issue.iid not in found_ids
-                    )
+            if pull_requests:
+                issues = list(
+                    self.client.mergerequests.list(assignee_id=user.id, **filters)
+                )
+            else:
+                issues = list(self.client.issues.list(assignee_id=user.id, **filters))
         except (GitlabError, RequestException) as exc:
-            logging.error(
-                "Gitlab: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
+            logging.error("Gitlab: %s: get_assigned(%s): %s", self.url, username, exc)
             return None
         return [self._to_issue(issue) for issue in issues]
+
+    def get_created(
+        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
+    ) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        filters = {
+            "all": True,  # No pagination
+            "state": state,
+        }
+        issues: list[Any] = []
+        try:
+            if username:
+                user = self.client.users.list(username=username)[0]  # type: ignore
+            else:
+                user = self.client.user
+            if pull_requests:
+                issues = list(self.client.mergerequests.list(author=user.id, **filters))
+            else:
+                issues = list(self.client.issues.list(author=user.id, **filters))
+        except (GitlabError, RequestException) as exc:
+            logging.error("Gitlab: %s: get_created(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue) for issue in issues]
+
+    def get_user_issues(  # pylint: disable=too-many-arguments
+        self,
+        username: str = "",
+        assigned: bool = False,
+        created: bool = False,
+        involved: bool = True,
+        state: str = "opened",
+        **_,
+    ) -> list[Issue] | None:
+        """
+        Get user issues
+        """
+        if involved:
+            assigned = created = True
+        issues: list[Issue] = []
+        if assigned:
+            for is_pr in (False, True):
+                more = self.get_assigned(username, pull_requests=is_pr, state=state)
+                if more is None:
+                    return None
+                issues.extend(more)
+        if created:
+            for is_pr in (False, True):
+                more = self.get_created(username, pull_requests=is_pr, state=state)
+                if more is None:
+                    return None
+                issues.extend(more)
+        return list(set(issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

@@ -42,6 +42,18 @@ class MyJira(Service):
             issues.extend(data["issues"])
         return issues
 
+    def get_assigned(self, username: str = "", **_) -> list[Issue] | None:
+        """
+        Get assigned issues
+        """
+        return self.get_user_issues(username, assigned=True, involved=False)
+
+    def get_created(self, username: str = "", **_) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        return self.get_user_issues(username, created=True, involved=False)
+
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
         username: str = "",

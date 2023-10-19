@@ -36,6 +36,30 @@ class MyRedmine(Service):
         except AttributeError:
             pass
 
+    def get_assigned(self, username: str = "me", **_) -> list[Issue] | None:
+        """
+        Get assigned issues
+        """
+        try:
+            user = self.client.user.get(username)
+            issues = self.client.issue.filter(assigned_to_id=user.id)
+        except (BaseRedmineError, RequestException) as exc:
+            logging.error("Redmine: %s: get_assigned(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue) for issue in issues]
+
+    def get_created(self, username: str = "me", **_) -> list[Issue] | None:
+        """
+        Get created issues
+        """
+        try:
+            user = self.client.user.get(username)
+            issues = self.client.issue.filter(author_id=user.id)
+        except (BaseRedmineError, RequestException) as exc:
+            logging.error("Redmine: %s: get_created(%s): %s", self.url, username, exc)
+            return None
+        return [self._to_issue(issue) for issue in issues]
+
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
         username: str = "me",
@@ -49,24 +73,18 @@ class MyRedmine(Service):
         """
         if involved:
             assigned = created = True
-        issues = []
-        try:
-            user = self.client.user.get(username)
-            if assigned:
-                issues = list(self.client.issue.filter(assigned_to_id=user.id))
-            found_ids = {i.id for i in issues}
-            if created:
-                issues.extend(
-                    issue
-                    for issue in self.client.issue.filter(author_id=user.id)
-                    if issue.id not in found_ids
-                )
-        except (BaseRedmineError, RequestException) as exc:
-            logging.error(
-                "Redmine: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
-            return None
-        return [self._to_issue(issue) for issue in issues]
+        issues: list[Issue] = []
+        if assigned:
+            more = self.get_assigned(username)
+            if more is None:
+                return None
+            issues.extend(more)
+        if created:
+            more = self.get_created(username)
+            if more is None:
+                return None
+            issues.extend(more)
+        return list(set(issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
