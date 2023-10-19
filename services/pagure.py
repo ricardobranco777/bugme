@@ -3,7 +3,6 @@ Pagure
 """
 
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from requests.exceptions import RequestException
@@ -125,30 +124,13 @@ class MyPagure(Generic):
         """
         Get user issues
         """
-        if involved:
-            assigned = created = True
-        all_issues: list[Issue] = []
-
-        def get_issues(is_pr: bool, is_assigned: bool) -> list[Issue] | None:
-            if is_assigned:
-                return self.get_assigned(username, pull_requests=is_pr, **kwargs)
-            return self.get_created(username, pull_requests=is_pr, **kwargs)
-
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
-            if assigned:
-                futures.append(executor.submit(get_issues, False, True))
-                futures.append(executor.submit(get_issues, True, True))
-            if created:
-                futures.append(executor.submit(get_issues, False, False))
-                futures.append(executor.submit(get_issues, True, False))
-            for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
-
-        return list(set(all_issues))
+        return self._get_user_issues4(
+            username=username,
+            assigned=assigned,
+            created=created,
+            involved=involved,
+            **kwargs,
+        )
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", "") or info["project"]["fullname"]

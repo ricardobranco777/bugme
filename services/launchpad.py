@@ -3,7 +3,6 @@ Launchpad
 """
 
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import urlparse
 
@@ -81,34 +80,18 @@ class MyLaunchpad(Generic):
         assigned: bool = False,
         created: bool = False,
         involved: bool = True,
-        **_,
+        **kwargs,
     ) -> list[Issue] | None:
         """
         Get user issues
         """
-        if involved:
-            assigned = created = True
-        all_issues: list[Issue] = []
-
-        def get_assigned_issues() -> list[Issue] | None:
-            return self.get_assigned(username)
-
-        def get_created_issues() -> list[Issue] | None:
-            return self.get_created(username)
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = []
-            if assigned:
-                futures.append(executor.submit(get_assigned_issues))
-            if created:
-                futures.append(executor.submit(get_created_issues))
-            for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
-
-        return list(set(all_issues))
+        return self._get_user_issues2(
+            username=username,
+            assigned=assigned,
+            created=created,
+            involved=involved,
+            **kwargs,
+        )
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         if not kwargs.get("repo"):

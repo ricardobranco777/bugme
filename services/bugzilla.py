@@ -4,7 +4,6 @@ Bugzilla
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from bugzilla import Bugzilla  # type: ignore
@@ -78,37 +77,21 @@ class MyBugzilla(Service):
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
         username: str = "",
-        assigned: bool = True,
-        created: bool = True,
+        assigned: bool = False,
+        created: bool = False,
         involved: bool = True,
         **kwargs,
     ) -> list[Issue] | None:
         """
         Get user issues
         """
-        if involved:
-            assigned = created = True
-        all_issues: list[Issue] = []
-
-        def get_assigned_issues() -> list[Issue] | None:
-            return self.get_assigned(username, **kwargs)
-
-        def get_created_issues() -> list[Issue] | None:
-            return self.get_created(username, **kwargs)
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = []
-            if assigned:
-                futures.append(executor.submit(get_assigned_issues))
-            if created:
-                futures.append(executor.submit(get_created_issues))
-            for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
-
-        return list(set(all_issues))
+        return self._get_user_issues2(
+            username=username,
+            assigned=assigned,
+            created=created,
+            involved=involved,
+            **kwargs,
+        )
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """

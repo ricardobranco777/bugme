@@ -4,7 +4,6 @@ Gitlab
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import urlparse
 
@@ -47,7 +46,11 @@ class MyGitlab(Service):
             pass
 
     def get_assigned(
-        self, username: str = "", pull_requests: bool = False, state: str = "opened", **_
+        self,
+        username: str = "",
+        pull_requests: bool = False,
+        state: str = "opened",
+        **_,
     ) -> list[Issue] | None:
         """
         Get assigned issues
@@ -74,7 +77,11 @@ class MyGitlab(Service):
         return [self._to_issue(issue) for issue in issues]
 
     def get_created(
-        self, username: str = "", pull_requests: bool = False, state: str = "opened", **_
+        self,
+        username: str = "",
+        pull_requests: bool = False,
+        state: str = "opened",
+        **_,
     ) -> list[Issue] | None:
         """
         Get created issues
@@ -109,30 +116,13 @@ class MyGitlab(Service):
         """
         Get user issues
         """
-        if involved:
-            assigned = created = True
-        all_issues: list[Issue] = []
-
-        def get_issues(is_pr: bool, is_assigned: bool) -> list[Issue] | None:
-            if is_assigned:
-                return self.get_assigned(username, pull_requests=is_pr, **kwargs)
-            return self.get_created(username, pull_requests=is_pr, **kwargs)
-
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
-            if assigned:
-                futures.append(executor.submit(get_issues, False, True))
-                futures.append(executor.submit(get_issues, True, True))
-            if created:
-                futures.append(executor.submit(get_issues, False, False))
-                futures.append(executor.submit(get_issues, True, False))
-            for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
-
-        return list(set(all_issues))
+        return self._get_user_issues4(
+            username=username,
+            assigned=assigned,
+            created=created,
+            involved=involved,
+            **kwargs,
+        )
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
