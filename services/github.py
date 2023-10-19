@@ -4,6 +4,7 @@ Github
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from github import Github, GithubException  # , Auth
@@ -73,23 +74,36 @@ class MyGithub(Service):
             base_filters += "assignee"
         elif created:
             base_filters += "author"
-        issues: list[Issue] = []
+        all_issues: list[Issue] = []
         try:
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
             base_filters = f"{base_filters}:{user.login}"
-            for issue_type in ("pr", "issue"):
-                filters = f"{base_filters} type:{issue_type}"
-                more = self.client.search_issues(filters)
-                issues.extend(
-                    self._to_issue(issue, is_pr=bool(issue_type == "pr"))
-                    for issue in more
-                )
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
             return None
-        return issues
+
+        def get_issues(issue_type: str) -> list[Issue] | None:
+            filters = f"{base_filters} type:{issue_type}"
+            try:
+                issues = self.client.search_issues(filters)
+            except (GithubException, RequestException) as exc:
+                logging.error("Github: get_user_issues(%s): %s", username, exc)
+                return None
+            return [
+                self._to_issue(issue, is_pr=bool(issue_type == "pr"))
+                for issue in issues
+            ]
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = executor.map(get_issues, ("issue", "pr"))
+            for result in results:
+                if result is None:
+                    return None
+                all_issues.extend(result)
+
+        return all_issues
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
