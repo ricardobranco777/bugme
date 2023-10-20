@@ -4,7 +4,9 @@ Gitea
 
 import logging
 from typing import Any
+from urllib.parse import urlparse, parse_qs
 
+from concurrent.futures import ThreadPoolExecutor
 from requests.utils import parse_header_links
 from requests.exceptions import RequestException
 
@@ -25,15 +27,27 @@ class MyGitea(Generic):
         self.pr_api_url = f"{self.url}/api/v1/repos/{{repo}}/pulls/{{issue}}"
         self.pr_web_url = f"{self.url}/{{repo}}/pulls/{{issue}}"
 
-    def _get_paginated(self, url: str, params: dict[str, str]) -> list[dict]:
+    def _get_paginated(self, url: str, params: dict[str, str] | None) -> list[dict]:
+        if params is None:
+            params = {}
+        if "limit" not in params:
+            params["limit"] = str(100)
         entries: list[dict] = []
         while True:
             got = self.session.get(url, params=params)
             got.raise_for_status()
             entries.extend(got.json())
-            # Find the link with "rel" set to "next"
             if "Link" in got.headers:
                 links = parse_header_links(got.headers["Link"])
+                last_link = next(
+                    (link["url"] for link in links if link.get("rel") == "last"), None
+                )
+                if last_link is not None:
+                    more_entries = self._get_paginated2(last_link, params=params)
+                    if more_entries is None:
+                        return None
+                    entries.extend(more_entries)
+                    return entries
                 next_link = next(
                     (link["url"] for link in links if link.get("rel") == "next"), None
                 )
@@ -42,6 +56,35 @@ class MyGitea(Generic):
                     params = {}
                     continue
             break
+        return entries
+
+    def _get_paginated2(self, url: str, params: dict[str, str] | None) -> list[dict]:
+        """
+        Get pages 2 to last using threads
+        """
+        if params is None:
+            params = {}
+        entries: list[dict] = []
+        parsed_url = urlparse(url)
+        last_page = int(parse_qs(parsed_url.query)["page"][0])
+        url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
+        def get_page(page: int) -> list[dict]:
+            try:
+                params["page"] = str(page)
+                got = self.session.get(url, params=params)
+                got.raise_for_status()
+                return got.json()
+            except RequestException as exc:
+                logging.error("Gitea: Error while fetching page %d: %s", page, exc)
+            return []
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            pages_to_fetch = range(2, last_page + 1)
+            results = executor.map(get_page, pages_to_fetch)
+            for result in results:
+                entries.extend(result)
+
         return entries
 
     # Not possible to filter issues by username because of:
