@@ -42,13 +42,13 @@ class MyJira(Service):
             issues.extend(data["issues"])
         return issues
 
-    def get_assigned(self, username: str = "", **_) -> list[Issue] | None:
+    def get_assigned(self, username: str = "", **_) -> list[Issue]:
         """
         Get assigned issues
         """
         return self.get_user_issues(username, assigned=True, involved=False)
 
-    def get_created(self, username: str = "", **_) -> list[Issue] | None:
+    def get_created(self, username: str = "", **_) -> list[Issue]:
         """
         Get created issues
         """
@@ -61,7 +61,7 @@ class MyJira(Service):
         created: bool = False,
         involved: bool = True,
         **_,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """
@@ -76,7 +76,7 @@ class MyJira(Service):
             issues = self._get_issues(filters)
         except (ApiError, RequestException) as exc:
             logging.error("Jira: %s: get_user_issues(%s): %s", self.url, username, exc)
-            return None
+            return []
         return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:

@@ -37,9 +37,7 @@ class MyGithub(Service):
         except (AttributeError, GithubException):
             pass
 
-    def get_assigned(
-        self, username: str = "", state: str = "open", **_
-    ) -> list[Issue] | None:
+    def get_assigned(self, username: str = "", state: str = "open", **_) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -47,9 +45,7 @@ class MyGithub(Service):
             username, assigned=True, involved=False, state=state
         )
 
-    def get_created(
-        self, username: str = "", state: str = "open", **_
-    ) -> list[Issue] | None:
+    def get_created(self, username: str = "", state: str = "open", **_) -> list[Issue]:
         """
         Get created issues
         """
@@ -63,7 +59,7 @@ class MyGithub(Service):
         involved: bool = True,
         state: str = "open",
         **_,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """
@@ -82,15 +78,15 @@ class MyGithub(Service):
             base_filters = f"{base_filters}:{user.login}"
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
-            return None
+            return []
 
-        def get_issues(issue_type: str) -> list[Issue] | None:
+        def get_issues(issue_type: str) -> list[Issue]:
             filters = f"{base_filters} type:{issue_type}"
             try:
                 issues = self.client.search_issues(filters)
             except (GithubException, RequestException) as exc:
                 logging.error("Github: get_user_issues(%s): %s", username, exc)
-                return None
+                return []
             return [
                 self._to_issue(issue, is_pr=bool(issue_type == "pr"))
                 for issue in issues
@@ -99,8 +95,6 @@ class MyGithub(Service):
         with ThreadPoolExecutor(max_workers=2) as executor:
             results = executor.map(get_issues, ("issue", "pr"))
             for result in results:
-                if result is None:
-                    return None
                 all_issues.extend(result)
 
         return all_issues

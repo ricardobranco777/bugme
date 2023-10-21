@@ -42,7 +42,7 @@ class MyBugzilla(Service):
 
     def get_assigned(
         self, username: str = "", closed: bool = False, **_
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -52,14 +52,12 @@ class MyBugzilla(Service):
             issues = self.client.query({"assigned_to": user.email})
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_assigned(%s): %s", self.url, username, exc)
-            return None
+            return []
         if not closed:
             issues = [issue for issue in issues if issue.is_open]
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(
-        self, username: str = "", closed: bool = False, **_
-    ) -> list[Issue] | None:
+    def get_created(self, username: str = "", closed: bool = False, **_) -> list[Issue]:
         """
         Get created issues
         """
@@ -69,7 +67,7 @@ class MyBugzilla(Service):
             issues = self.client.query({"reporter": user.email})
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_created(%s): %s", self.url, username, exc)
-            return None
+            return []
         if not closed:
             issues = [issue for issue in issues if issue.is_open]
         return [self._to_issue(issue) for issue in issues]
@@ -81,7 +79,7 @@ class MyBugzilla(Service):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """

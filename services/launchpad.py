@@ -32,7 +32,7 @@ class MyLaunchpad(Generic):
         self.tag = "lp"
         self.username = creds.get("username", "")
 
-    def get_assigned(self, username: str = "", **_) -> list[Issue] | None:
+    def get_assigned(self, username: str = "", **_) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -50,10 +50,10 @@ class MyLaunchpad(Generic):
             issues = got.json()["entries"]
         except RequestException as exc:
             logging.error("Launchpad: get_assigned(%s): %s", username, exc)
-            return None
+            return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(self, username: str = "", **_) -> list[Issue] | None:
+    def get_created(self, username: str = "", **_) -> list[Issue]:
         """
         Get created issues
         """
@@ -71,7 +71,7 @@ class MyLaunchpad(Generic):
             issues = got.json()["entries"]
         except RequestException as exc:
             logging.error("Launchpad: get_created(%s): %s", username, exc)
-            return None
+            return []
         return [self._to_issue(issue) for issue in issues]
 
     def get_user_issues(  # pylint: disable=too-many-arguments
@@ -81,7 +81,7 @@ class MyLaunchpad(Generic):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """

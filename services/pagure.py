@@ -113,7 +113,7 @@ class MyPagure(Generic):
 
     def get_assigned(
         self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -128,12 +128,12 @@ class MyPagure(Generic):
                 issues = self._get_issues(username, assignee=1, author=0, **filters)
         except RequestException as exc:
             logging.error("Pagure: %s: get_assigned(%s): %s", self.url, username, exc)
-            return None
+            return []
         return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
     def get_created(
         self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get created issues
         """
@@ -148,7 +148,7 @@ class MyPagure(Generic):
                 issues = self._get_issues(username, assignee=0, author=1, **filters)
         except RequestException as exc:
             logging.error("Pagure: %s: get_created(%s): %s", self.url, username, exc)
-            return None
+            return []
         return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
     def get_user_issues(  # pylint: disable=too-many-arguments
@@ -158,7 +158,7 @@ class MyPagure(Generic):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """

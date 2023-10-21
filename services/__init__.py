@@ -195,18 +195,18 @@ class Service:
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """
         if involved:
             assigned = created = True
-        all_issues: list[Issue] = []
+        issues: list[Issue] = []
 
-        def get_assigned_issues() -> list[Issue] | None:
+        def get_assigned_issues() -> list[Issue]:
             return self.get_assigned(username, **kwargs)
 
-        def get_created_issues() -> list[Issue] | None:
+        def get_created_issues() -> list[Issue]:
             return self.get_created(username, **kwargs)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
@@ -216,12 +216,9 @@ class Service:
             if created:
                 futures.append(executor.submit(get_created_issues))
             for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
+                issues.extend(future.result())
 
-        return list(set(all_issues))
+        return list(set(issues))
 
     def _get_user_issues4(  # pylint: disable=too-many-arguments
         self,
@@ -230,15 +227,15 @@ class Service:
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """
         if involved:
             assigned = created = True
-        all_issues: list[Issue] = []
+        issues: list[Issue] = []
 
-        def get_issues(is_pr: bool, is_assigned: bool) -> list[Issue] | None:
+        def get_issues(is_pr: bool, is_assigned: bool) -> list[Issue]:
             if is_assigned:
                 return self.get_assigned(username, pull_requests=is_pr, **kwargs)
             return self.get_created(username, pull_requests=is_pr, **kwargs)
@@ -252,12 +249,9 @@ class Service:
                 futures.append(executor.submit(get_issues, False, False))
                 futures.append(executor.submit(get_issues, True, False))
             for future in futures:
-                issues = future.result()
-                if issues is None:
-                    return None
-                all_issues.extend(issues)
+                issues.extend(future.result())
 
-        return list(set(all_issues))
+        return list(set(issues))
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
@@ -267,7 +261,7 @@ class Service:
 
     def get_assigned(
         self, username: str = "", **_  # pylint: disable=unused-argument
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -275,13 +269,13 @@ class Service:
 
     def get_created(
         self, username: str = "", **_  # pylint: disable=unused-argument
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get created issues
         """
         return []
 
-    def get_user_issues(self, **_) -> list[Issue] | None:
+    def get_user_issues(self, **_) -> list[Issue]:
         """
         Get user issues
         """

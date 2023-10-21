@@ -51,7 +51,7 @@ class MyGitlab(Service):
         pull_requests: bool = False,
         state: str = "opened",
         **_,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -73,7 +73,6 @@ class MyGitlab(Service):
                 issues = list(self.client.issues.list(assignee_id=user.id, **filters))
         except (GitlabError, RequestException) as exc:
             logging.error("Gitlab: %s: get_assigned(%s): %s", self.url, username, exc)
-            return None
         return [self._to_issue(issue) for issue in issues]
 
     def get_created(
@@ -82,7 +81,7 @@ class MyGitlab(Service):
         pull_requests: bool = False,
         state: str = "opened",
         **_,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get created issues
         """
@@ -102,7 +101,6 @@ class MyGitlab(Service):
                 issues = list(self.client.issues.list(author=user.id, **filters))
         except (GitlabError, RequestException) as exc:
             logging.error("Gitlab: %s: get_created(%s): %s", self.url, username, exc)
-            return None
         return [self._to_issue(issue) for issue in issues]
 
     def get_user_issues(  # pylint: disable=too-many-arguments
@@ -112,7 +110,7 @@ class MyGitlab(Service):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """

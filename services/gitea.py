@@ -106,7 +106,7 @@ class MyGitea(Generic):
 
     def get_assigned(
         self, username: str = "", pull_requests: bool = False, state: str = "open", **_
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -117,11 +117,11 @@ class MyGitea(Generic):
             )
         except RequestException as exc:
             logging.error("Gitea: %s: get_assigned(%s): %s", self.url, username, exc)
-        return None
+        return []
 
     def get_created(
         self, username: str = "", pull_requests: bool = False, state: str = "open", **_
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get created issues
         """
@@ -132,7 +132,7 @@ class MyGitea(Generic):
             )
         except RequestException as exc:
             logging.error("Gitea: %s: get_created(%s): %s", self.url, username, exc)
-        return None
+        return []
 
     def get_user_issues(  # pylint: disable=too-many-arguments
         self,
@@ -141,7 +141,7 @@ class MyGitea(Generic):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """

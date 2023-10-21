@@ -36,7 +36,7 @@ class MyRedmine(Service):
         except AttributeError:
             pass
 
-    def get_assigned(self, username: str = "me", **_) -> list[Issue] | None:
+    def get_assigned(self, username: str = "me", **_) -> list[Issue]:
         """
         Get assigned issues
         """
@@ -45,10 +45,10 @@ class MyRedmine(Service):
             issues = self.client.issue.filter(assigned_to_id=user.id)
         except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_assigned(%s): %s", self.url, username, exc)
-            return None
+            return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(self, username: str = "me", **_) -> list[Issue] | None:
+    def get_created(self, username: str = "me", **_) -> list[Issue]:
         """
         Get created issues
         """
@@ -57,7 +57,7 @@ class MyRedmine(Service):
             issues = self.client.issue.filter(author_id=user.id)
         except (BaseRedmineError, RequestException) as exc:
             logging.error("Redmine: %s: get_created(%s): %s", self.url, username, exc)
-            return None
+            return []
         return [self._to_issue(issue) for issue in issues]
 
     def get_user_issues(  # pylint: disable=too-many-arguments
@@ -67,7 +67,7 @@ class MyRedmine(Service):
         created: bool = False,
         involved: bool = True,
         **kwargs,
-    ) -> list[Issue] | None:
+    ) -> list[Issue]:
         """
         Get user issues
         """
