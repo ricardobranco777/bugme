@@ -32,14 +32,13 @@ class MyGitea(Generic):
             params = {}
         if "limit" not in params:
             params["limit"] = "100"
-        entries: list[dict] = []
         try:
             got = self.session.get(url, params=params)
             got.raise_for_status()
         except RequestException as exc:
             logging.error("Pagure: %s: Error while fetching page 1: %s", url, exc)
             raise
-        entries.extend(got.json())
+        entries: list[dict] = got.json()
         if "Link" in got.headers:
             links = parse_header_links(got.headers["Link"])
             last_link = next(
@@ -47,11 +46,7 @@ class MyGitea(Generic):
             )
             if last_link is not None:
                 last_page = int(parse_qs(urlparse(last_link).query)["page"][0])
-                more_entries = self._get_paginated2(url, params, last_page)
-                if more_entries is None:
-                    return None
-                entries.extend(more_entries)
-                return entries
+                entries.extend(self._get_paginated2(url, params, last_page))
         return entries
 
     def _get_paginated2(
@@ -63,8 +58,8 @@ class MyGitea(Generic):
         entries: list[dict] = []
 
         def get_page(page: int) -> list[dict]:
+            params["page"] = str(page)
             try:
-                params["page"] = str(page)
                 got = self.session.get(url, params=params)
                 got.raise_for_status()
                 return got.json()
@@ -74,7 +69,10 @@ class MyGitea(Generic):
                 )
             return []
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        if last_page == 2:
+            return get_page(2)
+
+        with ThreadPoolExecutor(max_workers=min(10, last_page - 1)) as executor:
             pages_to_fetch = range(2, last_page + 1)
             results = executor.map(get_page, pages_to_fetch)
             for result in results:
