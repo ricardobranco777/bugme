@@ -63,8 +63,8 @@ class MyGitea(Generic):
         entries: list[dict] = []
 
         def get_page(page: int) -> list[dict]:
+            params["page"] = str(page)
             try:
-                params["page"] = str(page)
                 got = self.session.get(url, params=params)
                 got.raise_for_status()
                 return got.json()
@@ -74,7 +74,7 @@ class MyGitea(Generic):
                 )
             return []
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=min(10, last_page - 1)) as executor:
             pages_to_fetch = range(2, last_page + 1)
             results = executor.map(get_page, pages_to_fetch)
             for result in results:
