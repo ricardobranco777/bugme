@@ -31,43 +31,36 @@ class MyGitea(Generic):
         if params is None:
             params = {}
         if "limit" not in params:
-            params["limit"] = str(100)
+            params["limit"] = "100"
         entries: list[dict] = []
-        while True:
+        try:
             got = self.session.get(url, params=params)
             got.raise_for_status()
-            entries.extend(got.json())
-            if "Link" in got.headers:
-                links = parse_header_links(got.headers["Link"])
-                last_link = next(
-                    (link["url"] for link in links if link.get("rel") == "last"), None
-                )
-                if last_link is not None:
-                    more_entries = self._get_paginated2(last_link, params=params)
-                    if more_entries is None:
-                        return None
-                    entries.extend(more_entries)
-                    return entries
-                next_link = next(
-                    (link["url"] for link in links if link.get("rel") == "next"), None
-                )
-                if next_link:
-                    url = next_link
-                    params = {}
-                    continue
-            break
+        except RequestException as exc:
+            logging.error("Pagure: %s: Error while fetching page 1: %s", url, exc)
+            raise
+        entries.extend(got.json())
+        if "Link" in got.headers:
+            links = parse_header_links(got.headers["Link"])
+            last_link = next(
+                (link["url"] for link in links if link.get("rel") == "last"), None
+            )
+            if last_link is not None:
+                last_page = int(parse_qs(urlparse(last_link).query)["page"][0])
+                more_entries = self._get_paginated2(url, params, last_page)
+                if more_entries is None:
+                    return None
+                entries.extend(more_entries)
+                return entries
         return entries
 
-    def _get_paginated2(self, url: str, params: dict[str, str] | None) -> list[dict]:
+    def _get_paginated2(
+        self, url: str, params: dict[str, str], last_page: int
+    ) -> list[dict]:
         """
         Get pages 2 to last using threads
         """
-        if params is None:
-            params = {}
         entries: list[dict] = []
-        parsed_url = urlparse(url)
-        last_page = int(parse_qs(parsed_url.query)["page"][0])
-        url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
         def get_page(page: int) -> list[dict]:
             try:
@@ -76,7 +69,9 @@ class MyGitea(Generic):
                 got.raise_for_status()
                 return got.json()
             except RequestException as exc:
-                logging.error("Gitea: Error while fetching page %d: %s", page, exc)
+                logging.error(
+                    "Gitea: %s: Error while fetching page %d: %s", url, page, exc
+                )
             return []
 
         with ThreadPoolExecutor(max_workers=10) as executor:

@@ -3,6 +3,7 @@ Pagure
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from requests.exceptions import RequestException
@@ -43,15 +44,52 @@ class MyPagure(Generic):
     def _get_paginated(
         self, url: str, params: dict[str, str], key: str, next_key: str
     ) -> list[dict]:
-        got = self.session.get(url, params=params)
-        got.raise_for_status()
+        if "per_page" not in params:
+            params["per_page"] = "100"
+        try:
+            got = self.session.get(url, params=params)
+            got.raise_for_status()
+        except RequestException as exc:
+            logging.error("Pagure: %s: Error while fetching page 1: %s", url, exc)
+            raise
         data = got.json()
         entries = data[key]
-        while data[next_key]["next"]:
-            got = self.session.get(data[next_key]["next"], params=params)
-            got.raise_for_status()
-            data = got.json()
-            entries.extend(data[key])
+        if data[next_key]["next"] and data[next_key]["last"]:
+            more_entries = self._get_paginated2(
+                url, params, key, data[next_key]["pages"]
+            )
+            if more_entries is None:
+                return None
+            entries.extend(more_entries)
+        return entries
+
+    def _get_paginated2(
+        self, url: str, params: dict[str, str], key: str, last_page: int
+    ) -> list[dict]:
+        """
+        Get pages 2 to last using threads
+        """
+        entries: list[dict] = []
+
+        def get_page(page: int) -> list[dict]:
+            try:
+                params["page"] = str(page)
+                got = self.session.get(url, params=params)
+                got.raise_for_status()
+                data = got.json()
+                return data[key]
+            except RequestException as exc:
+                logging.error(
+                    "Pagure: %s: Error while fetching page %d: %s", url, page, exc
+                )
+            return []
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            pages_to_fetch = range(2, last_page + 1)
+            results = executor.map(get_page, pages_to_fetch)
+            for result in results:
+                entries.extend(result)
+
         return entries
 
     def _get_issues(self, username: str, **params) -> list[dict]:
