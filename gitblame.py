@@ -89,17 +89,28 @@ class GitBlame:
                     timeout=self.timeout,
                     json={"query": _QUERY, "variables": variables},
                 )
+                # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#conditional-requests
                 if (
-                    response.status_code == 403
-                    and "X-RateLimit-Remaining" in response.headers
+                    "X-RateLimit-Remaining" in response.headers
                     and int(response.headers["X-RateLimit-Remaining"]) == 0
                 ):
                     reset_time = int(response.headers["X-RateLimit-Reset"])
                     wait_time = reset_time - time.time()
+                    logging.info("GitBlame: Waiting %s seconds for %s", wait_time, file)
+                    time.sleep(wait_time)
+                    continue
+                # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#secondary-rate-limits
+                if "Retry-After" in response.headers:
+                    wait_time = int(response.headers["Retry-After"])
+                    logging.info("GitBlame: Waiting %s seconds for %s", wait_time, file)
                     time.sleep(wait_time)
                     continue
                 response.raise_for_status()
-                data = response.json()["data"]
+                try:
+                    data = response.json()["data"]
+                except KeyError:
+                    logging.error("%s: %s: %s", file, response.text, response.headers)
+                    return None
                 return data["repositoryOwner"]["repository"]["object"]["blame"][
                     "ranges"
                 ]

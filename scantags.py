@@ -92,27 +92,28 @@ def check_repo(directory: str, repo_name: str, branch: str, token: str) -> bool:
     return True
 
 
-def grep_file(filename: str, line_regex: re.Pattern) -> Iterator[tuple[str, int, str]]:
+def grep_file(
+    filename: str, line_regex: re.Pattern
+) -> tuple[str, list[tuple[int, str]]]:
     """
     Grep file
     """
-    try:
-        with open(filename, encoding="utf-8") as file:
-            for line_number, line in enumerate(file, start=1):
-                for match in line_regex.findall(line):
-                    yield (filename, line_number, match)
-    except UnicodeError:
-        pass
+    matches = []
+    with open(filename, encoding="utf-8") as file:
+        for line_number, line in enumerate(file, start=1):
+            for match in line_regex.findall(line):
+                matches.append((line_number, match))
+    return filename, matches
 
 
 def grep_files(
     directory: str, filenames: list[str], line_regex: re.Pattern
-) -> Iterator[tuple[str, int, str]]:
+) -> Iterator[tuple[str, list[tuple[int, str]]]]:
     """
     Grep files
     """
     for filename in filenames:
-        yield from grep_file(os.path.join(directory, filename), line_regex)
+        yield grep_file(os.path.join(directory, filename), line_regex)
 
 
 def grep_dir(
@@ -120,7 +121,7 @@ def grep_dir(
     line_regex: re.Pattern,
     file_pattern: str,
     ignore_dirs: list[str] | None = None,
-) -> Iterator[tuple[str, int, str]]:
+) -> Iterator[tuple[str, list[tuple[int, str]]]]:
     """
     Recursive grep
     """
@@ -132,7 +133,7 @@ def grep_dir(
         for file in files:
             if fnmatch.fnmatch(file, file_pattern):
                 file = os.path.join(root, file)
-                yield from grep_file(file, line_regex)
+                yield grep_file(file, line_regex)
 
 
 def scan_tags(  # pylint: disable=too-many-locals
@@ -151,16 +152,30 @@ def scan_tags(  # pylint: disable=too-many-locals
     if not check_repo(directory, owner_repo, branch, token):
         return {}
 
+    file_matches: dict[str, list[tuple[int, str]]] = {}
     with GitBlame(repo=owner_repo, branch=branch, access_token=token) as blame:
+        futures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for file, matches in chain(
+                grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
+                grep_files(directory, INCLUDE_FILES, re.compile(f"({TAG_REGEX})")),
+            ):
+                file = file.removeprefix(f"{directory}/")
+                file_matches[file] = matches
+                futures.append(executor.submit(blame.blame_file, file))
+        concurrent.futures.wait(futures)
 
-        def process_line(
-            file: str, line_number: int, tag: str
-        ) -> tuple[str, dict[str, str | int | datetime]]:
+    tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
+    for file, matches in file_matches.items():
+        for line_number, tag in matches:
+            # build.opensuse.org & bugzilla.novell.com -> bugzilla.suse.com
+            if tag.startswith(("bnc", "boo")):
+                tag = tag.replace("boo", "bsc").replace("bnc", "bsc")
             try:
                 author, email, commit, date = blame.blame_line(file, line_number)
             except KeyError as exc:
                 logging.warning("%s", exc)
-                return tag, {}
+                continue
             info: dict[str, str | int | datetime] = {
                 "file": file,
                 "line_number": line_number,
@@ -170,31 +185,8 @@ def scan_tags(  # pylint: disable=too-many-locals
                 "commit": f"{base_url}/commit/{commit}",
                 "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
             }
-            return tag, info
+            tags[tag].append(info)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            futures = []
-            for file, line_number, tag in chain(
-                grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
-                grep_files(directory, INCLUDE_FILES, re.compile(f"({TAG_REGEX})")),
-            ):
-                file = file.removeprefix(f"{directory}/")
-                futures.append(executor.submit(process_line, file, line_number, tag))
-
-            # Wait for all futures to complete and retrieve results
-            results = [
-                future.result() for future in concurrent.futures.as_completed(futures)
-            ]
-
-    # Group the results by tag in a dictionary
-    tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
-    for tag, info in results:
-        if not info:
-            continue
-        # build.opensuse.org & bugzilla.novell.com -> bugzilla.suse.com
-        if tag.startswith(("bnc", "boo")):
-            tag = tag.replace("boo", "bsc").replace("bnc", "bsc")
-        tags[tag].append(info)
     for files in tags.values():
         files.sort(key=itemgetter("file", "line_number"))
     return tags
