@@ -4,6 +4,7 @@ Module to get Git blame from Github's GraphQL API
 
 import logging
 import os
+import time
 from functools import cache
 from datetime import datetime
 
@@ -79,18 +80,33 @@ class GitBlame:
             "branchName": self.branch,
             "filePath": file,
         }
-        try:
-            response = self.session.post(
-                self.api_url,
-                timeout=self.timeout,
-                json={"query": _QUERY, "variables": variables},
-            )
-            response.raise_for_status()
-            data = response.json()["data"]
-        except RequestException as exc:
-            logging.error("%s: %s", file, exc)
-            return None
-        return data["repositoryOwner"]["repository"]["object"]["blame"]["ranges"]
+        retry = 3
+        while retry:
+            retry -= 1
+            try:
+                response = self.session.post(
+                    self.api_url,
+                    timeout=self.timeout,
+                    json={"query": _QUERY, "variables": variables},
+                )
+                if (
+                    response.status_code == 403
+                    and "X-RateLimit-Remaining" in response.headers
+                    and int(response.headers["X-RateLimit-Remaining"]) == 0
+                ):
+                    reset_time = int(response.headers["X-RateLimit-Reset"])
+                    wait_time = reset_time - time.time()
+                    time.sleep(wait_time)
+                    continue
+                response.raise_for_status()
+                data = response.json()["data"]
+                return data["repositoryOwner"]["repository"]["object"]["blame"][
+                    "ranges"
+                ]
+            except RequestException as exc:
+                logging.error("%s: %s", file, exc)
+                return None
+        return None
 
     def blame_line(self, file: str, line: int) -> tuple[str, str, str, datetime]:
         """
