@@ -27,7 +27,10 @@ class MyJira(Service):
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
 
-    def __del__(self):
+    def close(self):
+        """
+        Close session
+        """
         try:
             self.client.session.close()
         except AttributeError:

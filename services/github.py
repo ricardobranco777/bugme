@@ -31,7 +31,10 @@ class MyGithub(Service):
         if os.getenv("DEBUG"):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
-    def __del__(self):
+    def close(self):
+        """
+        Close session
+        """
         try:
             self.client.close()
         except (AttributeError, GithubException):

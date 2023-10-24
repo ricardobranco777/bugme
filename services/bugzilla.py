@@ -34,7 +34,10 @@ class MyBugzilla(Service):
         if os.getenv("DEBUG"):
             self.client._session._session.hooks["response"].append(debugme)
 
-    def __del__(self):
+    def close(self):
+        """
+        Close session
+        """
         try:
             self.client.disconnect()
         except (AttributeError, BugzillaError):

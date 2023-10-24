@@ -128,6 +128,8 @@ def get_user_issues(
                     and (statuses is None or issue.status in set(statuses))
                 ]
             )
+    for client in clients.values():
+        client.close()
     return all_issues
 
 
@@ -162,6 +164,9 @@ def get_issues(
                     and (statuses is None or issue.status in set(statuses))
                 ]
             )
+
+    for client in clients.values():
+        client.close()
     return all_issues
 
 

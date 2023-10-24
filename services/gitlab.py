@@ -39,9 +39,12 @@ class MyGitlab(Service):
         except (GitlabError, RequestException) as exc:
             logging.error("Gitlab: %s: %s", self.url, exc)
 
-    def __del__(self):
+    def close(self):
+        """
+        Close session
+        """
         try:
-            self.client.__exit__(None, None, None)
+            self.client.session.close()
         except (AttributeError, GitlabError):
             pass
 

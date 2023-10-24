@@ -30,7 +30,10 @@ class MyRedmine(Service):
         if os.getenv("DEBUG"):
             self.client.engine.session.hooks["response"].append(debugme)
 
-    def __del__(self):
+    def close(self):
+        """
+        Close session
+        """
         try:
             self.client.engine.session.close()
         except AttributeError:
