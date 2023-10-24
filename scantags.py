@@ -160,6 +160,8 @@ def scan_tags(  # pylint: disable=too-many-locals
                 grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
                 grep_files(directory, INCLUDE_FILES, re.compile(f"({TAG_REGEX})")),
             ):
+                if not matches:
+                    continue
                 file = file.removeprefix(f"{directory}/")
                 file_matches[file] = matches
                 futures.append(executor.submit(blame.blame_file, file))
