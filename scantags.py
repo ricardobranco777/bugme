@@ -155,7 +155,7 @@ def scan_tags(  # pylint: disable=too-many-locals
     file_matches: dict[str, list[tuple[int, str]]] = {}
     with GitBlame(repo=owner_repo, branch=branch, access_token=token) as blame:
         futures = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             for file, matches in chain(
                 grep_dir(directory, LINE_REGEX, FILE_PATTERN, IGNORE_DIRECTORIES),
                 grep_files(directory, INCLUDE_FILES, re.compile(f"({TAG_REGEX})")),
