@@ -106,17 +106,14 @@ class GitBlame:
                     time.sleep(wait_time)
                     continue
                 response.raise_for_status()
-                try:
-                    data = response.json()["data"]
-                except KeyError:
-                    logging.error("%s: %s: %s", file, response.text, response.headers)
-                    return None
-                return data["repositoryOwner"]["repository"]["object"]["blame"][
-                    "ranges"
-                ]
+                data = response.json()["data"]
             except RequestException as exc:
                 logging.error("%s: %s", file, exc)
                 return None
+            except KeyError:
+                logging.error("%s: %s: %s", file, response.text, response.headers)
+                return None
+            return data["repositoryOwner"]["repository"]["object"]["blame"]["ranges"]
         return None
 
     def blame_line(self, file: str, line: int) -> tuple[str, str, str, datetime]:
