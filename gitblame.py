@@ -4,7 +4,6 @@ Module to get Git blame from Github's GraphQL API
 
 import logging
 import os
-import time
 from functools import cache
 from datetime import datetime
 
@@ -80,40 +79,19 @@ class GitBlame:
             "branchName": self.branch,
             "filePath": file,
         }
-        retry = 3
-        while retry:
-            retry -= 1
-            try:
-                response = self.session.post(
-                    self.api_url,
-                    timeout=self.timeout,
-                    json={"query": _QUERY, "variables": variables},
-                )
-                # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#conditional-requests
-                if (
-                    "X-RateLimit-Remaining" in response.headers
-                    and int(response.headers["X-RateLimit-Remaining"]) == 0
-                ):
-                    reset_time = int(response.headers["X-RateLimit-Reset"])
-                    wait_time = reset_time - time.time()
-                    logging.info("GitBlame: Waiting %s seconds for %s", wait_time, file)
-                    time.sleep(wait_time)
-                    continue
-                # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#secondary-rate-limits
-                if "Retry-After" in response.headers:
-                    wait_time = int(response.headers["Retry-After"])
-                    logging.info("GitBlame: Waiting %s seconds for %s", wait_time, file)
-                    time.sleep(wait_time)
-                    continue
-                response.raise_for_status()
-                data = response.json()["data"]
-            except RequestException as exc:
-                logging.error("%s: %s", file, exc)
-                return None
-            except KeyError:
-                logging.error("%s: %s: %s", file, response.text, response.headers)
-                return None
+        try:
+            response = self.session.post(
+                self.api_url,
+                timeout=self.timeout,
+                json={"query": _QUERY, "variables": variables},
+            )
+            response.raise_for_status()
+            data = response.json()["data"]
             return data["repositoryOwner"]["repository"]["object"]["blame"]["ranges"]
+        except RequestException as exc:
+            logging.error("%s: %s", file, exc)
+        except KeyError:
+            logging.error("%s: %s", file, response.text)
         return None
 
     def blame_line(self, file: str, line: int) -> tuple[str, str, str, datetime]:
