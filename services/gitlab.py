@@ -34,10 +34,6 @@ class MyGitlab(Service):
         self.client = Gitlab(url=self.url, **options)
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
-        try:
-            self.client.auth()
-        except (GitlabError, RequestException) as exc:
-            logging.error("Gitlab: %s: %s", self.url, exc)
 
     def close(self):
         """
