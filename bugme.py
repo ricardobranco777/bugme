@@ -179,7 +179,7 @@ def print_header(output_type: str, output_format: str, fields: dict[str, int]):
         header = html_tag("thead", html_tag("tr", cells))
         print(f"<table>{header}<tbody>")
     elif output_type == "text":
-        print(output_format.format(**{field: field.upper() for field in fields}))
+        print(output_format.format_map({field: field.upper() for field in fields}))
 
 
 def print_issue(
@@ -216,7 +216,7 @@ def print_issue(
             )
             print(html_tag("tr", cells))
     elif output_type == "text":
-        print(output_format.format(**issue.__dict__))
+        print(output_format.format_map(issue.__dict__))
         for info in issue.files:
             print(
                 "\t"
