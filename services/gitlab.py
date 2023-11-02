@@ -68,12 +68,11 @@ class MyGitlab(Service):
                 user = self.client.users.list(username=username)[0]  # type: ignore
             else:
                 user = self.client.user
+            filters["assignee_id"] = user.id
             if pull_requests:
-                issues = list(
-                    self.client.mergerequests.list(assignee_id=user.id, **filters)
-                )
+                issues = list(self.client.mergerequests.list(**filters))
             else:
-                issues = list(self.client.issues.list(assignee_id=user.id, **filters))
+                issues = list(self.client.issues.list(**filters))
         except (GitlabError, RequestException) as exc:
             logging.error("Gitlab: %s: get_assigned(%s): %s", self.url, username, exc)
         return [self._to_issue(issue) for issue in issues]
@@ -98,10 +97,11 @@ class MyGitlab(Service):
                 user = self.client.users.list(username=username)[0]  # type: ignore
             else:
                 user = self.client.user
+            filters["author"] = user.id
             if pull_requests:
-                issues = list(self.client.mergerequests.list(author=user.id, **filters))
+                issues = list(self.client.mergerequests.list(**filters))
             else:
-                issues = list(self.client.issues.list(author=user.id, **filters))
+                issues = list(self.client.issues.list(**filters))
         except (GitlabError, RequestException) as exc:
             logging.error("Gitlab: %s: get_created(%s): %s", self.url, username, exc)
         return [self._to_issue(issue) for issue in issues]
