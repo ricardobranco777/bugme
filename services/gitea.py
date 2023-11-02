@@ -88,11 +88,9 @@ class MyGitea(Generic):
         assigned: bool = False,
         created: bool = False,
         closed: bool = False,
-        pull_requests: bool = False,
     ) -> list[Issue]:
         params: dict[str, Any] = {
             "state": "closed" if closed else "open",
-            "type": "pulls" if pull_requests else "issues",
         }
         # Missing: mentioned, review_requested & reviewed
         if assigned:
@@ -102,34 +100,28 @@ class MyGitea(Generic):
         issues = self._get_paginated(
             f"{self.url}/api/v1/repos/issues/search", params=params
         )
-        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
+        return [
+            self._to_issue(issue, is_pr=bool(issue["pull_request"])) for issue in issues
+        ]
 
-    def get_assigned(
-        self, username: str = "", pull_requests: bool = False, state: str = "open", **_
-    ) -> list[Issue]:
+    def get_assigned(self, username: str = "", state: str = "open", **_) -> list[Issue]:
         """
         Get assigned issues
         """
         username = ""
         try:
-            return self._get_issues(
-                assigned=True, closed=bool(state != "open"), pull_requests=pull_requests
-            )
+            return self._get_issues(assigned=True, closed=bool(state != "open"))
         except RequestException as exc:
             logging.error("Gitea: %s: get_assigned(%s): %s", self.url, username, exc)
         return []
 
-    def get_created(
-        self, username: str = "", pull_requests: bool = False, state: str = "open", **_
-    ) -> list[Issue]:
+    def get_created(self, username: str = "", state: str = "open", **_) -> list[Issue]:
         """
         Get created issues
         """
         username = ""
         try:
-            return self._get_issues(
-                created=True, closed=bool(state != "open"), pull_requests=pull_requests
-            )
+            return self._get_issues(created=True, closed=bool(state != "open"))
         except RequestException as exc:
             logging.error("Gitea: %s: get_created(%s): %s", self.url, username, exc)
         return []
@@ -145,7 +137,7 @@ class MyGitea(Generic):
         """
         Get user issues
         """
-        return self._get_user_issues4(
+        return self._get_user_issues2(
             username=username,
             assigned=assigned,
             created=created,
