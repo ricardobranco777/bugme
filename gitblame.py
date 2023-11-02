@@ -56,6 +56,7 @@ class GitBlame:
         self.timeout = 30
         if os.getenv("DEBUG"):
             self.session.hooks["response"].append(debugme)
+        self.blame_file = cache(self._blame_file)
 
     def __enter__(self):
         return self
@@ -65,14 +66,11 @@ class GitBlame:
             self.session.close()
         except RequestException:
             pass
+        self.blame_file.cache_clear()
         if exc_type is not None:
             logging.error("GitBlame: %s: %s: %s", exc_type, exc_value, traceback)
 
-    @cache  # pylint: disable=method-cache-max-size-none
-    def blame_file(self, file: str) -> dict | None:
-        """
-        Blame file
-        """
+    def _blame_file(self, file: str) -> dict | None:
         variables = {
             "owner": self.owner,
             "repositoryName": self.repo,
