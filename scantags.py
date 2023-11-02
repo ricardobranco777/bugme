@@ -167,27 +167,27 @@ def scan_tags(  # pylint: disable=too-many-locals
                 futures.append(executor.submit(blame.blame_file, file))
         concurrent.futures.wait(futures)
 
-    tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
-    for file, matches in file_matches.items():
-        for line_number, tag in matches:
-            # build.opensuse.org & bugzilla.novell.com -> bugzilla.suse.com
-            if tag.startswith(("bnc", "boo")):
-                tag = tag.replace("boo", "bsc").replace("bnc", "bsc")
-            try:
-                author, email, commit, date = blame.blame_line(file, line_number)
-            except KeyError as exc:
-                logging.warning("%s", exc)
-                continue
-            info: dict[str, str | int | datetime] = {
-                "file": file,
-                "line_number": line_number,
-                "author": author,
-                "email": email,
-                "date": utc_date(date),
-                "commit": f"{base_url}/commit/{commit}",
-                "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
-            }
-            tags[tag].append(info)
+        tags: dict[str, list[dict[str, str | int | datetime]]] = defaultdict(list)
+        for file, matches in file_matches.items():
+            for line_number, tag in matches:
+                # build.opensuse.org & bugzilla.novell.com -> bugzilla.suse.com
+                if tag.startswith(("bnc", "boo")):
+                    tag = tag.replace("boo", "bsc").replace("bnc", "bsc")
+                try:
+                    author, email, commit, date = blame.blame_line(file, line_number)
+                except KeyError as exc:
+                    logging.warning("%s", exc)
+                    continue
+                info: dict[str, str | int | datetime] = {
+                    "file": file,
+                    "line_number": line_number,
+                    "author": author,
+                    "email": email,
+                    "date": utc_date(date),
+                    "commit": f"{base_url}/commit/{commit}",
+                    "url": f"{base_url}/blob/{branch}/{file}#L{line_number}",
+                }
+                tags[tag].append(info)
 
     for files in tags.values():
         files.sort(key=itemgetter("file", "line_number"))
