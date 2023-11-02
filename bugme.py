@@ -19,7 +19,7 @@ from services.guess import guess_service
 from utils import dateit, html_tag
 
 
-VERSION = "2.3.4"
+VERSION = "2.3.5"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
