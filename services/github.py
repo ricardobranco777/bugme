@@ -4,7 +4,6 @@ Github
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from github import Github, GithubException  # , Auth
@@ -66,41 +65,33 @@ class MyGithub(Service):
         """
         Get user issues
         """
-        base_filters = f"state:{state} "
+        filters = f"state:{state} "
         if involved:
-            base_filters += "involves"
+            filters += "involves:"
         elif assigned:
-            base_filters += "assignee"
+            filters += "assignee:"
         elif created:
-            base_filters += "author"
-        all_issues: list[Issue] = []
+            filters += "author:"
         try:
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
-            base_filters = f"{base_filters}:{user.login}"
+            filters += user.login
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
             return []
 
-        def get_issues(issue_type: str) -> list[Issue]:
-            filters = f"{base_filters} type:{issue_type}"
-            try:
-                issues = self.client.search_issues(filters)
-            except (GithubException, RequestException) as exc:
-                logging.error("Github: get_user_issues(%s): %s", username, exc)
-                return []
-            return [
-                self._to_issue(issue, is_pr=bool(issue_type == "pr"))
-                for issue in issues
-            ]
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            results = executor.map(get_issues, ("issue", "pr"))
-            for result in results:
-                all_issues.extend(result)
-
-        return all_issues
+        try:
+            issues = self.client.search_issues(filters)
+        except (GithubException, RequestException) as exc:
+            logging.error("Github: get_user_issues(%s): %s", username, exc)
+            return []
+        return [
+            self._to_issue(
+                issue, is_pr=bool(issue.html_url.rsplit("/", 2)[1] == "pull")
+            )
+            for issue in issues
+        ]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         """
