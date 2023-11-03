@@ -37,7 +37,7 @@ class MyPagure(Generic):
                 response.raise_for_status()
             except RequestException as exc:
                 logging.error("Pagure: %s: whoami(): %s", self.url, exc)
-                raise
+                return ""
             self._username = response.json()["username"]
         return self._username
 
@@ -118,6 +118,8 @@ class MyPagure(Generic):
         Get assigned issues
         """
         username = username or self.username
+        if not username:
+            return []
         filters = {
             "status": state,
         }
@@ -138,6 +140,8 @@ class MyPagure(Generic):
         Get created issues
         """
         username = username or self.username
+        if not username:
+            return []
         filters = {
             "status": state,
         }

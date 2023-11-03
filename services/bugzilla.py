@@ -49,8 +49,8 @@ class MyBugzilla(Service):
         """
         Get assigned issues
         """
-        username = username or self.client.user
         try:
+            username = username or self.client.user
             user = self.client.getuser(username)
             issues = self.client.query({"assigned_to": user.email})
         except (AttributeError, BugzillaError, RequestException) as exc:
@@ -64,8 +64,8 @@ class MyBugzilla(Service):
         """
         Get created issues
         """
-        username = username or self.client.user
         try:
+            username = username or self.client.user
             user = self.client.getuser(username)
             issues = self.client.query({"reporter": user.email})
         except (AttributeError, BugzillaError, RequestException) as exc:

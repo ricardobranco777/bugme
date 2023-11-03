@@ -36,7 +36,7 @@ class MyGitea(Generic):
             got = self.session.get(url, params=params)
             got.raise_for_status()
         except RequestException as exc:
-            logging.error("Pagure: %s: Error while fetching page 1: %s", url, exc)
+            logging.error("Gitea: %s: Error while fetching page 1: %s", url, exc)
             raise
         entries: list[dict] = got.json()
         if "Link" in got.headers:
@@ -108,7 +108,6 @@ class MyGitea(Generic):
         """
         Get assigned issues
         """
-        username = ""
         try:
             return self._get_issues(assigned=True, closed=bool(state != "open"))
         except RequestException as exc:
@@ -119,7 +118,6 @@ class MyGitea(Generic):
         """
         Get created issues
         """
-        username = ""
         try:
             return self._get_issues(created=True, closed=bool(state != "open"))
         except RequestException as exc:

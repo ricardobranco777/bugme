@@ -68,6 +68,8 @@ class MyGitlab(Service):
                 user = self.client.users.list(username=username)[0]  # type: ignore
             else:
                 user = self.client.user
+            if user is None:
+                return []
             filters["assignee_id"] = user.id
             if pull_requests:
                 issues = list(self.client.mergerequests.list(**filters))
@@ -97,6 +99,8 @@ class MyGitlab(Service):
                 user = self.client.users.list(username=username)[0]  # type: ignore
             else:
                 user = self.client.user
+            if user is None:
+                return []
             filters["author"] = user.id
             if pull_requests:
                 issues = list(self.client.mergerequests.list(**filters))
