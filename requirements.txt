@@ -1,8 +1,8 @@
-atlassian-python-api==3.41.2
+atlassian-python-api==3.41.3
 certifi==2023.7.22
 cffi==1.16.0
-charset-normalizer==3.3.0
-cryptography==41.0.4
+charset-normalizer==3.3.2
+cryptography==41.0.5
 Deprecated==1.2.14
 idna==3.4
 oauthlib==3.2.2
@@ -12,7 +12,7 @@ PyJWT==2.8.0
 PyNaCl==1.5.0
 python-bugzilla==3.2.0
 python-dateutil==2.8.2
-python-gitlab==3.15.0
+python-gitlab==4.1.1
 python-redmine==2.4.0
 pytz==2023.3.post1
 requests==2.31.0
