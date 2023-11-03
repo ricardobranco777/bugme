@@ -1,5 +1,6 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,no-member,use-dict-literal
 
+from datetime import datetime
 import pytest
 from services import get_urltag, Issue, Service
 from services.guess import guess_service, guess_service2
@@ -13,22 +14,28 @@ from services.pagure import MyPagure
 from services.redmine import MyRedmine
 
 
+NOW = datetime(2023, 11, 3, 22, 47, 36, 976024)
+
+
 # Test cases for the Issue class
 def test_Issue():
     # Create an Issue instance and test its attributes
-    issue = Issue(issue_id="123", host="github.com", repo="user/repo")
-    assert issue.issue_id == "123"
-    assert issue.host == "github.com"
-    assert issue.repo == "user/repo"
-
-    # Test issue representation (__repr__ method)
-    expected_repr = "Issue(issue_id='123', host='github.com', repo='user/repo')"
-    assert repr(issue) == expected_repr
+    issue = Issue(
+        tag="tag",
+        url="url",
+        assignee="assignee",
+        creator="creator",
+        created=datetime.now(),
+        updated=datetime.now(),
+        status="status",
+        title="title",
+        raw={},
+    )
+    assert issue.tag == "tag"
+    assert isinstance(issue.created, datetime)
 
     # Test issue dictionary access
-    assert issue["issue_id"] == "123"
-    assert issue["host"] == "github.com"
-    assert issue["repo"] == "user/repo"
+    assert issue["tag"] == "tag"
 
     # Test issue dictionary access with a nonexistent key
     with pytest.raises(KeyError):
@@ -205,12 +212,6 @@ def test_get_urltag_with_unsupported_url():
     assert issue is None
 
 
-# Mock Service class for testing
-class MockService(Service):
-    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        return Issue(issue_id=issue_id, host=self.url, repo="mock_repo")
-
-
 # Test cases for the Service class
 def test_service_initialization():
     url = "example.com"
@@ -222,33 +223,6 @@ def test_service_repr():
     url = "example.com"
     service = Service(url)
     assert repr(service) == f"Service(url='https://{url}')"
-
-
-def test_mock_service_get_issue():
-    url = "https://example.com"
-    service = MockService(url)
-    issue_id = "123"
-    issue = service.get_issue(issue_id)
-    expected_issue = Issue(issue_id=issue_id, host=url, repo="mock_repo")
-    assert issue.__dict__ == expected_issue.__dict__
-
-
-def test_mock_service_get_issues():
-    url = "https://example.com"
-    service = MockService(url)
-    issues = [{"issue_id": "1"}, {"issue_id": "2"}, {"issue_id": "3"}]
-    expected_issues = [
-        Issue(issue_id=i["issue_id"], host=url, repo="mock_repo") for i in issues
-    ]
-
-    results = service.get_issues(issues)
-
-    assert len(results) == len(expected_issues)
-
-    for result, expected_issue in zip(results, expected_issues):
-        assert result.issue_id == expected_issue.issue_id
-        assert result.host == expected_issue.host
-        assert result.repo == expected_issue.repo
 
 
 def test_guess_service():

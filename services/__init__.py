@@ -6,6 +6,7 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from urllib.parse import urlparse, parse_qs
 from typing import Any
 
@@ -56,14 +57,21 @@ def status(string: str) -> str:
     return string.upper().replace(" ", "_").replace("'", "")
 
 
-class Issue:  # pylint: disable=too-few-public-methods
+@dataclass(kw_only=True)
+class Issue:  # pylint: disable=too-many-instance-attributes
     """
     Issue class
     """
 
-    def __init__(self, **kwargs):
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
+    tag: str
+    url: str
+    assignee: str
+    creator: str
+    created: datetime
+    updated: datetime
+    status: str
+    title: str
+    raw: dict
 
     # The __eq__ & __hash__ methods allows us to use sets
 
@@ -72,10 +80,6 @@ class Issue:  # pylint: disable=too-few-public-methods
 
     def __hash__(self) -> int:
         return hash(self.url)  # pylint: disable=no-member
-
-    def __repr__(self):
-        attrs = ", ".join(f"{attr}={getattr(self, attr)!r}" for attr in vars(self))
-        return f"{self.__class__.__name__}({attrs})"
 
     def sort_key(self) -> tuple[str, int]:
         """
