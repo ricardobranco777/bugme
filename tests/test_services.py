@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import pytest
-from services import get_urltag, Issue, Service
+from services import get_urltag, Issue
 from services.guess import guess_service, guess_service2
 from services.bugzilla import MyBugzilla
 from services.gitea import MyGitea
@@ -210,19 +210,6 @@ def test_get_urltag_with_unsupported_url():
     url = "bsd#666"
     issue = get_urltag(url)
     assert issue is None
-
-
-# Test cases for the Service class
-def test_service_initialization():
-    url = "example.com"
-    service = Service(url)
-    assert service.url == f"https://{url}"
-
-
-def test_service_repr():
-    url = "example.com"
-    service = Service(url)
-    assert repr(service) == f"Service(url='https://{url}')"
 
 
 def test_guess_service():

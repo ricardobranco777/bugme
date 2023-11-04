@@ -5,6 +5,7 @@ Services
 import logging
 import os
 import re
+from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from urllib.parse import urlparse, parse_qs
@@ -148,7 +149,7 @@ def get_urltag(string: str) -> dict[str, str | bool] | None:
     }
 
 
-class Service:
+class Service(ABC):
     """
     Service class to abstract methods
     """
@@ -158,6 +159,7 @@ class Service:
         self.url = url if url.startswith("https://") else f"https://{url}"
         self.tag = "".join([s[0] for s in str(urlparse(self.url).hostname).split(".")])
 
+    @abstractmethod
     def close(self):
         """
         Close session
@@ -245,33 +247,33 @@ class Service:
 
         return list(set(issues))
 
-    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        This method must be overriden if get_issues() isn't overriden
-        """
-        raise NotImplementedError(f"{self.__class__.__name__}: get_issue()")
-
+    @abstractmethod
     def get_assigned(
         self, username: str = "", **_  # pylint: disable=unused-argument
     ) -> list[Issue]:
         """
         Get assigned issues
         """
-        return []
 
+    @abstractmethod
     def get_created(
         self, username: str = "", **_  # pylint: disable=unused-argument
     ) -> list[Issue]:
         """
         Get created issues
         """
-        return []
 
+    @abstractmethod
     def get_user_issues(self, **_) -> list[Issue]:
         """
         Get user issues
         """
-        return []
+
+    @abstractmethod
+    def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
+        """
+        This method must be overriden if get_issues() isn't overriden
+        """
 
     def get_issues(self, issues: list[dict]) -> list[Issue | None]:
         """
