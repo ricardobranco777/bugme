@@ -6,6 +6,7 @@ import logging
 import os
 from functools import cache
 from datetime import datetime
+from typing import Self
 
 import requests
 from requests import RequestException
@@ -58,10 +59,10 @@ class GitBlame:
             self.session.hooks["response"].append(debugme)
         self.blame_file = cache(self._blame_file)
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         try:
             self.session.close()
         except RequestException:
