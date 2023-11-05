@@ -197,18 +197,12 @@ class Service(ABC):
             assigned = created = True
         issues: list[Issue] = []
 
-        def get_assigned_issues() -> list[Issue]:
-            return self.get_assigned(username, **kwargs)
-
-        def get_created_issues() -> list[Issue]:
-            return self.get_created(username, **kwargs)
-
         futures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             if assigned:
-                futures.append(executor.submit(get_assigned_issues))
+                futures.append(executor.submit(self.get_assigned, username, **kwargs))
             if created:
-                futures.append(executor.submit(get_created_issues))
+                futures.append(executor.submit(self.get_created, username, **kwargs))
         for future in concurrent.futures.as_completed(futures):
             issues.extend(future.result())
 
@@ -229,19 +223,30 @@ class Service(ABC):
             assigned = created = True
         issues: list[Issue] = []
 
-        def get_issues(is_pr: bool, is_assigned: bool) -> list[Issue]:
-            if is_assigned:
-                return self.get_assigned(username, pull_requests=is_pr, **kwargs)
-            return self.get_created(username, pull_requests=is_pr, **kwargs)
-
         futures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             if assigned:
-                futures.append(executor.submit(get_issues, False, True))
-                futures.append(executor.submit(get_issues, True, True))
+                futures.append(
+                    executor.submit(
+                        self.get_assigned, username, pull_requests=False, **kwargs
+                    )
+                )
+                futures.append(
+                    executor.submit(
+                        self.get_assigned, username, pull_requests=True, **kwargs
+                    )
+                )
             if created:
-                futures.append(executor.submit(get_issues, False, False))
-                futures.append(executor.submit(get_issues, True, False))
+                futures.append(
+                    executor.submit(
+                        self.get_created, username, pull_requests=False, **kwargs
+                    )
+                )
+                futures.append(
+                    executor.submit(
+                        self.get_created, username, pull_requests=True, **kwargs
+                    )
+                )
         for future in concurrent.futures.as_completed(futures):
             issues.extend(future.result())
 
