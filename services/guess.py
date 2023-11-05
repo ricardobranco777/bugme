@@ -3,7 +3,6 @@ Guess service
 """
 
 import os
-from contextlib import closing
 from functools import cache
 from typing import Any
 
@@ -71,13 +70,11 @@ def guess_service2(server: str) -> Any | None:
         "HEAD": ((MyRedmine, "issues.json", 200),),
     }
 
-    session = requests.Session()
-    session.headers["Accept"] = "application/json"
-    session.verify = os.environ.get("REQUESTS_CA_BUNDLE", True)
-    if os.getenv("DEBUG"):
-        session.hooks["response"].append(debugme)
-
-    with closing(session):
+    with requests.Session() as session:
+        session.headers["Accept"] = "application/json"
+        session.verify = os.environ.get("REQUESTS_CA_BUNDLE", True)
+        if os.getenv("DEBUG"):
+            session.hooks["response"].append(debugme)
         for method, want in endpoints.items():
             for cls, endpoint, status in want:
                 url = f"https://{server}/{endpoint}"
