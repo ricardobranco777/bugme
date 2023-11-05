@@ -2,11 +2,11 @@
 Services
 """
 
+import concurrent.futures
 import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from urllib.parse import urlparse, parse_qs
 from typing import Any
@@ -203,14 +203,14 @@ class Service(ABC):
         def get_created_issues() -> list[Issue]:
             return self.get_created(username, **kwargs)
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = []
+        futures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             if assigned:
                 futures.append(executor.submit(get_assigned_issues))
             if created:
                 futures.append(executor.submit(get_created_issues))
-            for future in futures:
-                issues.extend(future.result())
+        for future in concurrent.futures.as_completed(futures):
+            issues.extend(future.result())
 
         return list(set(issues))
 
@@ -234,16 +234,16 @@ class Service(ABC):
                 return self.get_assigned(username, pull_requests=is_pr, **kwargs)
             return self.get_created(username, pull_requests=is_pr, **kwargs)
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
+        futures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             if assigned:
                 futures.append(executor.submit(get_issues, False, True))
                 futures.append(executor.submit(get_issues, True, True))
             if created:
                 futures.append(executor.submit(get_issues, False, False))
                 futures.append(executor.submit(get_issues, True, False))
-            for future in futures:
-                issues.extend(future.result())
+        for future in concurrent.futures.as_completed(futures):
+            issues.extend(future.result())
 
         return list(set(issues))
 
@@ -279,7 +279,9 @@ class Service(ABC):
         """
         Multithreaded get_issues()
         """
-        with ThreadPoolExecutor(max_workers=min(10, len(issues))) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(10, len(issues))
+        ) as executor:
             return list(executor.map(lambda it: self.get_issue(**it), issues))
 
 
