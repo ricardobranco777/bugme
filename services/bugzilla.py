@@ -40,7 +40,7 @@ class MyBugzilla(Service):
         except (AttributeError, BugzillaError):
             pass
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         try:
             issues = self.client.query(query)
         except (AttributeError, BugzillaError, RequestException) as exc:
@@ -48,20 +48,17 @@ class MyBugzilla(Service):
             return []
         return [self._to_issue(issue) for issue in issues if issue.is_open]
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
+    def get_user_issues(self) -> list[Issue]:
         try:
-            username = username or self.client.user
-            user = self.client.getuser(username)
+            user = self.client.getuser(self.client.user)
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error(
-                "Bugzilla: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
+            logging.error("Bugzilla: %s: get_user_issues(): %s", self.url, exc)
             return []
         queries = [
             {"assigned_to": user.email},
             {"reporter": user.email},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         try:

@@ -182,23 +182,23 @@ class Service(ABC):
             raw={},
         )
 
-    def _get_user_issues_x(self, queries: list[Any], **kwargs) -> list[Issue]:
+    def _get_user_issues_x(self, queries: list[Any]) -> list[Issue]:
         issues = []
         futures = []
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=len(queries)
         ) as executor:
             for query in queries:
-                futures.append(executor.submit(self._get_user_issues, query, **kwargs))
+                futures.append(executor.submit(self._get_user_issues, query))
         for future in concurrent.futures.as_completed(futures):
             issues.extend(future.result())
         return list(set(issues))
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         raise NotImplementedError("_get_user_issues()")
 
     @abstractmethod
-    def get_user_issues(self, **_) -> list[Issue]:
+    def get_user_issues(self) -> list[Issue]:
         """
         Get user issues
         """

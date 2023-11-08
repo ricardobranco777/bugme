@@ -36,7 +36,7 @@ class MyRedmine(Service):
         except AttributeError:
             pass
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         try:
             issues = self.client.issue.filter(**query)
         except (BaseRedmineError, RequestException) as exc:
@@ -44,19 +44,17 @@ class MyRedmine(Service):
             return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_user_issues(self, username: str = "me", **kwargs) -> list[Issue]:
+    def get_user_issues(self) -> list[Issue]:
         try:
-            user = self.client.user.get(username)
+            user = self.client.user.get("me")
         except (BaseRedmineError, RequestException) as exc:
-            logging.error(
-                "Redmine: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
+            logging.error("Redmine: %s: get_user_issues(): %s", self.url, exc)
             return []
         queries = [
             {"assigned_to_id": user.id},
             {"author_id": user.id},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         try:

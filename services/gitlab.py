@@ -45,7 +45,7 @@ class MyGitlab(Service):
         except (AttributeError, GitlabError):
             pass
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         issues: list[Any] = []
         query |= {
             "all": True,  # No pagination
@@ -62,18 +62,13 @@ class MyGitlab(Service):
             return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
+    def get_user_issues(self) -> list[Issue]:
         try:
-            if username:
-                user = self.client.users.list(username=username)[0]  # type: ignore
-            else:
-                user = self.client.user
+            user = self.client.user
             if user is None:
                 return []
         except (GitlabError, RequestException) as exc:
-            logging.error(
-                "Gitlab: %s: get_user_issues(%s): %s", self.url, username, exc
-            )
+            logging.error("Gitlab: %s: get_user_issues(): %s", self.url, exc)
             return []
         queries = [
             {"assignee_id": user.id, "pull_requests": False},
@@ -82,7 +77,7 @@ class MyGitlab(Service):
             {"author_id": user.id, "pull_requests": True},
             {"reviewer_id": user.id, "pull_requests": True},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         repo: str = kwargs.pop("repo")

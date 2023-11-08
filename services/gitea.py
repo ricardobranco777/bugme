@@ -32,12 +32,8 @@ class MyGitea(Generic):
             params = {}
         if "limit" not in params:
             params["limit"] = "100"
-        try:
-            got = self.session.get(url, params=params)
-            got.raise_for_status()
-        except RequestException as exc:
-            logging.error("Gitea: %s: Error while fetching page 1: %s", url, exc)
-            raise
+        got = self.session.get(url, params=params)
+        got.raise_for_status()
         entries: list[dict] = got.json()
         if "Link" in got.headers:
             links = parse_header_links(got.headers["Link"])
@@ -78,19 +74,22 @@ class MyGitea(Generic):
 
         return entries
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         query["state"] = "open"
-        issues = self._get_paginated(
-            f"{self.url}/api/v1/repos/issues/search", params=query
-        )
+        try:
+            issues = self._get_paginated(
+                f"{self.url}/api/v1/repos/issues/search", params=query
+            )
+        except RequestException as exc:
+            logging.error("Gitea: %s: get_user_issues(): %s", self.url, exc)
+            return []
         return [
             self._to_issue(issue, is_pr=bool(issue["pull_request"])) for issue in issues
         ]
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
+    def get_user_issues(self) -> list[Issue]:
         # Not possible to filter issues by username because of:
         # https://github.com/go-gitea/gitea/issues/25979
-        _ = username
         queries = [
             {"assigned": True},
             {"created": True},
@@ -98,7 +97,7 @@ class MyGitea(Generic):
             {"reviewed": True},
             {"review_requested": True},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", info["repository"]["full_name"])

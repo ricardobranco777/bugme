@@ -90,50 +90,43 @@ class MyPagure(Generic):
 
         return entries
 
-    def _get_issues(self, username: str, **params) -> list[dict]:
+    def _get_issues(self, **params) -> list[dict]:
         if params["assignee"]:
             key = "issues_assigned"
             next_key = "pagination_issues_assigned"
         else:
             key = "issues_created"
             next_key = "pagination_issues_created"
-        url = f"{self.url}/api/0/user/{username}/issues"
+        url = f"{self.url}/api/0/user/{self.username}/issues"
         return self._get_paginated(url, params=params, key=key, next_key=next_key)
 
-    def _get_pullrequests(
-        self, username: str, created: bool = False, **params
-    ) -> list[dict]:
+    def _get_pullrequests(self, created: bool = False, **params) -> list[dict]:
         pr_type = "filed" if created else "actionable"
-        url = f"{self.url}/api/0/user/{username}/requests/{pr_type}"
+        url = f"{self.url}/api/0/user/{self.username}/requests/{pr_type}"
         return self._get_paginated(
             url, params=params, key="requests", next_key="pagination"
         )
 
-    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         pull_requests = query.pop("pull_requests")
-        username = kwargs.pop("username")
         try:
             if pull_requests:
-                issues = self._get_pullrequests(username, **query)
+                issues = self._get_pullrequests(**query)
             else:
-                issues = self._get_issues(username, **query)
+                issues = self._get_issues(**query)
         except RequestException as exc:
             logging.error("Pagure: %s: get_user_issues(): %s", self.url, exc)
             return []
         return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
-        username = username or self.username
-        if not username:
-            return []
-        kwargs["username"] = username
+    def get_user_issues(self) -> list[Issue]:
         queries = [
             {"pull_requests": False, "assignee": 0, "author": 1},
             {"pull_requests": False, "assignee": 1, "author": 0},
             {"pull_requests": True, "created": True},
             {"pull_requests": True, "created": False},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", "") or info["project"]["fullname"]

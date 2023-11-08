@@ -42,13 +42,12 @@ class MyJira(Service):
             issues.extend(data["issues"])
         return issues
 
-    def get_user_issues(self, username: str = "", **_) -> list[Issue]:
-        username = username or self.client.username or "currentUser()"
-        filters = f"watcher = {username}"
+    def get_user_issues(self) -> list[Issue]:
+        filters = "watcher = currentUser()"
         try:
             issues = self._get_issues(filters)
         except (ApiError, RequestException) as exc:
-            logging.error("Jira: %s: get_user_issues(%s): %s", self.url, username, exc)
+            logging.error("Jira: %s: get_user_issues(): %s", self.url, exc)
             return []
         return [self._to_issue(issue) for issue in issues]
 

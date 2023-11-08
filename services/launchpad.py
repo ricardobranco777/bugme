@@ -32,7 +32,7 @@ class MyLaunchpad(Generic):
         self.tag = "lp"
         self.username = creds.get("username", "")
 
-    def _get_user_issues(self, query: dict[str, Any], **_) -> list[Issue]:
+    def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
         query["ws.op"] = "searchTasks"
         try:
             got = self.session.get("https://api.launchpad.net/1.0/bugs", params=query)
@@ -43,14 +43,13 @@ class MyLaunchpad(Generic):
             return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
-        username = username or self.username
-        user_url = f"https://api.launchpad.net/1.0/~{username}"
+    def get_user_issues(self) -> list[Issue]:
+        user_url = f"https://api.launchpad.net/1.0/~{self.username}"
         queries = [
             {"assignee": user_url},
             {"bug_reporter": user_url},
         ]
-        return self._get_user_issues_x(queries, **kwargs)
+        return self._get_user_issues_x(queries)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         if not kwargs.get("repo"):
