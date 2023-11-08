@@ -36,14 +36,12 @@ class MyGithub(Service):
         except (AttributeError, GithubException):
             pass
 
-    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
-        state = kwargs.get("state", "open")
-        filters = f"state:{state} involves:"
+    def get_user_issues(self, username: str = "", **_) -> list[Issue]:
         try:
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
-            filters += user.login
+            filters = f"state:open involves:{user.login}"
             issues = self.client.search_issues(filters)
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)

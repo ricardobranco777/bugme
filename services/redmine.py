@@ -37,9 +37,6 @@ class MyRedmine(Service):
             pass
 
     def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
-        closed = kwargs.get("closed", False)
-        if closed:
-            query["status_id"] = "closed"
         try:
             issues = self.client.issue.filter(**query)
         except (BaseRedmineError, RequestException) as exc:

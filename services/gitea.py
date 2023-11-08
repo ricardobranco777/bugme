@@ -79,8 +79,7 @@ class MyGitea(Generic):
         return entries
 
     def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
-        closed = kwargs.get("closed", False)
-        query["state"] = "closed" if closed else "open"
+        query["state"] = "open"
         issues = self._get_paginated(
             f"{self.url}/api/v1/repos/issues/search", params=query
         )

@@ -110,7 +110,6 @@ class MyPagure(Generic):
         )
 
     def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
-        query["status"] = kwargs.get("state", "Open")
         pull_requests = query.pop("pull_requests")
         username = kwargs.pop("username")
         try:

@@ -49,7 +49,7 @@ class MyGitlab(Service):
         issues: list[Any] = []
         query |= {
             "all": True,  # No pagination
-            "state": kwargs.get("state", "opened"),
+            "state": "opened",
         }
         pull_requests = query.pop("pull_requests")
         try:

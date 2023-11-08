@@ -41,15 +41,12 @@ class MyBugzilla(Service):
             pass
 
     def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
-        closed = kwargs.get("closed", False)
         try:
             issues = self.client.query(query)
         except (AttributeError, BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: get_user_issues(): %s", self.url, exc)
             return []
-        if not closed:
-            issues = [issue for issue in issues if issue.is_open]
-        return [self._to_issue(issue) for issue in issues]
+        return [self._to_issue(issue) for issue in issues if issue.is_open]
 
     def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
         try:
