@@ -31,61 +31,37 @@ class MyRedmine(Service):
             self.client.engine.session.hooks["response"].append(debugme)
 
     def close(self):
-        """
-        Close session
-        """
         try:
             self.client.engine.session.close()
         except AttributeError:
             pass
 
-    def get_assigned(self, username: str = "me", **_) -> list[Issue]:
-        """
-        Get assigned issues
-        """
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+        closed = kwargs.get("closed", False)
+        if closed:
+            query["status_id"] = "closed"
         try:
-            user = self.client.user.get(username)
-            issues = self.client.issue.filter(assigned_to_id=user.id)
+            issues = self.client.issue.filter(**query)
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_assigned(%s): %s", self.url, username, exc)
+            logging.error("Redmine: %s: get_user_issues(): %s", self.url, exc)
             return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(self, username: str = "me", **_) -> list[Issue]:
-        """
-        Get created issues
-        """
+    def get_user_issues(self, username: str = "me", **kwargs) -> list[Issue]:
         try:
             user = self.client.user.get(username)
-            issues = self.client.issue.filter(author_id=user.id)
         except (BaseRedmineError, RequestException) as exc:
-            logging.error("Redmine: %s: get_created(%s): %s", self.url, username, exc)
+            logging.error(
+                "Redmine: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
             return []
-        return [self._to_issue(issue) for issue in issues]
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "me",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues2(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+        queries = [
+            {"assigned_to_id": user.id},
+            {"author_id": user.id},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        Get Redmine ticket
-        """
         try:
             info = self.client.issue.get(issue_id)
         except ResourceNotFoundError:

@@ -40,29 +40,29 @@ class MyGitlab(Service):
             pass
 
     def close(self):
-        """
-        Close session
-        """
         try:
             self.client.session.close()
         except (AttributeError, GitlabError):
             pass
 
-    def get_assigned(
-        self,
-        username: str = "",
-        pull_requests: bool = False,
-        state: str = "opened",
-        **_,
-    ) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        filters = {
-            "all": True,  # No pagination
-            "state": state,
-        }
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
         issues: list[Any] = []
+        query |= {
+            "all": True,  # No pagination
+            "state": kwargs.get("state", "opened"),
+        }
+        pull_requests = query.pop("pull_requests")
+        try:
+            if pull_requests:
+                issues = list(self.client.mergerequests.list(**query))
+            else:
+                issues = list(self.client.issues.list(**query))
+        except (GitlabError, RequestException) as exc:
+            logging.error("Gitlab: %s: get_user_issues(): %s", self.url, exc)
+            return []
+        return [self._to_issue(issue) for issue in issues]
+
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
         try:
             if username:
                 user = self.client.users.list(username=username)[0]  # type: ignore
@@ -70,69 +70,21 @@ class MyGitlab(Service):
                 user = self.client.user
             if user is None:
                 return []
-            filters["assignee_id"] = user.id
-            if pull_requests:
-                issues = list(self.client.mergerequests.list(**filters))
-            else:
-                issues = list(self.client.issues.list(**filters))
         except (GitlabError, RequestException) as exc:
-            logging.error("Gitlab: %s: get_assigned(%s): %s", self.url, username, exc)
-        return [self._to_issue(issue) for issue in issues]
-
-    def get_created(
-        self,
-        username: str = "",
-        pull_requests: bool = False,
-        state: str = "opened",
-        **_,
-    ) -> list[Issue]:
-        """
-        Get created issues
-        """
-        filters = {
-            "all": True,  # No pagination
-            "state": state,
-        }
-        issues: list[Any] = []
-        try:
-            if username:
-                user = self.client.users.list(username=username)[0]  # type: ignore
-            else:
-                user = self.client.user
-            if user is None:
-                return []
-            filters["author"] = user.id
-            if pull_requests:
-                issues = list(self.client.mergerequests.list(**filters))
-            else:
-                issues = list(self.client.issues.list(**filters))
-        except (GitlabError, RequestException) as exc:
-            logging.error("Gitlab: %s: get_created(%s): %s", self.url, username, exc)
-        return [self._to_issue(issue) for issue in issues]
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues4(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+            logging.error(
+                "Gitlab: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
+            return []
+        queries = [
+            {"assignee_id": user.id, "pull_requests": False},
+            {"assignee_id": user.id, "pull_requests": True},
+            {"author_id": user.id, "pull_requests": False},
+            {"author_id": user.id, "pull_requests": True},
+            {"reviewer_id": user.id, "pull_requests": True},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        Get Gitlab issue
-        """
         repo: str = kwargs.pop("repo")
         is_pr: bool = kwargs.pop("is_pr")
         mark = "!" if is_pr else "#"

@@ -32,66 +32,25 @@ class MyLaunchpad(Generic):
         self.tag = "lp"
         self.username = creds.get("username", "")
 
-    def get_assigned(self, username: str = "", **_) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        username = username or self.username
-        user_url = f"https://api.launchpad.net/1.0/~{username}"
-        params = {
-            "ws.op": "searchTasks",
-        }
+    def _get_user_issues(self, query: dict[str, Any], **_) -> list[Issue]:
+        query["ws.op"] = "searchTasks"
         try:
-            got = self.session.get(
-                "https://api.launchpad.net/1.0/bugs",
-                params=params | {"assignee": user_url},
-            )
+            got = self.session.get("https://api.launchpad.net/1.0/bugs", params=query)
             got.raise_for_status()
             issues = got.json()["entries"]
         except RequestException as exc:
-            logging.error("Launchpad: get_assigned(%s): %s", username, exc)
+            logging.error("Launchpad: get_user_issues(): %s", exc)
             return []
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(self, username: str = "", **_) -> list[Issue]:
-        """
-        Get created issues
-        """
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
         username = username or self.username
         user_url = f"https://api.launchpad.net/1.0/~{username}"
-        params = {
-            "ws.op": "searchTasks",
-        }
-        try:
-            got = self.session.get(
-                "https://api.launchpad.net/1.0/bugs",
-                params=params | {"bug_reporter": user_url},
-            )
-            got.raise_for_status()
-            issues = got.json()["entries"]
-        except RequestException as exc:
-            logging.error("Launchpad: get_created(%s): %s", username, exc)
-            return []
-        return [self._to_issue(issue) for issue in issues]
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues2(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+        queries = [
+            {"assignee": user_url},
+            {"bug_reporter": user_url},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
         if not kwargs.get("repo"):

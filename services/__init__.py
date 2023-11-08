@@ -182,77 +182,20 @@ class Service(ABC):
             raw={},
         )
 
-    def _get_user_issues2(  # pylint: disable=too-many-arguments
-        self,
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        if involved:
-            assigned = created = True
-        issues: list[Issue] = []
-
+    def _get_user_issues_x(self, queries: list[Any], **kwargs) -> list[Issue]:
+        issues = []
         futures = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            if assigned:
-                futures.append(executor.submit(self.get_assigned, **kwargs))
-            if created:
-                futures.append(executor.submit(self.get_created, **kwargs))
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(queries)
+        ) as executor:
+            for query in queries:
+                futures.append(executor.submit(self._get_user_issues, query, **kwargs))
         for future in concurrent.futures.as_completed(futures):
             issues.extend(future.result())
-
         return list(set(issues))
 
-    def _get_user_issues4(  # pylint: disable=too-many-arguments
-        self,
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        if involved:
-            assigned = created = True
-        issues: list[Issue] = []
-
-        futures = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            if assigned:
-                for pr in (False, True):
-                    futures.append(
-                        executor.submit(self.get_assigned, pull_requests=pr, **kwargs)
-                    )
-            if created:
-                for pr in (False, True):
-                    futures.append(
-                        executor.submit(self.get_created, pull_requests=pr, **kwargs)
-                    )
-        for future in concurrent.futures.as_completed(futures):
-            issues.extend(future.result())
-
-        return list(set(issues))
-
-    @abstractmethod
-    def get_assigned(
-        self, username: str = "", **_  # pylint: disable=unused-argument
-    ) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-
-    @abstractmethod
-    def get_created(
-        self, username: str = "", **_  # pylint: disable=unused-argument
-    ) -> list[Issue]:
-        """
-        Get created issues
-        """
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+        raise NotImplementedError("_get_user_issues()")
 
     @abstractmethod
     def get_user_issues(self, **_) -> list[Issue]:

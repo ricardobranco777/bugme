@@ -28,9 +28,6 @@ class MyJira(Service):
             self.client.session.hooks["response"].append(debugme)
 
     def close(self):
-        """
-        Close session
-        """
         try:
             self.client.session.close()
         except AttributeError:
@@ -45,36 +42,9 @@ class MyJira(Service):
             issues.extend(data["issues"])
         return issues
 
-    def get_assigned(self, username: str = "", **_) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        return self.get_user_issues(username, assigned=True, involved=False)
-
-    def get_created(self, username: str = "", **_) -> list[Issue]:
-        """
-        Get created issues
-        """
-        return self.get_user_issues(username, created=True, involved=False)
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **_,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
+    def get_user_issues(self, username: str = "", **_) -> list[Issue]:
         username = username or self.client.username or "currentUser()"
-        if involved:
-            filters = f"watcher = {username}"
-        elif assigned:
-            filters = f"assignee = {username}"
-        elif created:
-            filters = f"reporter = {username}"
+        filters = f"watcher = {username}"
         try:
             issues = self._get_issues(filters)
         except (ApiError, RequestException) as exc:
@@ -83,9 +53,6 @@ class MyJira(Service):
         return [self._to_issue(issue) for issue in issues]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        Get Jira ticket
-        """
         try:
             info = self.client.issue(issue_id)
         except (ApiError, RequestException) as exc:

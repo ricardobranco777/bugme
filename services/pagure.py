@@ -60,12 +60,10 @@ class MyPagure(Generic):
             )
         return entries
 
+    # Get pages 2 to last using threads
     def _get_paginated2(
         self, url: str, params: dict[str, str], key: str, last_page: int
     ) -> list[dict]:
-        """
-        Get pages 2 to last using threads
-        """
         entries: list[dict] = []
 
         def get_page(page: int) -> list[dict]:
@@ -111,68 +109,32 @@ class MyPagure(Generic):
             url, params=params, key="requests", next_key="pagination"
         )
 
-    def get_assigned(
-        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
-    ) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        username = username or self.username
-        if not username:
-            return []
-        filters = {
-            "status": state,
-        }
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+        query["status"] = kwargs.get("state", "Open")
+        pull_requests = query.pop("pull_requests")
+        username = kwargs.pop("username")
         try:
             if pull_requests:
-                issues = self._get_pullrequests(username, created=False, **filters)
+                issues = self._get_pullrequests(username, **query)
             else:
-                issues = self._get_issues(username, assignee=1, author=0, **filters)
+                issues = self._get_issues(username, **query)
         except RequestException as exc:
-            logging.error("Pagure: %s: get_assigned(%s): %s", self.url, username, exc)
+            logging.error("Pagure: %s: get_user_issues(): %s", self.url, exc)
             return []
         return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
 
-    def get_created(
-        self, username: str = "", pull_requests: bool = False, state: str = "Open", **_
-    ) -> list[Issue]:
-        """
-        Get created issues
-        """
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
         username = username or self.username
         if not username:
             return []
-        filters = {
-            "status": state,
-        }
-        try:
-            if pull_requests:
-                issues = self._get_pullrequests(username, created=True, **filters)
-            else:
-                issues = self._get_issues(username, assignee=0, author=1, **filters)
-        except RequestException as exc:
-            logging.error("Pagure: %s: get_created(%s): %s", self.url, username, exc)
-            return []
-        return [self._to_issue(issue, is_pr=pull_requests) for issue in issues]
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues4(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+        kwargs["username"] = username
+        queries = [
+            {"pull_requests": False, "assignee": 0, "author": 1},
+            {"pull_requests": False, "assignee": 1, "author": 0},
+            {"pull_requests": True, "created": True},
+            {"pull_requests": True, "created": False},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", "") or info["project"]["fullname"]

@@ -49,12 +49,10 @@ class MyGitea(Generic):
                 entries.extend(self._get_paginated2(url, params, last_page))
         return entries
 
+    # Get pages 2 to last using threads
     def _get_paginated2(
         self, url: str, params: dict[str, str], last_page: int
     ) -> list[dict]:
-        """
-        Get pages 2 to last using threads
-        """
         entries: list[dict] = []
 
         def get_page(page: int) -> list[dict]:
@@ -80,68 +78,28 @@ class MyGitea(Generic):
 
         return entries
 
-    # Not possible to filter issues by username because of:
-    # https://github.com/go-gitea/gitea/issues/25979
-
-    def _get_issues(  # pylint: disable=too-many-arguments
-        self,
-        assigned: bool = False,
-        created: bool = False,
-        closed: bool = False,
-    ) -> list[Issue]:
-        params: dict[str, Any] = {
-            "state": "closed" if closed else "open",
-        }
-        # Missing: mentioned, review_requested & reviewed
-        if assigned:
-            params["assigned"] = True
-        if created:
-            params["created"] = True
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+        closed = kwargs.get("closed", False)
+        query["state"] = "closed" if closed else "open"
         issues = self._get_paginated(
-            f"{self.url}/api/v1/repos/issues/search", params=params
+            f"{self.url}/api/v1/repos/issues/search", params=query
         )
         return [
             self._to_issue(issue, is_pr=bool(issue["pull_request"])) for issue in issues
         ]
 
-    def get_assigned(self, username: str = "", state: str = "open", **_) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        try:
-            return self._get_issues(assigned=True, closed=bool(state != "open"))
-        except RequestException as exc:
-            logging.error("Gitea: %s: get_assigned(%s): %s", self.url, username, exc)
-        return []
-
-    def get_created(self, username: str = "", state: str = "open", **_) -> list[Issue]:
-        """
-        Get created issues
-        """
-        try:
-            return self._get_issues(created=True, closed=bool(state != "open"))
-        except RequestException as exc:
-            logging.error("Gitea: %s: get_created(%s): %s", self.url, username, exc)
-        return []
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues2(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
+        # Not possible to filter issues by username because of:
+        # https://github.com/go-gitea/gitea/issues/25979
+        _ = username
+        queries = [
+            {"assigned": True},
+            {"created": True},
+            {"mentioned": True},
+            {"reviewed": True},
+            {"review_requested": True},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
         repo = kwargs.get("repo", info["repository"]["full_name"])

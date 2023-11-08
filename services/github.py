@@ -31,61 +31,24 @@ class MyGithub(Service):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
     def close(self):
-        """
-        Close session
-        """
         try:
             self.client.close()
         except (AttributeError, GithubException):
             pass
 
-    def get_assigned(self, username: str = "", state: str = "open", **_) -> list[Issue]:
-        """
-        Get assigned issues
-        """
-        return self.get_user_issues(
-            username, assigned=True, involved=False, state=state
-        )
-
-    def get_created(self, username: str = "", state: str = "open", **_) -> list[Issue]:
-        """
-        Get created issues
-        """
-        return self.get_user_issues(username, created=True, involved=False, state=state)
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        state: str = "open",
-        **_,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        filters = f"state:{state} "
-        if involved:
-            filters += "involves:"
-        elif assigned:
-            filters += "assignee:"
-        elif created:
-            filters += "author:"
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
+        state = kwargs.get("state", "open")
+        filters = f"state:{state} involves:"
         try:
             user = (
                 self.client.get_user(username) if username else self.client.get_user()
             )
             filters += user.login
-        except (GithubException, RequestException) as exc:
-            logging.error("Github: get_user_issues(%s): %s", username, exc)
-            return []
-
-        try:
             issues = self.client.search_issues(filters)
         except (GithubException, RequestException) as exc:
             logging.error("Github: get_user_issues(%s): %s", username, exc)
             return []
+
         return [
             self._to_issue(
                 issue, is_pr=bool(issue.html_url.rsplit("/", 2)[1] == "pull")
@@ -94,9 +57,6 @@ class MyGithub(Service):
         ]
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        Get Github issue
-        """
         repo: str = kwargs.pop("repo")
         is_pr: bool = kwargs.pop("is_pr")
         mark = "!" if is_pr else "#"

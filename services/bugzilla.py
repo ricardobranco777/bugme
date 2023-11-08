@@ -35,69 +35,38 @@ class MyBugzilla(Service):
             self.client._session._session.hooks["response"].append(debugme)
 
     def close(self):
-        """
-        Close session
-        """
         try:
             self.client.disconnect()
         except (AttributeError, BugzillaError):
             pass
 
-    def get_assigned(
-        self, username: str = "", closed: bool = False, **_
-    ) -> list[Issue]:
-        """
-        Get assigned issues
-        """
+    def _get_user_issues(self, query: dict[str, Any], **kwargs) -> list[Issue]:
+        closed = kwargs.get("closed", False)
         try:
-            username = username or self.client.user
-            user = self.client.getuser(username)
-            issues = self.client.query({"assigned_to": user.email})
+            issues = self.client.query(query)
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_assigned(%s): %s", self.url, username, exc)
+            logging.error("Bugzilla: %s: get_user_issues(): %s", self.url, exc)
             return []
         if not closed:
             issues = [issue for issue in issues if issue.is_open]
         return [self._to_issue(issue) for issue in issues]
 
-    def get_created(self, username: str = "", closed: bool = False, **_) -> list[Issue]:
-        """
-        Get created issues
-        """
+    def get_user_issues(self, username: str = "", **kwargs) -> list[Issue]:
         try:
             username = username or self.client.user
             user = self.client.getuser(username)
-            issues = self.client.query({"reporter": user.email})
         except (AttributeError, BugzillaError, RequestException) as exc:
-            logging.error("Bugzilla: %s: get_created(%s): %s", self.url, username, exc)
+            logging.error(
+                "Bugzilla: %s: get_user_issues(%s): %s", self.url, username, exc
+            )
             return []
-        if not closed:
-            issues = [issue for issue in issues if issue.is_open]
-        return [self._to_issue(issue) for issue in issues]
-
-    def get_user_issues(  # pylint: disable=too-many-arguments
-        self,
-        username: str = "",
-        assigned: bool = False,
-        created: bool = False,
-        involved: bool = True,
-        **kwargs,
-    ) -> list[Issue]:
-        """
-        Get user issues
-        """
-        return self._get_user_issues2(
-            username=username,
-            assigned=assigned,
-            created=created,
-            involved=involved,
-            **kwargs,
-        )
+        queries = [
+            {"assigned_to": user.email},
+            {"reporter": user.email},
+        ]
+        return self._get_user_issues_x(queries, **kwargs)
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:
-        """
-        Get Bugzilla issue
-        """
         try:
             return self._to_issue(self.client.getbug(issue_id))
         except IndexError:
@@ -110,9 +79,6 @@ class MyBugzilla(Service):
         return None
 
     def get_issues(self, issues: list[dict]) -> list[Issue | None]:
-        """
-        Get Bugzilla issues
-        """
         try:
             found = [
                 self._to_issue(info)
