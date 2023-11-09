@@ -3,10 +3,10 @@ Gitea
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import urlparse, parse_qs
 
-from concurrent.futures import ThreadPoolExecutor
 from requests.utils import parse_header_links
 from requests.exceptions import RequestException
 
@@ -88,8 +88,6 @@ class MyGitea(Generic):
         ]
 
     def get_user_issues(self) -> list[Issue]:
-        # Not possible to filter issues by username because of:
-        # https://github.com/go-gitea/gitea/issues/25979
         queries = [
             {"assigned": True},
             {"created": True},
