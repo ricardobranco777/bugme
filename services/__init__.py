@@ -77,18 +77,16 @@ class Issue:  # pylint: disable=too-many-instance-attributes
     # The __eq__ & __hash__ methods allows us to use sets
 
     def __eq__(self, other) -> bool:
-        return self.url == other.url  # pylint: disable=no-member
+        return self.url == other.url
 
     def __hash__(self) -> int:
-        return hash(self.url)  # pylint: disable=no-member
+        return hash(self.url)
 
     def sort_key(self) -> tuple[str, int]:
         """
         Key for numeric sort of URL's ending with digits
         """
-        base, issue_id, _ = re.split(
-            r"([0-9]+)$", self.url, maxsplit=1  # pylint: disable=no-member
-        )
+        base, issue_id, _ = re.split(r"([0-9]+)$", self.url, maxsplit=1)
         return base, int(issue_id)
 
     # Allow access this object as a dictionary
