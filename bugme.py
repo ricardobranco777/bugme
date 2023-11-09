@@ -224,7 +224,7 @@ def print_issue(
             )
 
 
-def print_issues(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+def print_issues(  # pylint: disable=too-many-arguments
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,
@@ -261,9 +261,8 @@ def print_issues(  # pylint: disable=too-many-arguments,too-many-locals,too-many
 
     fields = {field: len(field) for field in output_format.split(",")}
     for issue in issues:
-        for field in "created", "updated":
-            if field in fields:
-                issue[field] = dateit(issue[field], time_format)
+        issue["created"] =  dateit(issue["created"], time_format)
+        issue["updated"] =  dateit(issue["updated"], time_format)
         issue.files = xtags.get(issue.tag, [])
         for info in issue.files:
             info["date"] = dateit(info["date"], time_format)  # type: ignore
