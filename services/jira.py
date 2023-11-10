@@ -24,9 +24,9 @@ class MyJira(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         self.client = Jira(url=self.url, **creds)
-        self.client.session.headers["User-Agent"] = f"bugme/{VERSION}"
+        self.client._session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
-            self.client.session.hooks["response"].append(debugme)
+            self.client._session.hooks["response"].append(debugme)
 
     def close(self):
         try:
