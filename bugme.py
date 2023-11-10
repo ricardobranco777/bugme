@@ -14,12 +14,10 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from scantags import scan_tags
-from services import get_urltag, Issue
+from services import get_urltag, Issue, VERSION
 from services.guess import guess_service
 from utils import dateit, html_tag
 
-
-VERSION = "2.4.0"
 
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 

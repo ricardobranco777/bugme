@@ -19,6 +19,8 @@ from requests.exceptions import RequestException
 from requests_toolbelt.utils import dump  # type: ignore
 
 
+VERSION = "2.4.1"
+
 TAG_REGEX = "|".join(
     [
         r"(?:bnc|bsc|boo|poo|lp)#[0-9]+",
@@ -230,6 +232,7 @@ class Generic(Service):
         if token is not None:
             self.session.headers["Authorization"] = f"token {token}"
         self.session.headers["Accept"] = "application/json"
+        self.session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
             self.session.hooks["response"].append(debugme)
         self.timeout = 10

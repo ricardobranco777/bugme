@@ -12,7 +12,7 @@ from gitlab.exceptions import GitlabError
 from requests.exceptions import RequestException
 
 from utils import utc_date
-from . import Service, Issue, debugme, status
+from . import Service, Issue, debugme, status, VERSION
 
 
 # References:
@@ -27,6 +27,7 @@ class MyGitlab(Service):
         super().__init__(url)
         options: dict[str, Any] = {
             "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
+            "user_agent": f"bugme/{VERSION}",
         }
         options |= creds
         hostname = str(urlparse(self.url).hostname)

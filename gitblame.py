@@ -11,7 +11,7 @@ from typing import Self
 import requests
 from requests import RequestException
 
-from services import debugme
+from services import debugme, VERSION
 from utils import utc_date
 
 
@@ -54,6 +54,7 @@ class GitBlame:
         self.api_url = "https://api.github.com/graphql"
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Bearer {access_token}"
+        self.session.headers["User-Agent"] = f"bugme/{VERSION}"
         self.timeout = 30
         if os.getenv("DEBUG"):
             self.session.hooks["response"].append(debugme)

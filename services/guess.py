@@ -9,7 +9,7 @@ from typing import Any
 import requests
 from requests.exceptions import RequestException
 
-from . import debugme
+from . import debugme, VERSION
 from .bugzilla import MyBugzilla
 from .gitea import MyGitea
 from .github import MyGithub
@@ -72,6 +72,7 @@ def guess_service2(server: str) -> Any | None:
 
     with requests.Session() as session:
         session.headers["Accept"] = "application/json"
+        session.headers["User-Agent"] = f"bugme/{VERSION}"
         session.verify = os.environ.get("REQUESTS_CA_BUNDLE", True)
         if os.getenv("DEBUG"):
             session.hooks["response"].append(debugme)

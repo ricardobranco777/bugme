@@ -11,7 +11,7 @@ from redminelib.exceptions import BaseRedmineError, ResourceNotFoundError  # typ
 from requests.exceptions import RequestException
 
 from utils import utc_date
-from . import Service, Issue, debugme, status
+from . import Service, Issue, debugme, status, VERSION
 
 
 # Reference: https://www.redmine.org/projects/redmine/wiki/Rest_api
@@ -27,6 +27,7 @@ class MyRedmine(Service):
         }
         options |= creds
         self.client = Redmine(url=self.url, **options)
+        self.client.engine.session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
             self.client.engine.session.hooks["response"].append(debugme)
 

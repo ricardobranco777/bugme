@@ -11,7 +11,7 @@ from atlassian.errors import ApiError  # type: ignore
 from requests.exceptions import RequestException
 
 from utils import utc_date
-from . import Service, Issue, debugme, status
+from . import Service, Issue, debugme, status, VERSION
 
 
 # References:
@@ -24,6 +24,7 @@ class MyJira(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         self.client = Jira(url=self.url, **creds)
+        self.client.session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
             self.client.session.hooks["response"].append(debugme)
 

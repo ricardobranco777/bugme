@@ -11,7 +11,7 @@ from bugzilla.exceptions import BugzillaError  # type: ignore
 from requests.exceptions import RequestException
 
 from utils import utc_date
-from . import Service, Issue, debugme, status
+from . import Service, Issue, debugme, status, VERSION
 
 
 # Reference: https://bugzilla.readthedocs.io/en/latest/api/index.html#apis
@@ -31,6 +31,7 @@ class MyBugzilla(Service):
             self.client = Bugzilla(self.url, **options)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
+        self.client._session._session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
             self.client._session._session.hooks["response"].append(debugme)
 

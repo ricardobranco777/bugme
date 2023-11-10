@@ -10,7 +10,7 @@ from github import Github, GithubException  # , Auth
 from requests.exceptions import RequestException
 
 from utils import utc_date
-from . import Service, Issue, status
+from . import Service, Issue, status, VERSION
 
 
 # Reference:
@@ -26,7 +26,7 @@ class MyGithub(Service):
         # auth = Auth.Token(**creds)
         # self.client = Github(auth=auth)
         self.tag = "gh"
-        self.client = Github(**creds)
+        self.client = Github(user_agent=f"bugme/{VERSION}", **creds)
         if os.getenv("DEBUG"):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
