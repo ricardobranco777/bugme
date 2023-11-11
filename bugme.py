@@ -122,8 +122,7 @@ def get_user_issues(
                 [
                     issue
                     for issue in issues
-                    if issue is not None
-                    and (statuses is None or issue.status in set(statuses))
+                    if statuses is None or issue.status in set(statuses)
                 ]
             )
     for client in clients.values():

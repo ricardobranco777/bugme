@@ -22,11 +22,15 @@ class MyGithub(Service):
 
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
-        # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
-        # auth = Auth.Token(**creds)
-        # self.client = Github(auth=auth)
+        options: dict[str, Any] = {
+            # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
+            # "auth" = Auth.Token(**creds),
+            # "seconds_between_requests" = 0.0,
+            "user_agent": f"bugme/{VERSION}",
+        }
+        options |= creds
+        self.client = Github(**options)
         self.tag = "gh"
-        self.client = Github(user_agent=f"bugme/{VERSION}", **creds)
         if os.getenv("DEBUG"):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
