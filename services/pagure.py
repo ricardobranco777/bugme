@@ -3,7 +3,6 @@ Pagure
 """
 
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from requests.exceptions import RequestException
@@ -41,73 +40,32 @@ class MyPagure(Generic):
             self._username = response.json()["username"]
         return self._username
 
-    def _get_paginated(
-        self, url: str, params: dict[str, str], key: str, next_key: str
-    ) -> list[dict]:
-        if "per_page" not in params:
-            params["per_page"] = "100"
-        try:
-            got = self.session.get(url, params=params)
-            got.raise_for_status()
-        except RequestException as exc:
-            logging.error("Pagure: %s: Error while fetching page 1: %s", url, exc)
-            raise
-        data = got.json()
-        entries = data[key]
-        if data[next_key]["next"] and data[next_key]["last"]:
-            entries.extend(
-                self._get_paginated2(url, params, key, data[next_key]["pages"])
-            )
-        return entries
-
-    # Get pages 2 to last using threads
-    def _get_paginated2(
-        self, url: str, params: dict[str, str], key: str, last_page: int
-    ) -> list[dict]:
-        entries: list[dict] = []
-
-        def get_page(page: int) -> list[dict]:
-            params["page"] = str(page)
-            try:
-                got = self.session.get(url, params=params)
-                got.raise_for_status()
-                data = got.json()
-                return data[key]
-            except RequestException as exc:
-                logging.error(
-                    "Pagure: %s: Error while fetching page %d: %s", url, page, exc
-                )
-            return []
-
-        if last_page == 2:
-            return get_page(2)
-
-        with ThreadPoolExecutor(max_workers=min(10, last_page - 1)) as executor:
-            pages_to_fetch = range(2, last_page + 1)
-            results = executor.map(get_page, pages_to_fetch)
-            for result in results:
-                entries.extend(result)
-
-        return entries
-
     def _get_issues(self, **params) -> list[dict]:
         if params["assignee"]:
-            key = "issues_assigned"
-            next_key = "pagination_issues_assigned"
+            data_key = "issues_assigned"
+            next_key = "pagination_issues_assigned.next"
+            last_key = "pagination_issues_assigned.last"
         else:
-            key = "issues_created"
-            next_key = "pagination_issues_created"
+            data_key = "issues_created"
+            next_key = "pagination_issues_created.next"
+            last_key = "pagination_issues_created.last"
         url = f"{self.url}/api/0/user/{self.username}/issues"
-        return self._get_paginated(url, params=params, key=key, next_key=next_key)
+        return self._get_paginated(
+            url, params=params, data_key=data_key, next_key=next_key, last_key=last_key
+        )
 
     def _get_pullrequests(self, created: bool = False, **params) -> list[dict]:
         pr_type = "filed" if created else "actionable"
         url = f"{self.url}/api/0/user/{self.username}/requests/{pr_type}"
+        data_key = "requests"
+        next_key = "pagination.next"
+        last_key = "pagination.last"
         return self._get_paginated(
-            url, params=params, key="requests", next_key="pagination"
+            url, params=params, data_key=data_key, next_key=next_key, last_key=last_key
         )
 
     def _get_user_issues(self, query: dict[str, Any]) -> list[Issue]:
+        query["per_page"] = 100
         pull_requests = query.pop("pull_requests")
         try:
             if pull_requests:

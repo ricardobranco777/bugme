@@ -9,13 +9,16 @@ import re
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from urllib.parse import urlparse, parse_qs
-from typing import Any
+from functools import reduce
+from operator import getitem
+from urllib.parse import urlparse, urlsplit, parse_qs
+from typing import Any, Callable
 
 from datetime import datetime
 from pytz import utc
 
 import requests
+from requests.utils import parse_header_links
 from requests.exceptions import RequestException
 from requests_toolbelt.utils import dump  # type: ignore
 
@@ -59,6 +62,13 @@ def status(string: str) -> str:
     Return status in uppercase with no spaces or single quotes
     """
     return string.upper().replace(" ", "_").replace("'", "")
+
+
+def xgetitem(*keys: str | int) -> Callable[[Any], Any]:
+    """
+    Return callable to get nested item
+    """
+    return lambda item: reduce(getitem, keys, item)
 
 
 @dataclass(kw_only=True)
@@ -237,6 +247,82 @@ class Generic(Service):
         if os.getenv("DEBUG"):
             self.session.hooks["response"].append(debugme)
         self.timeout = 10
+
+    def _get_paginated(  # pylint: disable=too-many-arguments,too-many-locals
+        self,
+        url: str,
+        headers: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        param_page: str = "page",
+        data_key: str | None = None,
+        next_key: str | None = None,
+        last_key: str | None = None,
+    ) -> list[Any]:
+        """
+        Get all paginated responses
+        """
+        entries: list[dict[str, Any]] = []
+
+        if headers is None:
+            headers = {}
+        if params is None:
+            params = {}
+
+        base_url = "://".join(urlsplit(url)[:2])
+        response = self.session.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        entries = data if data_key is None else data[data_key]
+
+        next_link = last_link = None
+        if "Link" in response.headers:
+            links = parse_header_links(response.headers["Link"])
+            next_link = next((x["url"] for x in links if x.get("rel") == "next"), None)
+            last_link = next((x["url"] for x in links if x.get("rel") == "last"), None)
+        elif next_key is not None and last_key is not None:
+            next_link = xgetitem(*next_key.split("."))(data)
+            last_link = xgetitem(*last_key.split("."))(data)
+
+        if next_link and last_link:
+            if last_link.startswith("/"):
+                last_link = f"{base_url}{last_link}"
+            last_page = int(parse_qs(urlparse(last_link).query)[param_page][0])
+
+            def get_page(page: int) -> list[dict[str, Any]]:
+                nonlocal params
+                xparams = dict(params)
+                xparams[param_page] = page
+                response = self.session.get(url, params=xparams)
+                response.raise_for_status()
+                data = response.json()
+                return data if data_key is None else data[data_key]
+
+            if last_page == 2:
+                entries.extend(get_page(2))
+                return entries
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=min(10, last_page - 1)
+            ) as executor:
+                pages_to_fetch = range(2, last_page + 1)
+                results = executor.map(get_page, pages_to_fetch)
+                for result in results:
+                    entries.extend(result)
+        else:
+            while next_link is not None:
+                if next_link.startswith("/"):
+                    next_link = f"{base_url}{next_link}"
+                response = self.session.get(next_link, params=params)
+                response.raise_for_status()
+                data = response.json()
+                entries.extend(data if data_key is None else data[data_key])
+                if "Link" not in response.headers:
+                    break
+                links = parse_header_links(response.headers["Link"])
+                next_link = next(
+                    (x["url"] for x in links if x.get("rel") == "next"), None
+                )
+        return entries
 
     def close(self):
         self.session.close()
