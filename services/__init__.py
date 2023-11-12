@@ -6,6 +6,7 @@ import concurrent.futures
 import logging
 import os
 import re
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from urllib.parse import urlparse, parse_qs
@@ -49,7 +50,7 @@ def debugme(got, *args, **kwargs):  # pylint: disable=unused-argument
     Print requests response
     """
     got.hook_called = True
-    print(dump.dump_all(got).decode("utf-8"))
+    print(dump.dump_all(got).decode("utf-8"), file=sys.stderr)
     return got
 
 
