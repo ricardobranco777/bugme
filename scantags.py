@@ -99,10 +99,13 @@ def grep_file(
     Grep file
     """
     matches = []
-    with open(filename, encoding="utf-8") as file:
-        for line_number, line in enumerate(file, start=1):
-            for match in line_regex.findall(line):
-                matches.append((line_number, match))
+    try:
+        with open(filename, encoding="utf-8") as file:
+            for line_number, line in enumerate(file, start=1):
+                for match in line_regex.findall(line):
+                    matches.append((line_number, match))
+    except UnicodeDecodeError:
+        pass
     return filename, matches
 
 
