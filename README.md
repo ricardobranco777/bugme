@@ -9,7 +9,6 @@ Show bug and issue status for:
 - [GitHub](https://github.com/)
 - [GitLab](https://gitlab.com/)
 - [Jira](https://www.atlassian.com/software/jira)
-- [Launchpad](https://launchpad.net/)
 - [Pagure](https://pagure.io/)
 - [Redmine](https://www.redmine.org/)
 
@@ -88,7 +87,6 @@ $ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-dist
 - poo#: [openSUSE's Redmine](https://progress.opensuse.org)
 - soo#: [openSUSE's Gitea](https://src.opensuse.org)
 - coo#: [openSUSE's Pagure](https://code.opensuse.org)
-- lp#: [Ubuntu's Launchpad](https://launchpad.net)
 
 ## Requirements
 

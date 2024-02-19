@@ -44,7 +44,6 @@ TAG_TO_HOST = {
     "poo": "progress.opensuse.org",
     "coo": "code.opensuse.org",
     "soo": "src.opensuse.org",
-    "lp": "launchpad.net",
 }
 
 

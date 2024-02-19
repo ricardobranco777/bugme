@@ -30,8 +30,5 @@
   },
   "code.opensuse.org": {
     "token": "PAGURE_TOKEN"
-  },
-  "launchpad.net": {
-    "username": "LAUNCHPAD_USER"
   }
 }

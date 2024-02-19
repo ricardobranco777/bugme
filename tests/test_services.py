@@ -9,7 +9,6 @@ from services.gitea import MyGitea
 from services.github import MyGithub
 from services.gitlab import MyGitlab
 from services.jira import MyJira
-from services.launchpad import MyLaunchpad
 from services.pagure import MyPagure
 from services.redmine import MyRedmine
 
@@ -181,18 +180,6 @@ def test_get_urltag():
             repo="",
             is_pr=False,
         ),
-        "https://bugs.launchpad.net/2028931": dict(
-            issue_id="2028931",
-            host="bugs.launchpad.net",
-            repo="",
-            is_pr=False,
-        ),
-        "https://bugs.launchpad.net/ubuntu/jammy/+source/grub2/+bug/2028931": dict(
-            issue_id="2028931",
-            host="bugs.launchpad.net",
-            repo="ubuntu/jammy/+source/grub2",
-            is_pr=False,
-        ),
     }
     for url, want in wanted.items():
         assert get_urltag(url) == want
@@ -214,7 +201,6 @@ def test_get_urltag_with_unsupported_url():
 
 def test_guess_service():
     assert guess_service("github.com") is MyGithub
-    assert guess_service("launchpad.net") is MyLaunchpad
 
 
 def test_guess_service2():
