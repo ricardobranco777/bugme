@@ -25,6 +25,7 @@ def guess_service(server: str) -> Any:
     Guess service
     """
     servers: dict[str, Any] = {
+        "bugs.freebsd.org": MyBugzilla,
         "code.opensuse.org": MyPagure,
         "progress.opensuse.org": MyRedmine,
         "src.opensuse.org": MyGitea,

@@ -23,17 +23,23 @@ class MyBugzilla(Service):
     def __init__(self, url: str, creds: dict):
         super().__init__(url)
         options = {
-            "force_rest": True,
+            # "force_rest": True,
             "sslverify": os.environ.get("REQUESTS_CA_BUNDLE", True),
         }
+        try:
+            path = creds.pop("path")
+        except KeyError:
+            path = ""
         options |= creds
         try:
-            self.client = Bugzilla(self.url, **options)
+            self.client = Bugzilla(f"{self.url}{path}", **options)
         except (BugzillaError, RequestException) as exc:
             logging.error("Bugzilla: %s: %s", self.url, exc)
         self.client._session._session.headers["User-Agent"] = f"bugme/{VERSION}"
         if os.getenv("DEBUG"):
             self.client._session._session.hooks["response"].append(debugme)
+        if path:
+            self.url = f"{self.url}/bugzilla"
 
     def close(self):
         try:

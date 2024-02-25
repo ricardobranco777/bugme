@@ -65,6 +65,9 @@ def utc_date(date: str | datetime | None) -> datetime:
     """
     if date is None:
         return datetime.max.replace(tzinfo=utc)
+    if "DateTime" in str(date.__class__):  # xmlrpc DateTime object
+        date = datetime.strptime(str(date), '%Y%m%dT%H:%M:%S')
+        date = date.isoformat() + "Z"
     if isinstance(date, str):
         if date.isdigit():
             date = datetime.fromtimestamp(int(date))

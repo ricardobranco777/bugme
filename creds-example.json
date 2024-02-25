@@ -1,9 +1,15 @@
 {
+  "bugs.freebsd.org": {
+    "path": "/bugzilla/xmlrpc.cgi",
+    "user": "FREEBSD_BUGZILLA_USER",
+    "api_key": "FREEBSD_BUGZILLA_API_KEY"
+  },
   "bugzilla.suse.com": {
     "user": "SUSE_BUGZILLA_USER",
     "api_key": "SUSE_BUGZILLA_API_KEY"
   },
   "bugzilla.redhat.com": {
+    "user": "REDHAT_BUGZILLA_USER",
     "api_key": "REDHAT_BUGZILLA_API_KEY"
   },
   "jira.suse.com": {
