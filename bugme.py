@@ -190,9 +190,11 @@ def print_issue(
     """
     if output_type == "html":
         info = {
-            field: html.escape(issue[field])
-            if isinstance(issue[field], str)
-            else issue[field]
+            field: (
+                html.escape(issue[field])
+                if isinstance(issue[field], str)
+                else issue[field]
+            )
             for field in fields
         }
         info["tag"] = html_tag("a", issue.tag, href=issue.url)

@@ -72,9 +72,11 @@ class MyJira(Service):
         return Issue(
             tag=f"{self.tag}#{info['key']}",
             url=f"{self.url}/browse/{info['key']}",
-            assignee=info["fields"]["assignee"]["name"]
-            if info["fields"].get("assignee")
-            else "none",
+            assignee=(
+                info["fields"]["assignee"]["name"]
+                if info["fields"].get("assignee")
+                else "none"
+            ),
             creator=info["fields"]["creator"]["name"],
             created=utc_date(info["fields"]["created"]),
             updated=utc_date(info["fields"]["updated"]),
