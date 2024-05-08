@@ -29,6 +29,7 @@ def guess_service(server: str) -> Any:
         "code.opensuse.org": MyPagure,
         "progress.opensuse.org": MyRedmine,
         "src.opensuse.org": MyGitea,
+        "src.suse.de": MyGitea,
     }
     for hostname, cls in servers.items():
         if hostname == server:

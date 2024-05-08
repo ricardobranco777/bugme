@@ -34,6 +34,9 @@
   "src.opensuse.org": {
     "token": "GITEA_TOKEN"
   },
+  "src.suse.de": {
+    "token": "GITEA_TOKEN"
+  },
   "code.opensuse.org": {
     "token": "PAGURE_TOKEN"
   }
