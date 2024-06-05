@@ -95,11 +95,11 @@ def get_clients(
         cls = guess_service(host)
         if cls is None:
             logging.error("Unknown: %s", host)
-            sys.exit(1)
-        clients[host] = cls(host, creds.get(host, {}))
+        else:
+            clients[host] = cls(host, creds.get(host, {}))
 
     if len(clients) == 0:
-        sys.exit(0)
+        sys.exit(1)
     return clients
 
 
