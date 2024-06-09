@@ -13,11 +13,7 @@
     "api_key": "REDHAT_BUGZILLA_API_KEY"
   },
   "jira.suse.com": {
-    "cookies": {
-      "seraph.rememberme.cookie": "JIRA_COOKIE",
-      "JIRASESSIONID": "JIRA_SESSION_ID",
-      "atlassian.xsrf.token": "JIRA_TOKEN"
-    }
+    "token": "JIRA_TOKEN"
   },
   "progress.opensuse.org": {
     "key": "REDMINE_API_KEY"

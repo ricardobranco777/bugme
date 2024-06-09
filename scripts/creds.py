@@ -12,11 +12,7 @@ CREDS = {
     "github.com": {"login_or_token": os.getenv("BUGME_GITHUB_TOKEN")},
     "gitlab.com": {"private_token": os.getenv("GITLAB_API_KEY")},
     "jira.suse.com": {
-        "cookies": {
-            "seraph.rememberme.cookie": os.getenv("JIRA_COOKIE"),
-            "JIRASESSIONID": os.getenv("JIRA_SESSION_ID"),
-            "atlassian.xsrf.token": os.getenv("JIRA_TOKEN"),
-        },
+        "token": os.getenv("JIRA_TOKEN"),
     },
     "progress.opensuse.org": {
         "key": os.getenv("REDMINE_API_KEY"),
