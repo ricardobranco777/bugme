@@ -30,7 +30,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Delete deployment
-        uses: strumwolf/delete-deployment-environment@v2
+        uses: strumwolf/delete-deployment-environment@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           environment: github-pages
