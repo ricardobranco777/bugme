@@ -8,6 +8,10 @@
     "user": "SUSE_BUGZILLA_USER",
     "api_key": "SUSE_BUGZILLA_API_KEY"
   },
+  "bugzilla.opensuse.org": {
+    "user": "SUSE_BUGZILLA_USER",
+    "api_key": "SUSE_BUGZILLA_API_KEY"
+  },
   "bugzilla.redhat.com": {
     "user": "REDHAT_BUGZILLA_USER",
     "api_key": "REDHAT_BUGZILLA_API_KEY"
