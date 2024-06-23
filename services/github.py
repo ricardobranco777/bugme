@@ -20,7 +20,7 @@ class MyGithub(Service):
     Github
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
         options: dict[str, Any] = {
             # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
@@ -34,7 +34,7 @@ class MyGithub(Service):
         if os.getenv("DEBUG"):
             logging.getLogger("github").setLevel(logging.DEBUG)
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.client.close()
         except (AttributeError, GithubException):

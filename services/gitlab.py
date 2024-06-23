@@ -23,7 +23,7 @@ class MyGitlab(Service):
     Gitlab
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
         options: dict[str, Any] = {
             "ssl_verify": os.environ.get("REQUESTS_CA_BUNDLE", True),
@@ -40,7 +40,7 @@ class MyGitlab(Service):
         except (GitlabError, RequestException):
             pass
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.client.session.close()
         except (AttributeError, GitlabError):

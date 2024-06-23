@@ -17,7 +17,7 @@ class MyPagure(Generic):
     Pagure
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url, token=creds.get("token"))
         self.issue_api_url = f"{self.url}/api/0/{{repo}}/issue/{{issue}}"
         self.issue_web_url = f"{self.url}/{{repo}}/issue/{{issue}}"

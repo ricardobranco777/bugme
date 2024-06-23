@@ -20,7 +20,7 @@ class MyBugzilla(Service):
     Bugzilla
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
         options = {
             # "force_rest": True,
@@ -41,7 +41,7 @@ class MyBugzilla(Service):
         if path:
             self.url = f"{self.url}/bugzilla"
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.client.disconnect()
         except (AttributeError, BugzillaError):

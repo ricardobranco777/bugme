@@ -20,7 +20,7 @@ class MyRedmine(Service):
     Redmine
     """
 
-    def __init__(self, url: str, creds: dict):
+    def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
         options = {
             "raise_attr_exception": False,
@@ -31,7 +31,7 @@ class MyRedmine(Service):
         if os.getenv("DEBUG"):
             self.client.engine.session.hooks["response"].append(debugme)
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.client.engine.session.close()
         except AttributeError:

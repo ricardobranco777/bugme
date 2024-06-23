@@ -164,13 +164,13 @@ class Service(ABC):
     Service class to abstract methods
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: str) -> None:
         url = url.rstrip("/")
         self.url = url if url.startswith("https://") else f"https://{url}"
         self.tag = "".join([s[0] for s in str(urlparse(self.url).hostname).split(".")])
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """
         Close session
         """
@@ -234,7 +234,7 @@ class Generic(Service):
     Generic class for services using python requests
     """
 
-    def __init__(self, url: str, token: str | None):
+    def __init__(self, url: str, token: str | None) -> None:
         super().__init__(url)
         self.issue_api_url = self.pr_api_url = "OVERRIDE"
         self.issue_web_url = self.pr_web_url = "OVERRIDE"
@@ -323,7 +323,7 @@ class Generic(Service):
                 )
         return entries
 
-    def close(self):
+    def close(self) -> None:
         self.session.close()
 
     def get_issue(self, issue_id: str = "", **kwargs) -> Issue | None:

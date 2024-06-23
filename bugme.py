@@ -284,7 +284,7 @@ def print_issues(  # pylint: disable=too-many-arguments
         print("</tbody></table>")
 
 
-def main():
+def main() -> None:
     """
     Main function
     """
