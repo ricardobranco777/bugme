@@ -35,7 +35,6 @@ class MyJira(Service):
             pass
 
     def _get_issues(self, filters: str) -> list[dict]:
-        filters = f"{filters} AND resolution IS EMPTY"
         data = self.client.jql(filters)
         issues = data["issues"]
         while len(issues) < data["total"]:
@@ -44,7 +43,7 @@ class MyJira(Service):
         return issues
 
     def get_user_issues(self) -> list[Issue]:
-        filters = "watcher = currentUser()"
+        filters = "watcher = currentUser() AND resolution IS EMPTY"
         try:
             issues = self._get_issues(filters)
         except (ApiError, RequestException) as exc:
@@ -67,6 +66,24 @@ class MyJira(Service):
             logging.error("Jira: %s: get_issue(%s): %s", self.url, issue_id, exc)
             return None
         return self._to_issue(info)
+
+    def get_issues(self, issues: list[dict]) -> list[Issue | None]:
+        filters = f"key in ({','.join(issue['issue_id'] for issue in issues)})"
+        try:
+            found = [self._to_issue(info) for info in self._get_issues(filters=filters)]
+        except (ApiError, RequestException) as exc:
+            logging.error("Jira: %s: get_issues(): %s", self.url, exc)
+            return []
+        found_ids = {str(issue.raw["key"]) for issue in found}
+        not_found = [
+            self._not_found(
+                tag=f"{self.tag}#{issue['issue_id']}",
+                url=f"{self.url}/browse/{issue['issue_id']}",
+            )
+            for issue in issues
+            if issue["issue_id"] not in found_ids
+        ]
+        return found + not_found  # type: ignore
 
     def _to_issue(self, info: Any) -> Issue:
         return Issue(
