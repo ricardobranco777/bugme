@@ -121,7 +121,7 @@ def get_urltag(string: str) -> dict[str, str | bool] | None:
         # URL
         string = string if string.startswith("https://") else f"https://{string}"
         url = urlparse(string)
-        hostname = url.hostname.removeprefix("www.") if url.hostname is not None else ""
+        hostname = url.hostname if url.hostname is not None else ""
         path = url.path.strip("/")
         repo: str = ""
         is_pr: bool = False
