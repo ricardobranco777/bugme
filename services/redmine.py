@@ -69,6 +69,32 @@ class MyRedmine(Service):
             return None
         return self._to_issue(info)
 
+    def get_issues(self, issues: list[dict]) -> list[Issue | None]:
+        try:
+            found = [
+                self._to_issue(info)
+                for info in self.client.issue.filter(
+                    issue_id=",".join([issue["issue_id"] for issue in issues])
+                )
+            ]
+        except (BaseRedmineError, RequestException) as exc:
+            logging.error("Redmine: %s: get_issues(): %s", self.url, exc)
+            return []
+        found_ids = {str(issue.raw["id"]) for issue in found}
+        not_found = [
+            self._not_found(
+                tag=f"{self.tag}#{issue['issue_id']}",
+                url=f"{self.url}/issues/{issue['issue_id']}",
+            )
+            for issue in issues
+            if issue["issue_id"] not in found_ids
+        ]
+        # Old Redmine instances don't support fetching multiple issues at once
+        # so fetch them one by one in the base class calling get_issue() above
+        if len(found) == 1 and len(not_found) >= len(found):
+            return super().get_issues(issues)
+        return found + not_found  # type: ignore
+
     def _to_issue(self, info: Any) -> Issue:
         return Issue(
             tag=f"{self.tag}#{info.id}",
