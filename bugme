@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec podman run --rm -v ~/creds.json:/root/creds.json:ro,z ghcr.io/ricardobranco777/bugme "$@"
+exec podman run --rm -e DEBUG -v ~/creds.json:/root/creds.json:ro,z ghcr.io/ricardobranco777/bugme "$@"
