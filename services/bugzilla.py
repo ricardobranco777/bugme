@@ -92,8 +92,8 @@ class MyBugzilla(Service):
         found_ids = {str(issue.raw["id"]) for issue in found}
         not_found = [
             self._not_found(
-                url=f"{self.url}/show_bug.cgi?id={issue['issue_id']}",
                 tag=f"{self.tag}#{issue['issue_id']}",
+                url=f"{self.url}/show_bug.cgi?id={issue['issue_id']}",
             )
             for issue in issues
             if issue["issue_id"] not in found_ids
