@@ -70,7 +70,7 @@ def xgetitem(*keys: str | int) -> Callable[[Any], Any]:
     return lambda item: reduce(getitem, keys, item)
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class Issue:  # pylint: disable=too-many-instance-attributes
     """
     Issue class
