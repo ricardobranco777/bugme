@@ -223,7 +223,7 @@ def print_issue(
             )
 
 
-def print_issues(  # pylint: disable=too-many-arguments
+def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,

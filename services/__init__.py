@@ -247,7 +247,7 @@ class Generic(Service):
             self.session.hooks["response"].append(debugme)
         self.timeout = 10
 
-    def _get_paginated(  # pylint: disable=too-many-arguments,too-many-locals
+    def _get_paginated(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         url: str,
         headers: dict[str, Any] | None = None,
