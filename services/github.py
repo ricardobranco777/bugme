@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Any
 
-from github import Github, GithubException  # , Auth
+from github import Auth, Github, GithubException
 from requests.exceptions import RequestException
 
 from utils import utc_date
@@ -22,13 +22,13 @@ class MyGithub(Service):
 
     def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
+        for key in ("login_or_token", "token"):
+            if key in creds:
+                token = creds.pop(key)
         options: dict[str, Any] = {
-            # NOTE: Uncomment when latest PyGithub is published on Tumbleweed
-            # "auth" = Auth.Token(**creds),
-            # "seconds_between_requests" = 0.0,
+            "auth": Auth.Token(token=token),
             "user_agent": f"bugme/{VERSION}",
         }
-        options |= creds
         self.client = Github(**options)
         self.tag = "gh"
         if os.getenv("DEBUG"):
