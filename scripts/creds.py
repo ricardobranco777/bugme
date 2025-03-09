@@ -9,7 +9,7 @@ CREDS = {
     "bugzilla.suse.com": {
         "api_key": os.getenv("BUGZILLA_API_KEY"),
     },
-    "github.com": {"login_or_token": os.getenv("BUGME_GITHUB_TOKEN")},
+    "github.com": {"token": os.getenv("BUGME_GITHUB_TOKEN")},
     "gitlab.com": {"private_token": os.getenv("GITLAB_API_KEY")},
     "jira.suse.com": {
         "token": os.getenv("JIRA_TOKEN"),
