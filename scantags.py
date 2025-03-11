@@ -68,7 +68,7 @@ def check_repo(directory: str, repo_name: str, branch: str, token: str) -> bool:
     """
     last_commit = git_last_commit(directory, branch)
     try:
-        client = Github(login_or_token=token)
+        client = Github(token=token)
         if (
             last_commit
             != client.get_repo(repo_name, lazy=True).get_branch(branch).commit.sha
