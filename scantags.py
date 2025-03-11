@@ -14,7 +14,7 @@ from itertools import chain
 from operator import itemgetter
 from typing import Iterator
 
-from github import Github, GithubException
+from github import Auth, Github, GithubException
 from requests.exceptions import RequestException
 
 from gitblame import GitBlame
@@ -68,7 +68,7 @@ def check_repo(directory: str, repo_name: str, branch: str, token: str) -> bool:
     """
     last_commit = git_last_commit(directory, branch)
     try:
-        client = Github(token=token)
+        client = Github(auth=Auth.Token(token=token))
         if (
             last_commit
             != client.get_repo(repo_name, lazy=True).get_branch(branch).commit.sha

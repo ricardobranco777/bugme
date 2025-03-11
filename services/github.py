@@ -29,6 +29,7 @@ class MyGithub(Service):
             "auth": Auth.Token(token=token),
             "user_agent": f"bugme/{VERSION}",
         }
+        options |= creds
         self.client = Github(**options)
         self.tag = "gh"
         if os.getenv("DEBUG"):
