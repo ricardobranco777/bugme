@@ -3,7 +3,6 @@
 DOCKER="${DOCKER:-podman}"
 IMAGE="ghcr.io/ricardobranco777/bugme"
 
-set -x
 if [ "$1" = "--version" ] ; then
 	latest=$(curl -s https://api.github.com/repos/ricardobranco777/bugme/tags | jq -Mr '.[0].name')
 	if [ "${latest#v}" != $("$DOCKER" run --rm "$IMAGE" --version | awk '{ print $2 }') ] ; then
