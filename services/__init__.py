@@ -23,7 +23,7 @@ from requests.exceptions import RequestException
 from requests_toolbelt.utils import dump  # type: ignore
 
 
-VERSION = "2.4.5"
+VERSION = "2.4.6"
 
 TAG_REGEX = "|".join(
     [
