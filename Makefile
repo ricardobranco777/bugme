@@ -19,6 +19,10 @@ mypy:
 black:
 	@black --check $(FILES)
 
+.PHONY: shellcheck
+shellcheck:
+	@shellcheck susebats
+
 .PHONY: test
 test:
 	@TZ=Europe/Berlin pytest -vv
