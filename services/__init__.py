@@ -28,7 +28,7 @@ VERSION = "2.4.6"
 TAG_REGEX = "|".join(
     [
         r"(?:bnc|bsc|boo|poo|lp)#[0-9]+",
-        r"(?:gh|gl|gsd|coo|soo)#[^#!]+[#!][0-9]+",
+        r"(?:gh|gl|gsd|coo|soo|ssd)#[^#!]+[#!][0-9]+",
         r"jsc#[A-Z]+-[0-9]+",
     ]
 )
@@ -44,6 +44,7 @@ TAG_TO_HOST = {
     "poo": "progress.opensuse.org",
     "coo": "code.opensuse.org",
     "soo": "src.opensuse.org",
+    "ssd": "src.suse.de",
 }
 
 
