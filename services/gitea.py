@@ -50,9 +50,12 @@ class MyGitea(Generic):
         return self._get_user_issues_x(queries)
 
     def _to_issue(self, info: Any, **kwargs) -> Issue:
-        repo = kwargs.get("repo", info["repository"]["full_name"])
         is_pr = bool(kwargs.get("is_pr"))
         mark = "!" if is_pr else "#"
+        if is_pr:
+            repo = kwargs.get("repo", info["base"]["repo"]["full_name"])
+        else:
+            repo = kwargs.get("repo", info["repository"]["full_name"])
         return Issue(
             tag=f'{self.tag}#{repo}{mark}{info["number"]}',
             url=info["html_url"],
