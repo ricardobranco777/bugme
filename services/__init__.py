@@ -35,14 +35,15 @@ TAG_REGEX = "|".join(
 
 TAG_TO_HOST = {
     "bnc": "bugzilla.suse.com",
-    "bsc": "bugzilla.suse.com",
     "boo": "bugzilla.suse.com",
+    "bsc": "bugzilla.suse.com",
+    "coo": "code.opensuse.org",
+    "poo": "progress.opensuse.org",
     "gh": "github.com",
     "gl": "gitlab.com",
     "gsd": "gitlab.suse.de",
     "jsc": "jira.suse.com",
-    "poo": "progress.opensuse.org",
-    "coo": "code.opensuse.org",
+    "lp": "launchpad.net",
     "soo": "src.opensuse.org",
     "ssd": "src.suse.de",
 }

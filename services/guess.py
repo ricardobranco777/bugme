@@ -15,6 +15,7 @@ from .gitea import MyGitea
 from .github import MyGithub
 from .gitlab import MyGitlab
 from .jira import MyJira
+from .launchpad import MyLaunchpad
 from .pagure import MyPagure
 from .redmine import MyRedmine
 
@@ -48,6 +49,7 @@ def guess_service(server: str) -> Any:
 
     suffixes: dict[str, Any] = {
         "github.com": MyGithub,
+        "launchpad.net": MyLaunchpad,
     }
     for suffix, cls in suffixes.items():
         if server.endswith(suffix):
