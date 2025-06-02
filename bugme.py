@@ -242,6 +242,8 @@ def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-argu
         issues = get_user_issues(creds, urltags, statuses)
     else:
         if not urltags:
+            # Disable this for now
+            return
             try:
                 xtags = scan_tags(".", token=creds["github.com"]["login_or_token"])
             except OSError as exc:
