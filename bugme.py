@@ -223,7 +223,7 @@ def print_issue(
             )
 
 
-def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches
     creds: dict[str, dict[str, str]],
     urltags: list[str] | None,
     time_format: str,
@@ -242,8 +242,8 @@ def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-argu
         issues = get_user_issues(creds, urltags, statuses)
     else:
         if not urltags:
-            if not os.path.isdir(".git")
-                os.exit(0)
+            if not os.path.isdir(".git"):
+                sys.exit(0)
             try:
                 xtags = scan_tags(".", token=creds["github.com"]["login_or_token"])
             except OSError as exc:
