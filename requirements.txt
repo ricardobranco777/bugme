@@ -1,13 +1,13 @@
 atlassian-python-api==4.0.4
 beautifulsoup4==4.13.4
-certifi==2025.4.26
+certifi==2025.6.15
 cffi==1.17.1
 charset-normalizer==3.4.2
 cryptography==45.0.4
 Deprecated==1.2.18
 idna==3.10
 jmespath==1.0.1
-oauthlib==3.2.2
+oauthlib==3.3.0
 pycparser==2.22
 PyGithub==2.6.1
 PyJWT==2.10.1
@@ -23,5 +23,5 @@ requests-toolbelt==1.0.0
 six==1.17.0
 soupsieve==2.7
 typing_extensions==4.14.0
-urllib3==2.4.0
+urllib3==2.5.0
 wrapt==1.17.2
