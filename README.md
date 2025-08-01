@@ -69,7 +69,7 @@ https://code.opensuse.org/rbranco/test/issue/1        OPEN         4 days ago   
 To scan a repository:
 
 ```
-$ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-distri-opensuse:/bugme:ro ghcr.io/ricardobranco777/bugme
+$ podman run --rm -v ~/creds.json:/root/creds.json:ro -v ~/suse/os-autoinst-distri-opensuse:/bugme:ro,z ghcr.io/ricardobranco777/bugme
 ```
 
 ## Supported tags
