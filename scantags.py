@@ -24,8 +24,8 @@ from utils import utc_date
 FILE_PATTERN = "*.pm"
 IGNORE_DIRECTORIES = [".git", "t"]
 LINE_REGEX = re.compile(rf"(?:soft_fail|record_info).*?({TAG_REGEX})")
-#INCLUDE_FILES = ["data/journal_check/bug_refs.json"]
-INCLUDE_FILES = []
+# INCLUDE_FILES = ["data/journal_check/bug_refs.json"]
+INCLUDE_FILES: list[str] = []
 
 
 def git_branch(directory: str) -> str | None:

@@ -290,7 +290,6 @@ class Generic(Service):
             last_page = int(parse_qs(urlparse(last_link).query)[param_page][0])
 
             def get_page(page: int) -> list[dict[str, Any]]:
-                nonlocal params
                 xparams = dict(params)
                 xparams[param_page] = page
                 response = self.session.get(url, params=xparams)
