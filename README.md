@@ -5,6 +5,7 @@
 Show bug and issue status for:
 
 - [Bugzilla](https://www.bugzilla.org/)
+- [Forgejo](https://forgejo.org/)
 - [Gitea](https://about.gitea.com/)
 - [GitHub](https://github.com/)
 - [GitLab](https://gitlab.com/)
