@@ -35,7 +35,7 @@ def git_branch(directory: str) -> str | None:
     with open(os.path.join(directory, ".git", "HEAD"), encoding="utf-8") as file:
         data = file.read().rstrip()
     if not data.startswith("ref: refs/heads/"):
-        logging.error("%s: repository is detached")
+        logging.error("%s: repository is detached", directory)
         return None
     return data.removeprefix("ref: refs/heads/")
 
