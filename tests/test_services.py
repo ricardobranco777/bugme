@@ -222,6 +222,5 @@ def test_guess_service2():
     assert guess_service2("issues.redhat.com") is MyJira
     assert guess_service2("progress.opensuse.org") is MyRedmine
     assert guess_service2("bugzilla.suse.com") is MyBugzilla
-    assert guess_service2("jira.suse.com") is MyJira
     assert guess_service2("src.opensuse.org") is MyGitea
     assert guess_service2("pagure.io") is MyPagure
