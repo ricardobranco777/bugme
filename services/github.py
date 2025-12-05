@@ -22,6 +22,7 @@ class MyGithub(Service):
 
     def __init__(self, url: str, creds: dict) -> None:
         super().__init__(url)
+        token = None
         for key in ("login_or_token", "token"):
             if key in creds:
                 token = creds.pop(key)
