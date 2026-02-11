@@ -18,7 +18,6 @@ from services import get_urltag, Issue, VERSION
 from services.guess import guess_service
 from utils import dateit, html_tag
 
-
 DEFAULT_CREDENTIALS_FILE = os.path.expanduser("~/creds.json")
 
 
@@ -256,7 +255,7 @@ def print_issues(  # pylint: disable=too-many-arguments,too-many-positional-argu
         issues.sort(key=Issue.sort_key, reverse=reverse)
     elif sort_key is not None:
         issues.sort(
-            key=lambda it: (it[sort_key], *it.sort_key()),  # type:ignore
+            key=lambda it: (it[sort_key], *it.sort_key()),  # type: ignore
             reverse=reverse,
         )
 

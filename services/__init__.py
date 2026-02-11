@@ -22,7 +22,6 @@ from requests.utils import parse_header_links
 from requests.exceptions import RequestException
 from requests_toolbelt.utils import dump  # type: ignore
 
-
 VERSION = "2.4.7"
 
 TAG_REGEX = "|".join(

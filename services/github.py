@@ -27,9 +27,10 @@ class MyGithub(Service):
             if key in creds:
                 token = creds.pop(key)
         options: dict[str, Any] = {
-            "auth": Auth.Token(token=token),
             "user_agent": f"bugme/{VERSION}",
         }
+        if token is not None:
+            options["auth"] = Auth.Token(token=token)
         options |= creds
         self.client = Github(**options)
         self.tag = "gh"

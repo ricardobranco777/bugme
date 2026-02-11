@@ -13,7 +13,6 @@ from services.launchpad import MyLaunchpad
 from services.pagure import MyPagure
 from services.redmine import MyRedmine
 
-
 NOW = datetime(2023, 11, 3, 22, 47, 36, 976024)
 
 

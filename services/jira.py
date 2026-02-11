@@ -36,9 +36,13 @@ class MyJira(Service):
 
     def _get_issues(self, filters: str) -> list[dict]:
         data = self.client.jql(filters)
+        if data is None:
+            return []
         issues = data["issues"]
         while len(issues) < data["total"]:
             data = self.client.jql(filters, start=len(issues))
+            if data is None:
+                return []
             issues.extend(data["issues"])
         return issues
 

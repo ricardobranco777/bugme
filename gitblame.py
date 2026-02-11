@@ -14,7 +14,6 @@ from requests import RequestException
 from services import debugme, VERSION
 from utils import utc_date
 
-
 _QUERY = """
 query($owner: String!, $repositoryName: String!, $branchName: String!, $filePath: String!) {
   repositoryOwner(login: $owner) {
