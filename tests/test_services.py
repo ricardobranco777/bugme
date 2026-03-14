@@ -3,15 +3,6 @@
 from datetime import datetime
 import pytest
 from services import get_urltag, Issue
-from services.guess import guess_service, guess_service2
-from services.bugzilla import MyBugzilla
-from services.gitea import MyGitea
-from services.github import MyGithub
-from services.gitlab import MyGitlab
-from services.jira import MyJira
-from services.launchpad import MyLaunchpad
-from services.pagure import MyPagure
-from services.redmine import MyRedmine
 
 NOW = datetime(2023, 11, 3, 22, 47, 36, 976024)
 
