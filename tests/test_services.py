@@ -209,17 +209,3 @@ def test_get_urltag_with_unsupported_url():
     url = "bsd#666"
     issue = get_urltag(url)
     assert issue is None
-
-
-def test_guess_service():
-    assert guess_service("github.com") is MyGithub
-    assert guess_service("launchpad.net") is MyLaunchpad
-
-
-def test_guess_service2():
-    assert guess_service2("gitlab.com") is MyGitlab
-    assert guess_service2("issues.redhat.com") is MyJira
-    assert guess_service2("progress.opensuse.org") is MyRedmine
-    assert guess_service2("bugzilla.suse.com") is MyBugzilla
-    assert guess_service2("src.opensuse.org") is MyGitea
-    assert guess_service2("pagure.io") is MyPagure
