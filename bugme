@@ -29,6 +29,7 @@ fi
 
 opts=(
 	--cap-drop=ALL
+	--net=host
 	--read-only
 	--rm
 	--security-opt=no-new-privileges
