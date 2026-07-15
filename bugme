@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 IMAGE="ghcr.io/ricardobranco777/bugme"
 
@@ -22,11 +22,16 @@ if [ -z "$RUNTIME" ]; then
 	fi
 fi
 
+# Do not use sudo if we're in docker group
+if [[ -n "$SUDO" && $RUNTIME =~ docker ]] && id -Gn | grep -qw docker; then
+	SUDO=
+fi
+
 if [ "$1" = "--version" ] ; then
 	latest=$(curl -s https://api.github.com/repos/ricardobranco777/bugme/tags | jq -Mr '.[0].name')
-	if [ "${latest#v}" != "$("$SUDO" "$RUNTIME" run --rm "$IMAGE" --version | awk '{ print $2 }')" ] ; then
+	if [ "${latest#v}" != "$($SUDO "$RUNTIME" run --rm "$IMAGE" --version | awk '{ print $2 }')" ] ; then
 		echo "Latest version available: $latest" >&2
 	fi
 fi
 
-exec "$SUDO" "$RUNTIME" run --rm --security-opt no-new-privileges -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
+exec $SUDO "$RUNTIME" run --rm --security-opt no-new-privileges -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
