@@ -7,19 +7,19 @@ PODMAN=$(command -v podman)
 
 # We need unprivileged user namespaces for rootless containers
 if unshare -U true >/dev/null 2>&1; then
-        SUDO=
+	SUDO=
 else
-        SUDO=${SUDO:-$(command -v sudo)}
+	SUDO=${SUDO:-$(command -v sudo)}
 fi
 
 # Use Docker if unprivileged user namespaces are disabled and
 # the socket exists, otherwise use podman if available
 if [ -z "$RUNTIME" ]; then
-        if [ -n "$SUDO" ] && [ -S /var/run/docker.sock ]; then
-                RUNTIME=$DOCKER
-        else
-                RUNTIME=${PODMAN:-$DOCKER}
-        fi
+	if [ -n "$SUDO" ] && [ -S /var/run/docker.sock ]; then
+		RUNTIME=$DOCKER
+	else
+		RUNTIME=${PODMAN:-$DOCKER}
+	fi
 fi
 
 if [ "$1" = "--version" ] ; then
@@ -29,4 +29,4 @@ if [ "$1" = "--version" ] ; then
 	fi
 fi
 
-exec "$SUDO" "$RUNTIME" run --rm -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
+exec "$SUDO" "$RUNTIME" run --rm --security-opt no-new-privileges -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
