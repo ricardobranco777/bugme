@@ -1,13 +1,32 @@
 #!/bin/sh
 
-DOCKER="${DOCKER:-podman}"
 IMAGE="ghcr.io/ricardobranco777/bugme"
+
+DOCKER=$(command -v docker)
+PODMAN=$(command -v podman)
+
+# We need unprivileged user namespaces for rootless containers
+if unshare -U true >/dev/null 2>&1; then
+        SUDO=
+else
+        SUDO=${SUDO:-$(command -v sudo)}
+fi
+
+# Use Docker if unprivileged user namespaces are disabled and
+# the socket exists, otherwise use podman if available
+if [ -z "$RUNTIME" ]; then
+        if [ -n "$SUDO" ] && [ -S /var/run/docker.sock ]; then
+                RUNTIME=$DOCKER
+        else
+                RUNTIME=${PODMAN:-$DOCKER}
+        fi
+fi
 
 if [ "$1" = "--version" ] ; then
 	latest=$(curl -s https://api.github.com/repos/ricardobranco777/bugme/tags | jq -Mr '.[0].name')
-	if [ "${latest#v}" != "$("$DOCKER" run --rm "$IMAGE" --version | awk '{ print $2 }')" ] ; then
+	if [ "${latest#v}" != "$("$SUDO" "$RUNTIME" run --rm "$IMAGE" --version | awk '{ print $2 }')" ] ; then
 		echo "Latest version available: $latest" >&2
 	fi
 fi
 
-exec "$DOCKER" run --rm -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
+exec "$SUDO" "$RUNTIME" run --rm -e DEBUG -v ~/creds.json:/root/creds.json:ro,z "$IMAGE" "$@"
