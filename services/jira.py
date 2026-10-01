@@ -16,7 +16,7 @@ from . import Service, Issue, debugme, status, VERSION
 
 # References:
 # https://support.atlassian.com/jira-service-management-cloud/docs/jql-functions/
-class MyJira(Service):
+class MyJira(Service):  # pylint: disable=abstract-method
     """
     Jira
     """

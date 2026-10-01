@@ -15,7 +15,7 @@ from . import Service, Issue, status, VERSION
 
 # Reference:
 # https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests
-class MyGithub(Service):
+class MyGithub(Service):  # pylint: disable=abstract-method
     """
     Github
     """
